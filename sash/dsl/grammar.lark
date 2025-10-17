@@ -1,0 +1,78 @@
+// Constraint DSL Grammar
+// This grammar defines the syntax for constraint expressions used in templates
+
+?start: expr
+
+// Expressions (with precedence)
+?expr: or_expr
+
+?or_expr: and_expr
+        | or_expr "or" and_expr  -> binary_op
+
+?and_expr: not_expr
+         | and_expr "and" not_expr  -> binary_op
+
+?not_expr: comparison
+         | "not" not_expr  -> unary_op
+
+?comparison: arithmetic
+           | comparison "==" arithmetic  -> binary_op
+           | comparison "!=" arithmetic  -> binary_op
+           | comparison "<" arithmetic   -> binary_op
+           | comparison ">" arithmetic   -> binary_op
+           | comparison "<=" arithmetic  -> binary_op
+           | comparison ">=" arithmetic  -> binary_op
+           | comparison "in" arithmetic  -> binary_op
+           | comparison "not" "in" arithmetic  -> binary_op_not_in
+
+?arithmetic: term
+           | arithmetic "+" term  -> binary_op
+           | arithmetic "-" term  -> binary_op
+
+?term: factor
+     | term "*" factor  -> binary_op
+     | term "/" factor  -> binary_op
+     | term "%" factor  -> binary_op
+
+?factor: atom
+       | "-" factor  -> unary_op
+       | "+" factor  -> unary_op
+
+?atom: literal
+     | variable
+     | attribute_access
+     | function_call
+     | list_literal
+     | "(" expr ")"
+
+// Literals
+literal: STRING  -> string_literal
+       | NUMBER  -> number_literal
+       | "true"  -> true_literal
+       | "false" -> false_literal
+
+// Variables and identifiers
+variable: NAME
+
+attribute_access: atom "." NAME
+
+function_call: NAME "(" [arguments] ")"
+
+arguments: expr ("," expr)*
+
+list_literal: "[" [list_elements] "]"
+
+list_elements: expr ("," expr)*
+
+// Terminals
+STRING: /"[^"]*"/ | /'[^']*'/
+NUMBER: /\d+\.?\d*/
+NAME: /[a-zA-Z_][a-zA-Z0-9_]*/
+
+// Whitespace
+%import common.WS
+%ignore WS
+
+// Comments
+COMMENT: /#[^\n]*/
+%ignore COMMENT
