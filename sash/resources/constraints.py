@@ -19,7 +19,7 @@ from sash.data.base import SashBaseModel
 
 
 def _empty_uuid_list() -> list[UUID]:
-    """Factory for empty UUID list."""
+    """Create an empty UUID list."""
     return []
 
 

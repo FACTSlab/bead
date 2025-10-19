@@ -18,6 +18,7 @@ import polars as pl
 from pydantic import Field
 
 from sash.data.base import SashBaseModel
+from sash.data.language_codes import LanguageCode
 from sash.resources.models import LexicalItem
 
 # Type alias for supported DataFrame types
@@ -25,12 +26,12 @@ type DataFrame = pd.DataFrame | pl.DataFrame
 
 
 def _empty_str_list() -> list[str]:
-    """Factory for empty string list."""
+    """Create an empty string list."""
     return []
 
 
 def _empty_item_dict() -> dict[UUID, LexicalItem]:
-    """Factory for empty item dictionary."""
+    """Create an empty item dictionary."""
     return {}
 
 
@@ -52,8 +53,10 @@ class Lexicon(SashBaseModel):
         Name of the lexicon.
     description : str | None
         Optional description of the lexicon's purpose.
-    language_code : str | None
-        ISO 639-1 or 639-3 language code (e.g., "en", "es", "eng").
+    language_code : LanguageCode | None
+        ISO 639-1 (2-letter) or ISO 639-3 (3-letter) language code.
+        Examples: "en", "eng", "ko", "kor", "zu", "zul".
+        Automatically validated and normalized to lowercase.
     items : dict[UUID, LexicalItem]
         Dictionary of items indexed by their UUIDs.
     tags : list[str]
@@ -73,7 +76,7 @@ class Lexicon(SashBaseModel):
 
     name: str
     description: str | None = None
-    language_code: str | None = None
+    language_code: LanguageCode | None = None
     items: dict[UUID, LexicalItem] = Field(default_factory=_empty_item_dict)
     tags: list[str] = Field(default_factory=_empty_str_list)
 
@@ -96,7 +99,7 @@ class Lexicon(SashBaseModel):
         """
         return len(self.items)
 
-    def __iter__(self) -> Iterator[LexicalItem]:
+    def __iter__(self) -> Iterator[LexicalItem]:  # type: ignore[override]
         """Iterate over items in lexicon.
 
         Returns
@@ -566,7 +569,7 @@ class Lexicon(SashBaseModel):
             for key, value in item.attributes.items():
                 row[f"attr_{key}"] = value
 
-            rows.append(row)
+            rows.append(row)  # type: ignore[arg-type]
 
         if backend == "pandas":
             return pd.DataFrame(rows)
@@ -617,7 +620,7 @@ class Lexicon(SashBaseModel):
         if is_polars:
             rows = df.to_dicts()
         else:
-            rows = df.to_dict("records")
+            rows = df.to_dict("records")  # type: ignore[call-overload]
 
         for row in rows:
             # Extract base fields
@@ -628,7 +631,7 @@ class Lexicon(SashBaseModel):
                 if is_polars:
                     return value is not None
                 else:
-                    return pd.notna(value)
+                    return pd.notna(value)  # type: ignore[no-any-return]
 
             if "pos" in row and is_not_null(row["pos"]):
                 item_data["pos"] = row["pos"]

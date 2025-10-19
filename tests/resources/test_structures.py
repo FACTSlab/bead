@@ -128,6 +128,7 @@ class TestTemplate:
         assert template.name == "minimal"
         assert template.slots == {"word": slot}
         assert template.description is None
+        assert template.language_code is None
         assert template.tags == []
         assert template.metadata == {}
 
@@ -286,6 +287,66 @@ class TestTemplate:
                 slots={},
             )
         assert "template_string must be non-empty" in str(exc_info.value)
+
+
+class TestTemplateLanguageCode:
+    """Test template language code functionality."""
+
+    def test_create_with_language_code(self) -> None:
+        """Test creating a template with language code."""
+        slot = Slot(name="x")
+        template = Template(
+            name="test",
+            template_string="{x}.",
+            slots={"x": slot},
+            language_code="en",
+        )
+        assert template.language_code == "en"
+
+    def test_language_code_normalization(self) -> None:
+        """Test that language codes are normalized to lowercase."""
+        slot = Slot(name="x")
+        template = Template(
+            name="test",
+            template_string="{x}.",
+            slots={"x": slot},
+            language_code="EN",
+        )
+        assert template.language_code == "en"
+
+    def test_language_code_validation(self) -> None:
+        """Test that invalid language codes are rejected."""
+        slot = Slot(name="x")
+        with pytest.raises(ValidationError) as exc_info:
+            Template(
+                name="test",
+                template_string="{x}.",
+                slots={"x": slot},
+                language_code="invalid",
+            )
+        assert "Invalid ISO 639" in str(exc_info.value)
+
+    def test_language_code_iso639_1(self) -> None:
+        """Test ISO 639-1 (2-letter) language codes."""
+        slot = Slot(name="x")
+        template = Template(
+            name="test",
+            template_string="{x}.",
+            slots={"x": slot},
+            language_code="ko",
+        )
+        assert template.language_code == "ko"
+
+    def test_language_code_iso639_3(self) -> None:
+        """Test ISO 639-3 (3-letter) language codes."""
+        slot = Slot(name="x")
+        template = Template(
+            name="test",
+            template_string="{x}.",
+            slots={"x": slot},
+            language_code="eng",
+        )
+        assert template.language_code == "eng"
 
 
 class TestTemplateSequence:

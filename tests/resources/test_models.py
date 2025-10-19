@@ -36,6 +36,7 @@ class TestLexicalItemCreation:
         assert item.lemma == "run"
         assert item.pos is None
         assert item.form is None
+        assert item.language_code is None
         assert item.features == {}
         assert item.attributes == {}
         assert item.source is None
@@ -212,3 +213,33 @@ class TestLexicalItemAttributeTypes:
         """Test lexical item with list attribute."""
         item = LexicalItem(lemma="test", attributes={"synonyms": ["run", "jog"]})
         assert item.attributes["synonyms"] == ["run", "jog"]
+
+
+class TestLexicalItemLanguageCode:
+    """Test lexical item language code functionality."""
+
+    def test_create_with_language_code(self) -> None:
+        """Test creating a lexical item with language code."""
+        item = LexicalItem(lemma="walk", pos="VERB", language_code="en")
+        assert item.language_code == "en"
+
+    def test_language_code_normalization(self) -> None:
+        """Test that language codes are normalized to lowercase."""
+        item = LexicalItem(lemma="test", language_code="EN")
+        assert item.language_code == "en"
+
+    def test_language_code_validation(self) -> None:
+        """Test that invalid language codes are rejected."""
+        with pytest.raises(ValidationError) as exc_info:
+            LexicalItem(lemma="test", language_code="invalid")
+        assert "Invalid ISO 639" in str(exc_info.value)
+
+    def test_language_code_iso639_1(self) -> None:
+        """Test ISO 639-1 (2-letter) language codes."""
+        item = LexicalItem(lemma="먹다", language_code="ko")
+        assert item.language_code == "ko"
+
+    def test_language_code_iso639_3(self) -> None:
+        """Test ISO 639-3 (3-letter) language codes."""
+        item = LexicalItem(lemma="test", language_code="eng")
+        assert item.language_code == "eng"

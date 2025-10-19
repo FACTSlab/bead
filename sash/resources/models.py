@@ -12,6 +12,7 @@ from typing import Any
 from pydantic import Field, field_validator
 
 from sash.data.base import SashBaseModel
+from sash.data.language_codes import LanguageCode
 
 
 class LexicalItem(SashBaseModel):
@@ -21,6 +22,7 @@ class LexicalItem(SashBaseModel):
     template slots. Each item has:
     - A unique identifier (inherited from SashBaseModel)
     - Core lexical attributes (lemma, pos, etc.)
+    - Optional language code (ISO 639-1 or ISO 639-3)
     - Optional linguistic features
     - Optional custom attributes
     - Metadata tracking (provenance, processing history)
@@ -33,6 +35,10 @@ class LexicalItem(SashBaseModel):
         Part of speech tag (e.g., "VERB", "NOUN").
     form : str | None
         Inflected surface form if different from lemma.
+    language_code : LanguageCode | None
+        ISO 639-1 (2-letter) or ISO 639-3 (3-letter) language code.
+        Examples: "en", "eng", "ko", "kor", "zu", "zul".
+        Required for cross-linguistic classification via LexicalItemClass (Phase 20).
     features : dict[str, Any]
         Linguistic features (e.g., {"tense": "past", "number": "plural"}).
     attributes : dict[str, Any]
@@ -57,6 +63,7 @@ class LexicalItem(SashBaseModel):
     lemma: str
     pos: str | None = None
     form: str | None = None
+    language_code: LanguageCode | None = None
     features: dict[str, Any] = Field(default_factory=dict)
     attributes: dict[str, Any] = Field(default_factory=dict)
     source: str | None = None

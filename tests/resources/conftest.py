@@ -137,3 +137,39 @@ def sample_template_collection(sample_template: Template) -> TemplateCollection:
     collection.add(template2)
 
     return collection
+
+
+@pytest.fixture
+def english_item() -> LexicalItem:
+    """Provide an English lexical item."""
+    return LexicalItem(lemma="walk", pos="VERB", language_code="en")
+
+
+@pytest.fixture
+def korean_item() -> LexicalItem:
+    """Provide a Korean lexical item."""
+    return LexicalItem(lemma="먹다", pos="VERB", language_code="ko")
+
+
+@pytest.fixture
+def english_template() -> Template:
+    """Provide an English template."""
+    slot = Slot(name="x", required=True)
+    return Template(
+        name="english_test",
+        template_string="{x}.",
+        slots={"x": slot},
+        language_code="en",
+    )
+
+
+@pytest.fixture
+def korean_template() -> Template:
+    """Provide a Korean template."""
+    slot = Slot(name="x", required=True)
+    return Template(
+        name="korean_test",
+        template_string="{x}.",
+        slots={"x": slot},
+        language_code="ko",
+    )

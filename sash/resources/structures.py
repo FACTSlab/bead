@@ -13,16 +13,17 @@ from typing import Any
 from pydantic import Field, field_validator, model_validator
 
 from sash.data.base import SashBaseModel
+from sash.data.language_codes import LanguageCode
 from sash.resources.constraints import Constraint
 
 
 def _empty_constraint_list() -> list[Constraint]:
-    """Factory for empty constraint list."""
+    """Create an empty constraint list."""
     return []
 
 
 def _empty_str_list() -> list[str]:
-    """Factory for empty string list."""
+    """Create an empty string list."""
     return []
 
 
@@ -94,6 +95,7 @@ class Template(SashBaseModel):
     Templates define the structure of generated sentences. They contain:
     - A template string with slot placeholders (e.g., "{subject} {verb} {object}")
     - Slot definitions with constraints
+    - Optional language code
     - Optional metadata
 
     Attributes
@@ -106,6 +108,10 @@ class Template(SashBaseModel):
         Slot definitions keyed by slot name.
     description : str | None
         Human-readable description.
+    language_code : LanguageCode | None
+        ISO 639-1 (2-letter) or ISO 639-3 (3-letter) language code.
+        Examples: "en", "eng", "ko", "kor", "zu", "zul".
+        Required for cross-linguistic classification via TemplateClass (Phase 20).
     tags : list[str]
         Tags for categorization.
     metadata : dict[str, Any]
@@ -129,6 +135,7 @@ class Template(SashBaseModel):
     template_string: str
     slots: dict[str, Slot] = Field(default_factory=dict)
     description: str | None = None
+    language_code: LanguageCode | None = None
     tags: list[str] = Field(default_factory=_empty_str_list)
     metadata: dict[str, Any] = Field(default_factory=dict)
 
@@ -231,7 +238,7 @@ class Template(SashBaseModel):
 
 
 def _empty_template_list() -> list[Template]:
-    """Factory for empty template list."""
+    """Create an empty template list."""
     return []
 
 
@@ -291,7 +298,7 @@ class TemplateSequence(SashBaseModel):
 
 
 def _empty_tree_list() -> list[TemplateTree]:
-    """Factory for empty template tree list."""
+    """Create an empty template tree list."""
     return []
 
 

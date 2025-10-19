@@ -24,12 +24,12 @@ type DataFrame = pd.DataFrame | pl.DataFrame
 
 
 def _empty_str_list() -> list[str]:
-    """Factory for empty string list."""
+    """Create an empty string list."""
     return []
 
 
 def _empty_template_dict() -> dict[UUID, Template]:
-    """Factory for empty template dictionary."""
+    """Create an empty template dictionary."""
     return {}
 
 
@@ -98,7 +98,7 @@ class TemplateCollection(SashBaseModel):
         """
         return len(self.templates)
 
-    def __iter__(self) -> Iterator[Template]:
+    def __iter__(self) -> Iterator[Template]:  # type: ignore[override]
         """Iterate over templates in collection.
 
         Returns
@@ -110,8 +110,12 @@ class TemplateCollection(SashBaseModel):
         --------
         >>> from sash.resources import Slot
         >>> collection = TemplateCollection(name="test")
-        >>> t1 = Template(name="t1", template_string="{x}.", slots={"x": Slot(name="x")})
-        >>> t2 = Template(name="t2", template_string="{y}.", slots={"y": Slot(name="y")})
+        >>> t1 = Template(
+        ...     name="t1", template_string="{x}.", slots={"x": Slot(name="x")}
+        ... )
+        >>> t2 = Template(
+        ...     name="t2", template_string="{y}.", slots={"y": Slot(name="y")}
+        ... )
         >>> collection.add(t1)
         >>> collection.add(t2)
         >>> [t.name for t in collection]
@@ -136,7 +140,9 @@ class TemplateCollection(SashBaseModel):
         --------
         >>> from sash.resources import Slot
         >>> collection = TemplateCollection(name="test")
-        >>> template = Template(name="test", template_string="{x}.", slots={"x": Slot(name="x")})
+        >>> template = Template(
+        ...     name="test", template_string="{x}.", slots={"x": Slot(name="x")}
+        ... )
         >>> collection.add(template)
         >>> template.id in collection
         True
@@ -160,7 +166,9 @@ class TemplateCollection(SashBaseModel):
         --------
         >>> from sash.resources import Slot
         >>> collection = TemplateCollection(name="test")
-        >>> template = Template(name="test", template_string="{x}.", slots={"x": Slot(name="x")})
+        >>> template = Template(
+        ...     name="test", template_string="{x}.", slots={"x": Slot(name="x")}
+        ... )
         >>> collection.add(template)
         >>> len(collection)
         1
@@ -189,8 +197,12 @@ class TemplateCollection(SashBaseModel):
         --------
         >>> from sash.resources import Slot
         >>> collection = TemplateCollection(name="test")
-        >>> t1 = Template(name="t1", template_string="{x}.", slots={"x": Slot(name="x")})
-        >>> t2 = Template(name="t2", template_string="{y}.", slots={"y": Slot(name="y")})
+        >>> t1 = Template(
+        ...     name="t1", template_string="{x}.", slots={"x": Slot(name="x")}
+        ... )
+        >>> t2 = Template(
+        ...     name="t2", template_string="{y}.", slots={"y": Slot(name="y")}
+        ... )
         >>> collection.add_many([t1, t2])
         >>> len(collection)
         2
@@ -220,7 +232,9 @@ class TemplateCollection(SashBaseModel):
         --------
         >>> from sash.resources import Slot
         >>> collection = TemplateCollection(name="test")
-        >>> template = Template(name="test", template_string="{x}.", slots={"x": Slot(name="x")})
+        >>> template = Template(
+        ...     name="test", template_string="{x}.", slots={"x": Slot(name="x")}
+        ... )
         >>> collection.add(template)
         >>> removed = collection.remove(template.id)
         >>> removed.name
@@ -251,7 +265,9 @@ class TemplateCollection(SashBaseModel):
         --------
         >>> from sash.resources import Slot
         >>> collection = TemplateCollection(name="test")
-        >>> template = Template(name="test", template_string="{x}.", slots={"x": Slot(name="x")})
+        >>> template = Template(
+        ...     name="test", template_string="{x}.", slots={"x": Slot(name="x")}
+        ... )
         >>> collection.add(template)
         >>> retrieved = collection.get(template.id)
         >>> retrieved.name  # doctest: +SKIP
@@ -281,8 +297,18 @@ class TemplateCollection(SashBaseModel):
         --------
         >>> from sash.resources import Slot
         >>> collection = TemplateCollection(name="test")
-        >>> t1 = Template(name="t1", template_string="{x}.", slots={"x": Slot(name="x")}, tags=["simple"])
-        >>> t2 = Template(name="t2", template_string="{y} {z}.", slots={"y": Slot(name="y"), "z": Slot(name="z")}, tags=["complex"])
+        >>> t1 = Template(
+        ...     name="t1",
+        ...     template_string="{x}.",
+        ...     slots={"x": Slot(name="x")},
+        ...     tags=["simple"],
+        ... )
+        >>> t2 = Template(
+        ...     name="t2",
+        ...     template_string="{y} {z}.",
+        ...     slots={"y": Slot(name="y"), "z": Slot(name="z")},
+        ...     tags=["complex"],
+        ... )
         >>> collection.add(t1)
         >>> collection.add(t2)
         >>> simple = collection.filter(lambda t: "simple" in t.tags)
@@ -319,8 +345,18 @@ class TemplateCollection(SashBaseModel):
         --------
         >>> from sash.resources import Slot
         >>> collection = TemplateCollection(name="test")
-        >>> t1 = Template(name="t1", template_string="{x}.", slots={"x": Slot(name="x")}, tags=["simple"])
-        >>> t2 = Template(name="t2", template_string="{y}.", slots={"y": Slot(name="y")}, tags=["complex"])
+        >>> t1 = Template(
+        ...     name="t1",
+        ...     template_string="{x}.",
+        ...     slots={"x": Slot(name="x")},
+        ...     tags=["simple"],
+        ... )
+        >>> t2 = Template(
+        ...     name="t2",
+        ...     template_string="{y}.",
+        ...     slots={"y": Slot(name="y")},
+        ...     tags=["complex"],
+        ... )
         >>> collection.add(t1)
         >>> collection.add(t2)
         >>> simple = collection.filter_by_tag("simple")
@@ -346,8 +382,14 @@ class TemplateCollection(SashBaseModel):
         --------
         >>> from sash.resources import Slot
         >>> collection = TemplateCollection(name="test")
-        >>> t1 = Template(name="t1", template_string="{x}.", slots={"x": Slot(name="x")})
-        >>> t2 = Template(name="t2", template_string="{y} {z}.", slots={"y": Slot(name="y"), "z": Slot(name="z")})
+        >>> t1 = Template(
+        ...     name="t1", template_string="{x}.", slots={"x": Slot(name="x")}
+        ... )
+        >>> t2 = Template(
+        ...     name="t2",
+        ...     template_string="{y} {z}.",
+        ...     slots={"y": Slot(name="y"), "z": Slot(name="z")},
+        ... )
         >>> collection.add(t1)
         >>> collection.add(t2)
         >>> single_slot = collection.filter_by_slot_count(1)
@@ -380,7 +422,11 @@ class TemplateCollection(SashBaseModel):
         --------
         >>> from sash.resources import Slot
         >>> collection = TemplateCollection(name="test")
-        >>> template = Template(name="transitive", template_string="{x}.", slots={"x": Slot(name="x")})
+        >>> template = Template(
+        ...     name="transitive",
+        ...     template_string="{x}.",
+        ...     slots={"x": Slot(name="x")},
+        ... )
         >>> collection.add(template)
         >>> results = collection.search("trans")
         >>> len(results.templates)
@@ -430,9 +476,17 @@ class TemplateCollection(SashBaseModel):
         --------
         >>> from sash.resources import Slot
         >>> c1 = TemplateCollection(name="c1")
-        >>> c1.add(Template(name="t1", template_string="{x}.", slots={"x": Slot(name="x")}))
+        >>> c1.add(
+        ...     Template(
+        ...         name="t1", template_string="{x}.", slots={"x": Slot(name="x")}
+        ...     )
+        ... )
         >>> c2 = TemplateCollection(name="c2")
-        >>> c2.add(Template(name="t2", template_string="{y}.", slots={"y": Slot(name="y")}))
+        >>> c2.add(
+        ...     Template(
+        ...         name="t2", template_string="{y}.", slots={"y": Slot(name="y")}
+        ...     )
+        ... )
         >>> merged = c1.merge(c2)
         >>> len(merged.templates)
         2
@@ -487,7 +541,9 @@ class TemplateCollection(SashBaseModel):
         --------
         >>> from sash.resources import Slot
         >>> collection = TemplateCollection(name="test")
-        >>> template = Template(name="test", template_string="{x}.", slots={"x": Slot(name="x")})
+        >>> template = Template(
+        ...     name="test", template_string="{x}.", slots={"x": Slot(name="x")}
+        ... )
         >>> collection.add(template)
         >>> df = collection.to_dataframe()
         >>> "name" in df.columns
@@ -526,7 +582,7 @@ class TemplateCollection(SashBaseModel):
                 "created_at": template.created_at.isoformat(),
                 "modified_at": template.modified_at.isoformat(),
             }
-            rows.append(row)
+            rows.append(row)  # type: ignore[arg-type]
 
         if backend == "pandas":
             return pd.DataFrame(rows)
@@ -595,7 +651,9 @@ class TemplateCollection(SashBaseModel):
         --------
         >>> from sash.resources import Slot
         >>> collection = TemplateCollection(name="test")
-        >>> template = Template(name="test", template_string="{x}.", slots={"x": Slot(name="x")})
+        >>> template = Template(
+        ...     name="test", template_string="{x}.", slots={"x": Slot(name="x")}
+        ... )
         >>> collection.add(template)
         >>> collection.to_jsonl("/tmp/templates.jsonl")  # doctest: +SKIP
         """

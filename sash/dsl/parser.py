@@ -29,7 +29,7 @@ _PARSER = Lark(
 )
 
 
-class ASTBuilder(Transformer):
+class ASTBuilder(Transformer):  # type: ignore[type-arg]
     """Transformer that converts Lark parse tree to AST nodes."""
 
     def string_literal(self, items: list[Token]) -> ast.Literal:
@@ -115,10 +115,10 @@ class ASTBuilder(Transformer):
         for item in items[1:]:
             if isinstance(item, list):
                 # This is the arguments list
-                arguments.extend(item)
+                arguments.extend(item)  # type: ignore[arg-type]
             elif not isinstance(item, Token) and item is not None:
-                arguments.append(item)
-        return ast.FunctionCall(function=function, arguments=arguments)
+                arguments.append(item)  # type: ignore[arg-type]
+        return ast.FunctionCall(function=function, arguments=arguments)  # type: ignore[arg-type]
 
     def list_literal(self, items: list[Any]) -> ast.ListLiteral:
         """Transform list literal."""
@@ -127,10 +127,10 @@ class ASTBuilder(Transformer):
         for item in items:
             if isinstance(item, list):
                 # This is the list_elements list
-                elements.extend(item)
+                elements.extend(item)  # type: ignore[arg-type]
             elif not isinstance(item, Token) and item is not None:
-                elements.append(item)
-        return ast.ListLiteral(elements=elements)
+                elements.append(item)  # type: ignore[arg-type]
+        return ast.ListLiteral(elements=elements)  # type: ignore[arg-type]
 
     def arguments(self, items: list[Any]) -> list[Any]:
         """Transform function arguments, returning flat list."""
@@ -178,13 +178,13 @@ def parse(expression: str) -> ast.ASTNode:
     """
     try:
         # Parse with Lark
-        tree = _PARSER.parse(expression)
+        tree = _PARSER.parse(expression)  # type: ignore[no-untyped-call]
 
         # Transform to AST
         transformer = ASTBuilder()
-        result = transformer.transform(tree)
+        result: ast.Expression = transformer.transform(tree)  # type: ignore[no-untyped-call]
 
-        return result
+        return result  # type: ignore[return-value]
 
     except UnexpectedCharacters as e:
         # Handle invalid characters (must come before UnexpectedInput)
