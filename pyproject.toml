@@ -31,6 +31,11 @@ dev = [
     "pyright>=1.1.0",
     "pandas-stubs>=2.0.0",
 ]
+api = [
+    "openai>=1.0.0",
+    "anthropic>=0.8.0",
+    "google-generativeai>=0.3.0",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -58,4 +63,8 @@ exclude = [
     "sash/templates/adapters/huggingface.py",
     "sash/items/adapters/huggingface.py",
     "sash/items/adapters/sentence_transformers.py",
+    "sash/items/adapters/openai.py",
+    "sash/items/adapters/anthropic.py",
+    "sash/items/adapters/google.py",
+    "sash/items/adapters/togetherai.py",
 ]
