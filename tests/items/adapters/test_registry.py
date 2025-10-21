@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import numpy as np
 import pytest
 from pytest_mock import MockerFixture
 
@@ -21,10 +22,8 @@ class DummyAdapter(ModelAdapter):
         """Compute dummy perplexity."""
         return 1.0
 
-    def get_embedding(self, text: str):
+    def get_embedding(self, text: str) -> np.ndarray:
         """Get dummy embedding."""
-        import numpy as np
-
         return np.array([0.0, 1.0, 2.0])
 
     def compute_nli(self, premise: str, hypothesis: str) -> dict[str, float]:

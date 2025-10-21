@@ -105,9 +105,7 @@ def sample_items() -> dict[UUID, Item]:
         item = Item(
             id=item_id,
             item_template_id=uuid4(),
-            rendered_elements={
-                "sentence": f"This is test sentence number {i + 1}."
-            },
+            rendered_elements={"sentence": f"This is test sentence number {i + 1}."},
             item_metadata={
                 "condition": "A" if i % 2 == 0 else "B",
                 "is_practice": i < 2,
@@ -140,7 +138,9 @@ def sample_experiment_list(sample_items: dict[UUID, Item]) -> ExperimentList:
     )
 
     # Create experiment list
-    exp_list = ExperimentList(name="test_list", list_number=0, list_constraints=[constraint])
+    exp_list = ExperimentList(
+        name="test_list", list_number=0, list_constraints=[constraint]
+    )
     for item_id in sample_items.keys():
         exp_list.add_item(item_id)
 

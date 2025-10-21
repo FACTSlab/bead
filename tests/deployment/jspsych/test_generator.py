@@ -8,9 +8,12 @@ from uuid import uuid4
 
 import pytest
 
+from sash.deployment.jspsych.config import (
+    ChoiceConfig,
+    ExperimentConfig,
+    RatingScaleConfig,
+)
 from sash.deployment.jspsych.generator import JsPsychExperimentGenerator
-from sash.deployment.jspsych.config import ExperimentConfig
-from sash.items.models import Item
 from sash.lists.models import ExperimentList
 
 
@@ -36,8 +39,8 @@ class TestGeneratorInitialization:
     def test_initialization_with_custom_configs(
         self,
         sample_experiment_config: ExperimentConfig,
-        sample_rating_config,
-        sample_choice_config,
+        sample_rating_config: RatingScaleConfig,
+        sample_choice_config: ChoiceConfig,
         tmp_output_dir: Path,
     ) -> None:
         """Test initialization with custom rating and choice configs."""
@@ -334,9 +337,14 @@ class TestFileGeneration:
         config_file = tmp_output_dir / "data" / "config.json"
         config_data = json.loads(config_file.read_text())
 
-        assert config_data["experiment_type"] == sample_experiment_config.experiment_type
+        assert (
+            config_data["experiment_type"] == sample_experiment_config.experiment_type
+        )
         assert config_data["title"] == sample_experiment_config.title
-        assert config_data["randomize_trial_order"] == sample_experiment_config.randomize_trial_order
+        assert (
+            config_data["randomize_trial_order"]
+            == sample_experiment_config.randomize_trial_order
+        )
 
 
 class TestRandomization:
@@ -388,4 +396,7 @@ class TestRandomization:
 
         js_content = (tmp_output_dir / "js" / "experiment.js").read_text()
 
-        assert "original order" in js_content.lower() or "timeline.push(...experimentTrials)" in js_content
+        assert (
+            "original order" in js_content.lower()
+            or "timeline.push(...experimentTrials)" in js_content
+        )

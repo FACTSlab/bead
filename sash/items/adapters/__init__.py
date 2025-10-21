@@ -26,56 +26,56 @@ Registry:
 - default_registry: Pre-configured registry with all built-in adapters
 """
 
-# API utilities
-from sash.items.adapters.api_utils import (  # noqa: F401
-    RateLimiter,
-    rate_limit,
-    retry_with_backoff,
+# API utilities - explicit re-exports for type checkers
+from sash.items.adapters.api_utils import (
+    RateLimiter as RateLimiter,
 )
-from sash.items.adapters.base import ModelAdapter  # noqa: F401
-from sash.items.adapters.huggingface import (  # noqa: F401
-    HuggingFaceLanguageModel,
-    HuggingFaceMaskedLanguageModel,
-    HuggingFaceNLI,
+from sash.items.adapters.api_utils import (
+    rate_limit as rate_limit,
+)
+from sash.items.adapters.api_utils import (
+    retry_with_backoff as retry_with_backoff,
+)
+from sash.items.adapters.base import ModelAdapter as ModelAdapter
+from sash.items.adapters.huggingface import (
+    HuggingFaceLanguageModel as HuggingFaceLanguageModel,
+)
+from sash.items.adapters.huggingface import (
+    HuggingFaceMaskedLanguageModel as HuggingFaceMaskedLanguageModel,
+)
+from sash.items.adapters.huggingface import (
+    HuggingFaceNLI as HuggingFaceNLI,
 )
 
-# Registry
-from sash.items.adapters.registry import (  # noqa: F401
-    ModelAdapterRegistry,
-    default_registry,
+# Registry - explicit re-exports for type checkers
+from sash.items.adapters.registry import (
+    ModelAdapterRegistry as ModelAdapterRegistry,
 )
-from sash.items.adapters.sentence_transformers import (  # noqa: F401
-    HuggingFaceSentenceTransformer,
+from sash.items.adapters.registry import (
+    default_registry as default_registry,
+)
+from sash.items.adapters.sentence_transformers import (
+    HuggingFaceSentenceTransformer as HuggingFaceSentenceTransformer,
 )
 
 # API adapters (optional, may not be available if dependencies not installed)
-_api_adapters: list[str] = []
-
 try:
-    from sash.items.adapters.openai import OpenAIAdapter  # noqa: F401
-
-    _api_adapters.append("OpenAIAdapter")
+    from sash.items.adapters.openai import OpenAIAdapter as OpenAIAdapter
 except ImportError:
     pass
 
 try:
-    from sash.items.adapters.anthropic import AnthropicAdapter  # noqa: F401
-
-    _api_adapters.append("AnthropicAdapter")
+    from sash.items.adapters.anthropic import AnthropicAdapter as AnthropicAdapter
 except ImportError:
     pass
 
 try:
-    from sash.items.adapters.google import GoogleAdapter  # noqa: F401
-
-    _api_adapters.append("GoogleAdapter")
+    from sash.items.adapters.google import GoogleAdapter as GoogleAdapter
 except ImportError:
     pass
 
 try:
-    from sash.items.adapters.togetherai import TogetherAIAdapter  # noqa: F401
-
-    _api_adapters.append("TogetherAIAdapter")
+    from sash.items.adapters.togetherai import TogetherAIAdapter as TogetherAIAdapter
 except ImportError:
     pass
 
@@ -94,4 +94,9 @@ __all__ = [
     # Registry
     "ModelAdapterRegistry",
     "default_registry",
-] + _api_adapters
+    # API adapters (conditionally exported based on available dependencies)
+    "OpenAIAdapter",
+    "AnthropicAdapter",
+    "GoogleAdapter",
+    "TogetherAIAdapter",
+]

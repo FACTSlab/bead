@@ -33,7 +33,7 @@ def mock_adapter_class():
     """Create mock model adapter class."""
 
     class MockAdapter(ModelAdapter):
-        def __init__(self, model_name: str, cache: ModelOutputCache, **kwargs):
+        def __init__(self, model_name: str, cache: ModelOutputCache, **kwargs) -> None:
             super().__init__(model_name, cache, model_version="1.0")
 
         def compute_log_probability(self, text: str) -> float:
@@ -78,14 +78,14 @@ def constructor(registry, cache):
 class TestItemConstructor:
     """Tests for ItemConstructor class."""
 
-    def test_init(self, registry, cache):
+    def test_init(self, registry, cache) -> None:
         """Test constructor initialization."""
         constructor = ItemConstructor(registry, cache)
         assert constructor.model_registry is registry
         assert constructor.cache is cache
         assert constructor.constraint_resolver is None
 
-    def test_render_elements_text_only(self, constructor):
+    def test_render_elements_text_only(self, constructor) -> None:
         """Test rendering text-only elements."""
         template = ItemTemplate(
             name="test",
@@ -106,7 +106,7 @@ class TestItemConstructor:
 
         assert rendered == {"sentence": "The cat sat."}
 
-    def test_render_elements_with_template_ref(self, constructor):
+    def test_render_elements_with_template_ref(self, constructor) -> None:
         """Test rendering elements with filled template references."""
         ref_id = uuid4()
         filled_template = FilledTemplate(
@@ -139,7 +139,7 @@ class TestItemConstructor:
 
         assert rendered == {"sentence": "The cat broke the vase"}
 
-    def test_render_elements_missing_ref(self, constructor):
+    def test_render_elements_missing_ref(self, constructor) -> None:
         """Test error when filled template reference is missing."""
         missing_id = uuid4()
         template = ItemTemplate(
@@ -160,7 +160,7 @@ class TestItemConstructor:
         with pytest.raises(ValueError, match="references missing"):
             constructor._render_elements(template, {})
 
-    def test_render_elements_multiple(self, constructor):
+    def test_render_elements_multiple(self, constructor) -> None:
         """Test rendering multiple elements."""
         ref_id = uuid4()
         filled = FilledTemplate(
@@ -195,7 +195,7 @@ class TestItemConstructor:
 
         assert rendered == {"context": "Context text", "target": "Filled text"}
 
-    def test_construct_items_no_constraints(self, constructor):
+    def test_construct_items_no_constraints(self, constructor) -> None:
         """Test constructing items without constraints."""
         template = ItemTemplate(
             name="test",
@@ -222,7 +222,7 @@ class TestItemConstructor:
         assert item.constraint_satisfaction == {}
         assert item.model_outputs == []
 
-    def test_construct_items_with_dsl_constraint(self, constructor):
+    def test_construct_items_with_dsl_constraint(self, constructor) -> None:
         """Test constructing items with DSL constraint."""
         constraint_id = uuid4()
         constraint = DSLConstraint(
@@ -254,7 +254,7 @@ class TestItemConstructor:
         assert constraint_id in item.constraint_satisfaction
         assert item.constraint_satisfaction[constraint_id] is True
 
-    def test_construct_items_constraint_not_satisfied(self, constructor):
+    def test_construct_items_constraint_not_satisfied(self, constructor) -> None:
         """Test that items failing constraints are not yielded."""
         constraint_id = uuid4()
         constraint = DSLConstraint(
@@ -282,7 +282,7 @@ class TestItemConstructor:
         # Item should not be yielded as constraint fails
         assert len(items) == 0
 
-    def test_construct_items_with_model_constraint(self, constructor):
+    def test_construct_items_with_model_constraint(self, constructor) -> None:
         """Test constructing items with model-based DSL constraint."""
         constraint_id = uuid4()
         # Constraint using lm_prob function
@@ -319,7 +319,7 @@ class TestItemConstructor:
             output.operation == "log_probability" for output in item.model_outputs
         )
 
-    def test_extract_model_calls_lm_prob(self, constructor):
+    def test_extract_model_calls_lm_prob(self, constructor) -> None:
         """Test extracting lm_prob function calls from AST."""
         from sash.dsl.parser import parse
 
@@ -332,7 +332,7 @@ class TestItemConstructor:
         assert calls[0]["model"] == "gpt2"
         assert calls[0]["operation"] == "log_probability"
 
-    def test_extract_model_calls_nli(self, constructor):
+    def test_extract_model_calls_nli(self, constructor) -> None:
         """Test extracting NLI function calls from AST."""
         from sash.dsl.parser import parse
 
@@ -348,7 +348,7 @@ class TestItemConstructor:
         assert calls[0]["model"] == "roberta-nli"
         assert calls[0]["operation"] == "nli"
 
-    def test_extract_model_calls_complex_expression(self, constructor):
+    def test_extract_model_calls_complex_expression(self, constructor) -> None:
         """Test extracting calls from complex DSL expression."""
         from sash.dsl.parser import parse
 
@@ -359,7 +359,7 @@ class TestItemConstructor:
         assert len(calls) == 1
         assert calls[0]["function"] == "lm_prob"
 
-    def test_execute_model_call_log_probability(self, constructor):
+    def test_execute_model_call_log_probability(self, constructor) -> None:
         """Test executing log probability model call."""
         call_spec = {
             "function": "lm_prob",
@@ -375,7 +375,7 @@ class TestItemConstructor:
         assert output.model_name == "gpt2"
         assert isinstance(output.output, float)
 
-    def test_execute_model_call_nli(self, constructor):
+    def test_execute_model_call_nli(self, constructor) -> None:
         """Test executing NLI model call."""
         call_spec = {
             "function": "nli",
@@ -394,7 +394,7 @@ class TestItemConstructor:
         assert "neutral" in output.output
         assert "contradiction" in output.output
 
-    def test_execute_model_call_caching(self, constructor, cache):
+    def test_execute_model_call_caching(self, constructor, cache) -> None:
         """Test that model calls can be cached."""
         call_spec = {
             "function": "lm_prob",
@@ -417,7 +417,7 @@ class TestItemConstructor:
         assert output2.computation_metadata.get("from_cache") is True
         assert output1.output == output2.output
 
-    def test_check_constraints_missing_constraint(self, constructor):
+    def test_check_constraints_missing_constraint(self, constructor) -> None:
         """Test error when constraint UUID not found."""
         constraint_id = uuid4()
         template = ItemTemplate(
@@ -432,7 +432,7 @@ class TestItemConstructor:
         with pytest.raises(ValueError, match="not found"):
             constructor._check_constraints(template, {}, [], {})
 
-    def test_compute_model_outputs_missing_constraint(self, constructor):
+    def test_compute_model_outputs_missing_constraint(self, constructor) -> None:
         """Test error when computing outputs for missing constraint."""
         constraint_id = uuid4()
         template = ItemTemplate(
@@ -447,7 +447,7 @@ class TestItemConstructor:
         with pytest.raises(ValueError, match="not found"):
             constructor._compute_model_outputs(template, {}, {})
 
-    def test_construct_items_preserves_filled_refs(self, constructor):
+    def test_construct_items_preserves_filled_refs(self, constructor) -> None:
         """Test that constructed items preserve filled template references."""
         ref_id = uuid4()
         filled = FilledTemplate(
@@ -478,7 +478,7 @@ class TestItemConstructor:
         assert len(items) == 1
         assert items[0].filled_template_refs == [ref_id]
 
-    def test_construct_items_yields_iterator(self, constructor):
+    def test_construct_items_yields_iterator(self, constructor) -> None:
         """Test that construct_items returns an iterator."""
         template = ItemTemplate(
             name="test",
@@ -505,7 +505,7 @@ class TestItemConstructor:
 class TestModelFunctionRegistration:
     """Tests for model function registration in DSL context."""
 
-    def test_register_model_functions(self, constructor):
+    def test_register_model_functions(self, constructor) -> None:
         """Test that model functions are registered in context."""
         from sash.dsl.context import EvaluationContext
 
@@ -519,7 +519,7 @@ class TestModelFunctionRegistration:
         assert "similarity" in context._functions
         assert "embedding" in context._functions
 
-    def test_lm_prob_function(self, constructor, cache):
+    def test_lm_prob_function(self, constructor, cache) -> None:
         """Test lm_prob function uses cache."""
         from sash.dsl.context import EvaluationContext
 
@@ -534,7 +534,7 @@ class TestModelFunctionRegistration:
 
         assert result == -42.0
 
-    def test_nli_function(self, constructor, cache):
+    def test_nli_function(self, constructor, cache) -> None:
         """Test nli function uses cache."""
         from sash.dsl.context import EvaluationContext
 
@@ -550,7 +550,7 @@ class TestModelFunctionRegistration:
 
         assert result == nli_scores
 
-    def test_similarity_function(self, constructor, cache):
+    def test_similarity_function(self, constructor, cache) -> None:
         """Test similarity function uses cache."""
         from sash.dsl.context import EvaluationContext
 
@@ -564,7 +564,7 @@ class TestModelFunctionRegistration:
 
         assert result == 0.85
 
-    def test_embedding_function(self, constructor, cache):
+    def test_embedding_function(self, constructor, cache) -> None:
         """Test embedding function uses cache."""
         from sash.dsl.context import EvaluationContext
 
@@ -583,7 +583,7 @@ class TestModelFunctionRegistration:
 class TestIntegration:
     """Integration tests for full workflow."""
 
-    def test_full_workflow_with_model_constraints(self, constructor):
+    def test_full_workflow_with_model_constraints(self, constructor) -> None:
         """Test complete item construction with model-based constraints."""
         # Create template with model constraint
         constraint_id = uuid4()
@@ -619,7 +619,7 @@ class TestIntegration:
         assert len(item.model_outputs) > 0
         assert item.constraint_satisfaction[constraint_id] is True
 
-    def test_multiple_constraints(self, constructor):
+    def test_multiple_constraints(self, constructor) -> None:
         """Test item construction with multiple constraints."""
         c1_id, c2_id = uuid4(), uuid4()
         c1 = DSLConstraint(expression="len(sentence) > 5")

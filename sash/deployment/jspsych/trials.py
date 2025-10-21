@@ -125,7 +125,7 @@ def _create_likert_trial(
         f'<p style="margin-top: 20px;">'
         f'<span style="float: left;">{config.min_label}</span>'
         f'<span style="float: right;">{config.max_label}</span>'
-        f'</p>'
+        f"</p>"
     )
 
     return {
@@ -339,10 +339,10 @@ def create_instruction_trial(instructions: str) -> dict[str, Any]:
     """
     stimulus_html = (
         f'<div class="instructions">'
-        f'<h2>Instructions</h2>'
-        f'<p>{instructions}</p>'
-        f'<p><em>Press any key to continue</em></p>'
-        f'</div>'
+        f"<h2>Instructions</h2>"
+        f"<p>{instructions}</p>"
+        f"<p><em>Press any key to continue</em></p>"
+        f"</div>"
     )
 
     return {
@@ -368,10 +368,7 @@ def create_consent_trial(consent_text: str) -> dict[str, Any]:
         A jsPsych html-button-response trial object.
     """
     stimulus_html = (
-        f'<div class="consent">'
-        f'<h2>Consent</h2>'
-        f'<div>{consent_text}</div>'
-        f'</div>'
+        f'<div class="consent"><h2>Consent</h2><div>{consent_text}</div></div>'
     )
 
     return {
@@ -400,10 +397,7 @@ def create_completion_trial(
         A jsPsych html-keyboard-response trial object.
     """
     stimulus_html = (
-        f'<div class="completion">'
-        f'<h2>Complete</h2>'
-        f'<p>{completion_message}</p>'
-        f'</div>'
+        f'<div class="completion"><h2>Complete</h2><p>{completion_message}</p></div>'
     )
 
     return {

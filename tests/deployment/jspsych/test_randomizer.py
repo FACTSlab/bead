@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from uuid import UUID, uuid4
 
-import pytest
-
 from sash.deployment.jspsych.randomizer import (
     _extract_property_name,
     _generate_distance_constraints,
@@ -62,9 +60,7 @@ class TestGenerateRandomizerFunction:
         item1 = UUID("12345678-1234-5678-1234-567812345678")
         item2 = UUID("87654321-4321-8765-4321-876543218765")
         item_ids = [item1, item2]
-        constraint = OrderingConstraint(
-            precedence_pairs=[(item1, item2)]
-        )
+        constraint = OrderingConstraint(precedence_pairs=[(item1, item2)])
         metadata = {
             item1: {},
             item2: {},
@@ -81,9 +77,7 @@ class TestGenerateRandomizerFunction:
         item1 = uuid4()
         item2 = uuid4()
         item_ids = [item1, item2]
-        constraint = OrderingConstraint(
-            no_adjacent_property="item_metadata.condition"
-        )
+        constraint = OrderingConstraint(no_adjacent_property="item_metadata.condition")
         metadata = {
             item1: {"condition": "A"},
             item2: {"condition": "B"},
@@ -100,8 +94,7 @@ class TestGenerateRandomizerFunction:
         item2 = uuid4()
         item_ids = [item1, item2]
         constraint = OrderingConstraint(
-            block_by_property="item_metadata.block_type",
-            randomize_within_blocks=True
+            block_by_property="item_metadata.block_type", randomize_within_blocks=True
         )
         metadata = {
             item1: {"block_type": "A"},
@@ -175,23 +168,14 @@ class TestGetNestedProperty:
 
     def test_get_nested_value(self) -> None:
         """Test retrieving nested property value."""
-        obj = {
-            "item_metadata": {
-                "condition": "A",
-                "is_practice": True
-            }
-        }
+        obj = {"item_metadata": {"condition": "A", "is_practice": True}}
 
         assert _get_nested_property(obj, "item_metadata.condition") == "A"
         assert _get_nested_property(obj, "item_metadata.is_practice") is True
 
     def test_missing_property(self) -> None:
         """Test retrieving missing property returns None."""
-        obj = {
-            "item_metadata": {
-                "condition": "A"
-            }
-        }
+        obj = {"item_metadata": {"condition": "A"}}
 
         assert _get_nested_property(obj, "missing.path") is None
         assert _get_nested_property(obj, "item_metadata.missing") is None
@@ -218,7 +202,9 @@ class TestGenerateDistanceConstraints:
             item3: {"condition": "B"},
         }
 
-        distance_constraints = _generate_distance_constraints(item_ids, constraint, metadata)
+        distance_constraints = _generate_distance_constraints(
+            item_ids, constraint, metadata
+        )
 
         # Should have one constraint between item1 and item2 (both condition A)
         assert len(distance_constraints) == 1
@@ -251,8 +237,7 @@ class TestPrepareTemplateContext:
         item1 = uuid4()
         item2 = uuid4()
         constraint = OrderingConstraint(
-            block_by_property="item_metadata.block_type",
-            randomize_within_blocks=False
+            block_by_property="item_metadata.block_type", randomize_within_blocks=False
         )
         metadata = {
             item1: {"block_type": "A"},
@@ -269,9 +254,7 @@ class TestPrepareTemplateContext:
         """Test template context preparation with precedence."""
         item1 = uuid4()
         item2 = uuid4()
-        constraint = OrderingConstraint(
-            precedence_pairs=[(item1, item2)]
-        )
+        constraint = OrderingConstraint(precedence_pairs=[(item1, item2)])
         metadata = {item1: {}, item2: {}}
 
         context = _prepare_template_context([item1, item2], [constraint], metadata)
@@ -284,9 +267,7 @@ class TestPrepareTemplateContext:
         """Test template context preparation with no-adjacency."""
         item1 = uuid4()
         item2 = uuid4()
-        constraint = OrderingConstraint(
-            no_adjacent_property="item_metadata.condition"
-        )
+        constraint = OrderingConstraint(no_adjacent_property="item_metadata.condition")
         metadata = {
             item1: {"condition": "A"},
             item2: {"condition": "B"},
@@ -307,9 +288,7 @@ class TestPrepareTemplateContext:
         constraint1 = OrderingConstraint(
             practice_item_property="item_metadata.is_practice"
         )
-        constraint2 = OrderingConstraint(
-            no_adjacent_property="item_metadata.condition"
-        )
+        constraint2 = OrderingConstraint(no_adjacent_property="item_metadata.condition")
 
         metadata = {
             item1: {"is_practice": True, "condition": "A"},
@@ -318,9 +297,7 @@ class TestPrepareTemplateContext:
         }
 
         context = _prepare_template_context(
-            [item1, item2, item3],
-            [constraint1, constraint2],
-            metadata
+            [item1, item2, item3], [constraint1, constraint2], metadata
         )
 
         assert context["has_practice_items"] is True

@@ -58,37 +58,37 @@ def simple_item(simple_template):
 class TestValidateItem:
     """Tests for validate_item function."""
 
-    def test_valid_item(self, simple_item, simple_template):
+    def test_valid_item(self, simple_item, simple_template) -> None:
         """Test validation of a valid item."""
         errors = validate_item(simple_item, simple_template)
         assert errors == []
 
-    def test_template_id_mismatch(self, simple_item, simple_template):
+    def test_template_id_mismatch(self, simple_item, simple_template) -> None:
         """Test detection of template ID mismatch."""
         simple_item.item_template_id = uuid4()
         errors = validate_item(simple_item, simple_template)
         assert len(errors) == 1
         assert "template ID mismatch" in errors[0]
 
-    def test_missing_rendered_elements(self, simple_item, simple_template):
+    def test_missing_rendered_elements(self, simple_item, simple_template) -> None:
         """Test detection of missing rendered elements."""
         simple_item.rendered_elements = {}
         errors = validate_item(simple_item, simple_template)
         assert any("Missing rendered elements" in e for e in errors)
 
-    def test_extra_rendered_elements(self, simple_item, simple_template):
+    def test_extra_rendered_elements(self, simple_item, simple_template) -> None:
         """Test detection of extra rendered elements."""
         simple_item.rendered_elements["extra"] = "Extra element"
         errors = validate_item(simple_item, simple_template)
         assert any("Extra rendered elements" in e for e in errors)
 
-    def test_missing_constraint_evaluation(self, simple_item, simple_template):
+    def test_missing_constraint_evaluation(self, simple_item, simple_template) -> None:
         """Test detection of missing constraint evaluations."""
         simple_item.constraint_satisfaction = {}
         errors = validate_item(simple_item, simple_template)
         assert any("Missing constraint evaluations" in e for e in errors)
 
-    def test_invalid_model_output(self, simple_item, simple_template):
+    def test_invalid_model_output(self, simple_item, simple_template) -> None:
         """Test that invalid model outputs are detected."""
         # Create a model output with wrong type for operation
         simple_item.model_outputs = [
@@ -108,7 +108,7 @@ class TestValidateItem:
 class TestValidateModelOutput:
     """Tests for validate_model_output function."""
 
-    def test_valid_log_probability_output(self):
+    def test_valid_log_probability_output(self) -> None:
         """Test validation of valid log probability output."""
         output = ModelOutput(
             model_name="gpt2",
@@ -121,7 +121,7 @@ class TestValidateModelOutput:
         errors = validate_model_output(output)
         assert errors == []
 
-    def test_valid_nli_output(self):
+    def test_valid_nli_output(self) -> None:
         """Test validation of valid NLI output."""
         output = ModelOutput(
             model_name="roberta-nli",
@@ -134,7 +134,7 @@ class TestValidateModelOutput:
         errors = validate_model_output(output)
         assert errors == []
 
-    def test_empty_model_name(self):
+    def test_empty_model_name(self) -> None:
         """Test Pydantic validation prevents empty model name."""
         from pydantic import ValidationError
 
@@ -148,7 +148,7 @@ class TestValidateModelOutput:
                 cache_key="abc123",
             )
 
-    def test_empty_operation(self):
+    def test_empty_operation(self) -> None:
         """Test Pydantic validation prevents empty operation."""
         from pydantic import ValidationError
 
@@ -162,7 +162,7 @@ class TestValidateModelOutput:
                 cache_key="abc123",
             )
 
-    def test_empty_cache_key(self):
+    def test_empty_cache_key(self) -> None:
         """Test Pydantic validation prevents empty cache key."""
         from pydantic import ValidationError
 
@@ -176,7 +176,7 @@ class TestValidateModelOutput:
                 cache_key="",  # Pydantic will reject this
             )
 
-    def test_nli_output_not_dict(self):
+    def test_nli_output_not_dict(self) -> None:
         """Test detection of NLI output that's not a dict."""
         output = ModelOutput(
             model_name="roberta-nli",
@@ -189,7 +189,7 @@ class TestValidateModelOutput:
         errors = validate_model_output(output)
         assert any("should be dict" in e for e in errors)
 
-    def test_nli_output_missing_keys(self):
+    def test_nli_output_missing_keys(self) -> None:
         """Test detection of NLI output with missing keys."""
         output = ModelOutput(
             model_name="roberta-nli",
@@ -202,7 +202,7 @@ class TestValidateModelOutput:
         errors = validate_model_output(output)
         assert any("keys mismatch" in e for e in errors)
 
-    def test_log_probability_non_numeric(self):
+    def test_log_probability_non_numeric(self) -> None:
         """Test detection of non-numeric log probability."""
         output = ModelOutput(
             model_name="gpt2",
@@ -215,7 +215,7 @@ class TestValidateModelOutput:
         errors = validate_model_output(output)
         assert any("should be numeric" in e for e in errors)
 
-    def test_perplexity_non_numeric(self):
+    def test_perplexity_non_numeric(self) -> None:
         """Test detection of non-numeric perplexity."""
         output = ModelOutput(
             model_name="gpt2",
@@ -228,7 +228,7 @@ class TestValidateModelOutput:
         errors = validate_model_output(output)
         assert any("should be numeric" in e for e in errors)
 
-    def test_similarity_non_numeric(self):
+    def test_similarity_non_numeric(self) -> None:
         """Test detection of non-numeric similarity."""
         output = ModelOutput(
             model_name="sentence-transformer",
@@ -241,7 +241,7 @@ class TestValidateModelOutput:
         errors = validate_model_output(output)
         assert any("should be numeric" in e for e in errors)
 
-    def test_embedding_non_list(self):
+    def test_embedding_non_list(self) -> None:
         """Test detection of embedding that's not a list."""
         output = ModelOutput(
             model_name="sentence-transformer",
@@ -258,25 +258,25 @@ class TestValidateModelOutput:
 class TestValidateConstraintSatisfaction:
     """Tests for validate_constraint_satisfaction function."""
 
-    def test_valid_constraint_satisfaction(self, simple_item, simple_template):
+    def test_valid_constraint_satisfaction(self, simple_item, simple_template) -> None:
         """Test validation of valid constraint satisfaction."""
         errors = validate_constraint_satisfaction(simple_item, simple_template)
         assert errors == []
 
-    def test_missing_constraint(self, simple_item, simple_template):
+    def test_missing_constraint(self, simple_item, simple_template) -> None:
         """Test detection of missing constraint evaluation."""
         simple_item.constraint_satisfaction = {simple_template.constraints[0]: True}
         errors = validate_constraint_satisfaction(simple_item, simple_template)
         assert len(errors) == 1
         assert "not evaluated" in errors[0]
 
-    def test_non_boolean_value(self, simple_item, simple_template):
+    def test_non_boolean_value(self, simple_item, simple_template) -> None:
         """Test detection of non-boolean satisfaction value."""
         simple_item.constraint_satisfaction[simple_template.constraints[0]] = "true"
         errors = validate_constraint_satisfaction(simple_item, simple_template)
         assert any("should be bool" in e for e in errors)
 
-    def test_all_constraints_missing(self, simple_item, simple_template):
+    def test_all_constraints_missing(self, simple_item, simple_template) -> None:
         """Test when all constraints are missing."""
         simple_item.constraint_satisfaction = {}
         errors = validate_constraint_satisfaction(simple_item, simple_template)
@@ -286,18 +286,18 @@ class TestValidateConstraintSatisfaction:
 class TestValidateMetadataCompleteness:
     """Tests for validate_metadata_completeness function."""
 
-    def test_valid_metadata(self, simple_item):
+    def test_valid_metadata(self, simple_item) -> None:
         """Test validation of item with complete metadata."""
         errors = validate_metadata_completeness(simple_item)
         # Should have id, created_at, modified_at from SashBaseModel
         assert errors == []
 
-    def test_item_has_id(self, simple_item):
+    def test_item_has_id(self, simple_item) -> None:
         """Test that item has id field."""
         assert hasattr(simple_item, "id")
         assert simple_item.id is not None
 
-    def test_item_has_timestamps(self, simple_item):
+    def test_item_has_timestamps(self, simple_item) -> None:
         """Test that item has timestamp fields."""
         assert hasattr(simple_item, "created_at")
         assert hasattr(simple_item, "modified_at")
@@ -308,22 +308,22 @@ class TestValidateMetadataCompleteness:
 class TestItemPassesAllConstraints:
     """Tests for item_passes_all_constraints function."""
 
-    def test_all_constraints_pass(self, simple_item):
+    def test_all_constraints_pass(self, simple_item) -> None:
         """Test when all constraints are satisfied."""
         assert item_passes_all_constraints(simple_item) is True
 
-    def test_one_constraint_fails(self, simple_item, simple_template):
+    def test_one_constraint_fails(self, simple_item, simple_template) -> None:
         """Test when one constraint fails."""
         simple_item.constraint_satisfaction[simple_template.constraints[0]] = False
         assert item_passes_all_constraints(simple_item) is False
 
-    def test_all_constraints_fail(self, simple_item, simple_template):
+    def test_all_constraints_fail(self, simple_item, simple_template) -> None:
         """Test when all constraints fail."""
         for constraint_id in simple_template.constraints:
             simple_item.constraint_satisfaction[constraint_id] = False
         assert item_passes_all_constraints(simple_item) is False
 
-    def test_no_constraints(self):
+    def test_no_constraints(self) -> None:
         """Test item with no constraints."""
         item = Item(
             item_template_id=uuid4(),
@@ -332,7 +332,7 @@ class TestItemPassesAllConstraints:
         )
         assert item_passes_all_constraints(item) is True
 
-    def test_mixed_constraints(self, simple_item, simple_template):
+    def test_mixed_constraints(self, simple_item, simple_template) -> None:
         """Test with mixed constraint satisfaction."""
         simple_item.constraint_satisfaction[simple_template.constraints[0]] = True
         simple_item.constraint_satisfaction[simple_template.constraints[1]] = False

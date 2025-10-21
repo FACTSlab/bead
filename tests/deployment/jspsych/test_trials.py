@@ -139,7 +139,7 @@ class TestCreateTrial:
 
     def test_unknown_type_raises_error(self) -> None:
         """Test that Pydantic validates experiment type."""
-        item = Item(
+        Item(
             item_template_id=uuid4(),
             rendered_elements={"sentence": "Test sentence."},
         )

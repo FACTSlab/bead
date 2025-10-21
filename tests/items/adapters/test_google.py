@@ -12,7 +12,7 @@ from sash.items.cache import ModelOutputCache
 
 
 @pytest.fixture(autouse=True)
-def mock_transformers_import(mocker: MockerFixture):
+def mock_transformers_import(mocker: MockerFixture) -> None:
     """Mock transformers to avoid PyO3 errors when importing google adapter."""
     # Mock transformers and sentence_transformers if not already imported
     # This prevents the __init__.py from triggering PyO3 errors

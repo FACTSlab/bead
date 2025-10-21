@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from uuid import UUID
+
 import pytest
 
 from sash.resources import (
@@ -15,6 +17,7 @@ from sash.resources import (
     Template,
     TemplateCollection,
 )
+from sash.resources.classification import LexicalItemClass, TemplateClass
 
 
 @pytest.fixture
@@ -173,3 +176,204 @@ def korean_template() -> Template:
         slots={"x": slot},
         language_code="ko",
     )
+
+
+# Classification fixtures
+
+
+@pytest.fixture
+def english_causative_verbs() -> dict[UUID, LexicalItem]:
+    """Sample English causative verbs for testing."""
+    item1 = LexicalItem(
+        lemma="break",
+        pos="VERB",
+        language_code="en",
+        features={"causative": True, "transitive": True},
+        attributes={"frequency": 500},
+    )
+    item2 = LexicalItem(
+        lemma="open",
+        pos="VERB",
+        language_code="en",
+        features={"causative": True, "transitive": True},
+        attributes={"frequency": 800},
+    )
+    item3 = LexicalItem(
+        lemma="close",
+        pos="VERB",
+        language_code="en",
+        features={"causative": True, "transitive": True},
+        attributes={"frequency": 700},
+    )
+    return {item1.id: item1, item2.id: item2, item3.id: item3}
+
+
+@pytest.fixture
+def korean_causative_verbs() -> dict[UUID, LexicalItem]:
+    """Sample Korean causative verbs for testing."""
+    item1 = LexicalItem(
+        lemma="kkakta",
+        pos="VERB",
+        language_code="ko",
+        features={"causative": True, "transitive": True},
+        attributes={"frequency": 400},
+    )
+    item2 = LexicalItem(
+        lemma="yeolda",
+        pos="VERB",
+        language_code="ko",
+        features={"causative": True, "transitive": True},
+        attributes={"frequency": 600},
+    )
+    return {item1.id: item1, item2.id: item2}
+
+
+@pytest.fixture
+def zulu_causative_verbs() -> dict[UUID, LexicalItem]:
+    """Sample Zulu causative verbs for testing."""
+    item1 = LexicalItem(
+        lemma="phula",
+        pos="VERB",
+        language_code="zu",
+        features={"causative": True, "transitive": True},
+        attributes={"frequency": 300},
+    )
+    return {item1.id: item1}
+
+
+@pytest.fixture
+def multilingual_causative_class(
+    english_causative_verbs: dict[UUID, LexicalItem],
+    korean_causative_verbs: dict[UUID, LexicalItem],
+) -> LexicalItemClass:
+    """Sample multilingual causative verb class."""
+    cls = LexicalItemClass(
+        name="causative_verbs_crossling",
+        description="Causative verbs across English and Korean",
+        property_name="causative",
+        property_value=True,
+        tags=["causative", "cross-linguistic", "verbs"],
+    )
+    # Add English causative verbs
+    for item in english_causative_verbs.values():
+        cls.add(item)
+    # Add Korean causative verbs
+    for item in korean_causative_verbs.values():
+        cls.add(item)
+    return cls
+
+
+@pytest.fixture
+def monolingual_causative_class(
+    english_causative_verbs: dict[UUID, LexicalItem],
+) -> LexicalItemClass:
+    """Sample monolingual causative verb class (English only)."""
+    cls = LexicalItemClass(
+        name="causative_verbs_en",
+        description="Causative verbs in English",
+        property_name="causative",
+        property_value=True,
+        tags=["causative", "english", "verbs"],
+    )
+    # Add English causative verbs
+    for item in english_causative_verbs.values():
+        cls.add(item)
+    return cls
+
+
+@pytest.fixture
+def english_transitive_templates() -> dict[UUID, Template]:
+    """Sample English transitive templates for testing."""
+    t1 = Template(
+        name="svo_simple",
+        template_string="{subject} {verb} {object}.",
+        slots={
+            "subject": Slot(name="subject"),
+            "verb": Slot(name="verb"),
+            "object": Slot(name="object"),
+        },
+        language_code="en",
+        tags=["transitive", "simple"],
+    )
+    t2 = Template(
+        name="svo_with_adverb",
+        template_string="{subject} {adverb} {verb} {object}.",
+        slots={
+            "subject": Slot(name="subject"),
+            "adverb": Slot(name="adverb"),
+            "verb": Slot(name="verb"),
+            "object": Slot(name="object"),
+        },
+        language_code="en",
+        tags=["transitive", "adverb"],
+    )
+    return {t1.id: t1, t2.id: t2}
+
+
+@pytest.fixture
+def korean_transitive_templates() -> dict[UUID, Template]:
+    """Sample Korean transitive templates for testing."""
+    t1 = Template(
+        name="sov_simple",
+        template_string="{subject} {object} {verb}.",
+        slots={
+            "subject": Slot(name="subject"),
+            "object": Slot(name="object"),
+            "verb": Slot(name="verb"),
+        },
+        language_code="ko",
+        tags=["transitive", "simple"],
+    )
+    t2 = Template(
+        name="sov_with_adverb",
+        template_string="{subject} {adverb} {object} {verb}.",
+        slots={
+            "subject": Slot(name="subject"),
+            "adverb": Slot(name="adverb"),
+            "object": Slot(name="object"),
+            "verb": Slot(name="verb"),
+        },
+        language_code="ko",
+        tags=["transitive", "adverb"],
+    )
+    return {t1.id: t1, t2.id: t2}
+
+
+@pytest.fixture
+def multilingual_transitive_template_class(
+    english_transitive_templates: dict[UUID, Template],
+    korean_transitive_templates: dict[UUID, Template],
+) -> TemplateClass:
+    """Sample multilingual transitive template class."""
+    cls = TemplateClass(
+        name="transitive_templates_crossling",
+        description="Transitive templates across English and Korean",
+        property_name="transitive",
+        property_value=True,
+        tags=["transitive", "cross-linguistic"],
+    )
+    # Add English transitive templates
+    for template in english_transitive_templates.values():
+        cls.add(template)
+    # Add Korean transitive templates
+    for template in korean_transitive_templates.values():
+        cls.add(template)
+    return cls
+
+
+@pytest.fixture
+def monolingual_transitive_template_class(
+    english_transitive_templates: dict[UUID, Template],
+) -> TemplateClass:
+    """Sample monolingual transitive template class (English only)."""
+    cls = TemplateClass(
+        name="transitive_templates_en",
+        description="Transitive templates in English",
+        property_name="transitive",
+        property_value=True,
+        tags=["transitive", "english"],
+    )
+    # Add English transitive templates
+    for template in english_transitive_templates.values():
+        cls.add(template)
+    return cls
