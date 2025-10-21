@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+
+    <!-- jsPsych 8.x CSS -->
+    <link href="https://unpkg.com/jspsych@8.0.0/css/jspsych.css" rel="stylesheet" type="text/css" />
+
+    <!-- Material Design Icons (optional) -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+    <!-- Custom experiment CSS -->
+    <link href="css/experiment.css" rel="stylesheet" type="text/css" />
+
+    <!-- jsPsych 8.x Core -->
+    <script src="https://unpkg.com/jspsych@8.0.0"></script>
+
+    <!-- jsPsych 8.x Plugins -->
+    <script src="https://unpkg.com/@jspsych/plugin-html-keyboard-response@2.0.0"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-html-button-response@2.0.0"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-html-slider-response@2.0.0"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-preload@2.0.0"></script>
+
+    <!-- Seedrandom for reproducible randomization -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/seedrandom/3.0.5/seedrandom.min.js"></script>
+</head>
+<body class="theme-{{ ui_theme }}">
+    <div id="jspsych-target"></div>
+
+    <!-- Experiment data and configuration -->
+    <script>
+        // Load experiment configuration
+        const EXPERIMENT_CONFIG = {{ config_json | safe }};
+
+        // Load timeline data
+        const TIMELINE_DATA = {{ timeline_json | safe }};
+
+        // Get participant ID from URL or generate one
+        const urlParams = new URLSearchParams(window.location.search);
+        const PARTICIPANT_ID = urlParams.get('participant_id') || 'p' + Date.now();
+    </script>
+
+    <!-- Main experiment script -->
+    <script src="js/experiment.js"></script>
+</body>
+</html>
