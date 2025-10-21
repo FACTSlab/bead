@@ -12,7 +12,7 @@ from sash.deployment.jspsych.config import (
     ExperimentConfig,
     RatingScaleConfig,
 )
-from sash.items.models import Item
+from sash.items.models import Item, ItemTemplate, PresentationSpec, TaskSpec
 from sash.lists.constraints import OrderingConstraint
 from sash.lists.models import ExperimentList
 
@@ -73,8 +73,36 @@ def sample_choice_config() -> ChoiceConfig:
 
 
 @pytest.fixture
-def sample_item() -> Item:
+def sample_item_template() -> ItemTemplate:
+    """Create a single sample item template for testing.
+
+    Returns
+    -------
+    ItemTemplate
+        Sample item template with test data.
+    """
+    return ItemTemplate(
+        name="test_template",
+        description="Test item template",
+        judgment_type="acceptability",
+        task_type="ordinal_scale",
+        task_spec=TaskSpec(
+            prompt="How natural is this sentence?",
+            scale_bounds=(1, 7),
+            scale_labels={1: "Very unnatural", 7: "Very natural"},
+        ),
+        presentation_spec=PresentationSpec(mode="static"),
+    )
+
+
+@pytest.fixture
+def sample_item(sample_item_template: ItemTemplate) -> Item:
     """Create a single sample item for testing.
+
+    Parameters
+    ----------
+    sample_item_template : ItemTemplate
+        Sample item template fixture.
 
     Returns
     -------
@@ -82,15 +110,44 @@ def sample_item() -> Item:
         Sample item with test data.
     """
     return Item(
-        item_template_id=uuid4(),
+        item_template_id=sample_item_template.id,
         rendered_elements={"sentence": "The cat broke the vase."},
         item_metadata={"condition": "A", "is_practice": False},
     )
 
 
 @pytest.fixture
-def sample_items() -> dict[UUID, Item]:
+def sample_templates() -> dict[UUID, ItemTemplate]:
+    """Create sample item templates for testing.
+
+    Returns
+    -------
+    dict[UUID, ItemTemplate]
+        Dictionary of sample templates keyed by UUID.
+    """
+    template = ItemTemplate(
+        name="test_template",
+        description="Test item template",
+        judgment_type="acceptability",
+        task_type="ordinal_scale",
+        task_spec=TaskSpec(
+            prompt="How natural is this sentence?",
+            scale_bounds=(1, 7),
+            scale_labels={1: "Very unnatural", 7: "Very natural"},
+        ),
+        presentation_spec=PresentationSpec(mode="static"),
+    )
+    return {template.id: template}
+
+
+@pytest.fixture
+def sample_items(sample_templates: dict[UUID, ItemTemplate]) -> dict[UUID, Item]:
     """Create sample items for testing.
+
+    Parameters
+    ----------
+    sample_templates : dict[UUID, ItemTemplate]
+        Sample templates fixture.
 
     Returns
     -------
@@ -98,13 +155,14 @@ def sample_items() -> dict[UUID, Item]:
         Dictionary of sample items keyed by UUID.
     """
     items = {}
+    template_id = list(sample_templates.keys())[0]
 
     # Create 5 sample items
     for i in range(5):
         item_id = uuid4()
         item = Item(
             id=item_id,
-            item_template_id=uuid4(),
+            item_template_id=template_id,
             rendered_elements={"sentence": f"This is test sentence number {i + 1}."},
             item_metadata={
                 "condition": "A" if i % 2 == 0 else "B",

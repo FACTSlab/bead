@@ -84,6 +84,7 @@ class TestTimelineGeneration:
         sample_experiment_config: ExperimentConfig,
         sample_experiment_list: ExperimentList,
         sample_items: dict,
+        sample_templates: dict,
         tmp_output_dir: Path,
     ) -> None:
         """Test timeline data generation."""
@@ -95,6 +96,7 @@ class TestTimelineGeneration:
         timeline_data = generator._generate_timeline_data(
             sample_experiment_list,
             sample_items,
+            sample_templates,
         )
 
         assert "trials" in timeline_data
@@ -110,6 +112,7 @@ class TestTimelineGeneration:
         sample_experiment_config: ExperimentConfig,
         sample_experiment_list: ExperimentList,
         sample_items: dict,
+        sample_templates: dict,
         tmp_output_dir: Path,
     ) -> None:
         """Test timeline data generation with missing item."""
@@ -124,6 +127,7 @@ class TestTimelineGeneration:
             generator._generate_timeline_data(
                 sample_experiment_list,
                 sample_items,
+                sample_templates,
             )
 
     def test_trial_order_preserved(
@@ -131,6 +135,7 @@ class TestTimelineGeneration:
         sample_experiment_config: ExperimentConfig,
         sample_experiment_list: ExperimentList,
         sample_items: dict,
+        sample_templates: dict,
         tmp_output_dir: Path,
     ) -> None:
         """Test that trial numbers are correctly assigned."""
@@ -142,6 +147,7 @@ class TestTimelineGeneration:
         timeline_data = generator._generate_timeline_data(
             sample_experiment_list,
             sample_items,
+            sample_templates,
         )
 
         for i, trial in enumerate(timeline_data["trials"]):
@@ -173,6 +179,7 @@ class TestConstraintExtraction:
         sample_experiment_config: ExperimentConfig,
         sample_experiment_list: ExperimentList,
         sample_items: dict,
+        sample_templates: dict,
         tmp_output_dir: Path,
     ) -> None:
         """Test item metadata extraction."""
@@ -201,6 +208,7 @@ class TestCompleteGeneration:
         sample_experiment_config: ExperimentConfig,
         sample_experiment_list: ExperimentList,
         sample_items: dict,
+        sample_templates: dict,
         tmp_output_dir: Path,
     ) -> None:
         """Test complete experiment generation."""
@@ -212,6 +220,7 @@ class TestCompleteGeneration:
         output_path = generator.generate(
             lists=[sample_experiment_list],
             items=sample_items,
+            templates=sample_templates,
         )
 
         assert output_path == tmp_output_dir
@@ -224,6 +233,7 @@ class TestCompleteGeneration:
         self,
         sample_experiment_config: ExperimentConfig,
         sample_items: dict,
+        sample_templates: dict,
         tmp_output_dir: Path,
     ) -> None:
         """Test error when no lists provided."""
@@ -236,6 +246,7 @@ class TestCompleteGeneration:
             generator.generate(
                 lists=[],
                 items=sample_items,
+                templates=sample_templates,
             )
 
 
@@ -247,6 +258,7 @@ class TestFileGeneration:
         sample_experiment_config: ExperimentConfig,
         sample_experiment_list: ExperimentList,
         sample_items: dict,
+        sample_templates: dict,
         tmp_output_dir: Path,
     ) -> None:
         """Test HTML file content generation."""
@@ -258,6 +270,7 @@ class TestFileGeneration:
         generator.generate(
             lists=[sample_experiment_list],
             items=sample_items,
+            templates=sample_templates,
         )
 
         html_content = (tmp_output_dir / "index.html").read_text()
@@ -271,6 +284,7 @@ class TestFileGeneration:
         sample_experiment_config: ExperimentConfig,
         sample_experiment_list: ExperimentList,
         sample_items: dict,
+        sample_templates: dict,
         tmp_output_dir: Path,
     ) -> None:
         """Test JavaScript file content generation."""
@@ -282,6 +296,7 @@ class TestFileGeneration:
         generator.generate(
             lists=[sample_experiment_list],
             items=sample_items,
+            templates=sample_templates,
         )
 
         js_content = (tmp_output_dir / "js" / "experiment.js").read_text()
@@ -296,6 +311,7 @@ class TestFileGeneration:
         sample_experiment_config: ExperimentConfig,
         sample_experiment_list: ExperimentList,
         sample_items: dict,
+        sample_templates: dict,
         tmp_output_dir: Path,
     ) -> None:
         """Test CSS file generation."""
@@ -307,6 +323,7 @@ class TestFileGeneration:
         generator.generate(
             lists=[sample_experiment_list],
             items=sample_items,
+            templates=sample_templates,
         )
 
         css_file = tmp_output_dir / "css" / "experiment.css"
@@ -321,6 +338,7 @@ class TestFileGeneration:
         sample_experiment_config: ExperimentConfig,
         sample_experiment_list: ExperimentList,
         sample_items: dict,
+        sample_templates: dict,
         tmp_output_dir: Path,
     ) -> None:
         """Test config.json generation."""
@@ -332,6 +350,7 @@ class TestFileGeneration:
         generator.generate(
             lists=[sample_experiment_list],
             items=sample_items,
+            templates=sample_templates,
         )
 
         config_file = tmp_output_dir / "data" / "config.json"
@@ -355,6 +374,7 @@ class TestRandomization:
         sample_experiment_config: ExperimentConfig,
         sample_experiment_list: ExperimentList,
         sample_items: dict,
+        sample_templates: dict,
         tmp_output_dir: Path,
     ) -> None:
         """Test experiment generation with randomization enabled."""
@@ -368,6 +388,7 @@ class TestRandomization:
         generator.generate(
             lists=[sample_experiment_list],
             items=sample_items,
+            templates=sample_templates,
         )
 
         js_content = (tmp_output_dir / "js" / "experiment.js").read_text()
@@ -379,6 +400,7 @@ class TestRandomization:
         sample_experiment_config: ExperimentConfig,
         sample_experiment_list: ExperimentList,
         sample_items: dict,
+        sample_templates: dict,
         tmp_output_dir: Path,
     ) -> None:
         """Test experiment generation without randomization."""
@@ -392,6 +414,7 @@ class TestRandomization:
         generator.generate(
             lists=[sample_experiment_list],
             items=sample_items,
+            templates=sample_templates,
         )
 
         js_content = (tmp_output_dir / "js" / "experiment.js").read_text()

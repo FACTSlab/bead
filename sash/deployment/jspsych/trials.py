@@ -14,11 +14,143 @@ from sash.deployment.jspsych.config import (
     ExperimentConfig,
     RatingScaleConfig,
 )
-from sash.items.models import Item
+from sash.items.models import Item, ItemTemplate
+
+
+def _serialize_item_metadata(item: Item, template: ItemTemplate) -> dict[str, Any]:
+    """Serialize complete item and template metadata for trial data.
+
+    Parameters
+    ----------
+    item : Item
+        The item to serialize metadata from.
+    template : ItemTemplate
+        The item template to serialize metadata from.
+
+    Returns
+    -------
+    dict[str, Any]
+        Comprehensive metadata dictionary containing all item and template fields.
+    """
+    return {
+        # Item identification
+        "item_id": str(item.id),
+        "item_created": item.created_at.isoformat(),
+        "item_modified": item.modified_at.isoformat(),
+        # Item template reference
+        "item_template_id": str(item.item_template_id),
+        # Filled template references
+        "filled_template_refs": [str(ref) for ref in item.filled_template_refs],
+        # Rendered elements
+        "rendered_elements": dict(item.rendered_elements),
+        # Unfilled slots (for cloze tasks)
+        "unfilled_slots": [
+            {
+                "slot_name": slot.slot_name,
+                "position": slot.position,
+                "constraint_ids": [str(cid) for cid in slot.constraint_ids],
+            }
+            for slot in item.unfilled_slots
+        ],
+        # Model outputs
+        "model_outputs": [
+            {
+                "model_name": output.model_name,
+                "model_version": output.model_version,
+                "operation": output.operation,
+                "inputs": output.inputs,
+                "output": output.output,
+                "cache_key": output.cache_key,
+                "computation_metadata": output.computation_metadata,
+            }
+            for output in item.model_outputs
+        ],
+        # Constraint satisfaction
+        "constraint_satisfaction": {
+            str(k): v for k, v in item.constraint_satisfaction.items()
+        },
+        # Item-specific metadata
+        "item_metadata": dict(item.item_metadata),
+        # Template information
+        "template_name": template.name,
+        "template_description": template.description,
+        "judgment_type": template.judgment_type,
+        "task_type": template.task_type,
+        # Template elements
+        "template_elements": [
+            {
+                "element_type": elem.element_type,
+                "element_name": elem.element_name,
+                "content": elem.content,
+                "filled_template_ref_id": (
+                    str(elem.filled_template_ref_id)
+                    if elem.filled_template_ref_id
+                    else None
+                ),
+                "element_metadata": elem.element_metadata,
+                "order": elem.order,
+            }
+            for elem in template.elements
+        ],
+        # Template constraints
+        "template_constraints": [str(c) for c in template.constraints],
+        # Task specification
+        "task_spec": {
+            "prompt": template.task_spec.prompt,
+            "scale_bounds": template.task_spec.scale_bounds,
+            "scale_labels": template.task_spec.scale_labels,
+            "options": template.task_spec.options,
+            "min_selections": template.task_spec.min_selections,
+            "max_selections": template.task_spec.max_selections,
+            "text_validation_pattern": template.task_spec.text_validation_pattern,
+            "max_length": template.task_spec.max_length,
+        },
+        # Presentation specification
+        "presentation_spec": {
+            "mode": template.presentation_spec.mode,
+            "chunking": (
+                {
+                    "unit": template.presentation_spec.chunking.unit,
+                    "parse_type": (
+                        template.presentation_spec.chunking.parse_type
+                    ),
+                    "constituent_labels": (
+                        template.presentation_spec.chunking.constituent_labels
+                    ),
+                    "parser": template.presentation_spec.chunking.parser,
+                    "parse_language": (
+                        template.presentation_spec.chunking.parse_language
+                    ),
+                    "custom_boundaries": (
+                        template.presentation_spec.chunking.custom_boundaries
+                    ),
+                }
+                if template.presentation_spec.chunking
+                else None
+            ),
+            "timing": (
+                {
+                    "duration_ms": template.presentation_spec.timing.duration_ms,
+                    "isi_ms": template.presentation_spec.timing.isi_ms,
+                    "timeout_ms": template.presentation_spec.timing.timeout_ms,
+                    "mask_char": template.presentation_spec.timing.mask_char,
+                    "cumulative": template.presentation_spec.timing.cumulative,
+                }
+                if template.presentation_spec.timing
+                else None
+            ),
+            "display_format": template.presentation_spec.display_format,
+        },
+        # Presentation order
+        "presentation_order": template.presentation_order,
+        # Template metadata
+        "template_metadata": dict(template.template_metadata),
+    }
 
 
 def create_trial(
     item: Item,
+    template: ItemTemplate,
     experiment_config: ExperimentConfig,
     trial_number: int,
     rating_config: RatingScaleConfig | None = None,
@@ -30,6 +162,8 @@ def create_trial(
     ----------
     item : Item
         The item to create a trial from.
+    template : ItemTemplate
+        The item template for this item.
     experiment_config : ExperimentConfig
         The experiment configuration.
     trial_number : int
@@ -42,7 +176,7 @@ def create_trial(
     Returns
     -------
     dict[str, Any]
-        A jsPsych trial object.
+        A jsPsych trial object with comprehensive metadata.
 
     Raises
     ------
@@ -52,9 +186,17 @@ def create_trial(
     Examples
     --------
     >>> from uuid import UUID
+    >>> from sash.items.models import TaskSpec, PresentationSpec
     >>> item = Item(
     ...     item_template_id=UUID("12345678-1234-5678-1234-567812345678"),
     ...     rendered_elements={"sentence": "The cat broke the vase"}
+    ... )
+    >>> template = ItemTemplate(
+    ...     name="test",
+    ...     judgment_type="acceptability",
+    ...     task_type="ordinal_scale",
+    ...     task_spec=TaskSpec(prompt="Rate this"),
+    ...     presentation_spec=PresentationSpec(mode="static")
     ... )
     >>> config = ExperimentConfig(
     ...     experiment_type="likert_rating",
@@ -63,26 +205,26 @@ def create_trial(
     ...     instructions="Test"
     ... )
     >>> rating_config = RatingScaleConfig()
-    >>> trial = create_trial(item, config, 0, rating_config=rating_config)
+    >>> trial = create_trial(item, template, config, 0, rating_config=rating_config)
     >>> trial["type"]
     'html-slider-response'
     """
     if experiment_config.experiment_type == "likert_rating":
         if rating_config is None:
             raise ValueError("rating_config required for likert_rating experiments")
-        return _create_likert_trial(item, rating_config, trial_number)
+        return _create_likert_trial(item, template, rating_config, trial_number)
     elif experiment_config.experiment_type == "slider_rating":
         if rating_config is None:
             raise ValueError("rating_config required for slider_rating experiments")
-        return _create_slider_trial(item, rating_config, trial_number)
+        return _create_slider_trial(item, template, rating_config, trial_number)
     elif experiment_config.experiment_type == "binary_choice":
         if choice_config is None:
             raise ValueError("choice_config required for binary_choice experiments")
-        return _create_binary_choice_trial(item, choice_config, trial_number)
+        return _create_binary_choice_trial(item, template, choice_config, trial_number)
     elif experiment_config.experiment_type == "forced_choice":
         if choice_config is None:
             raise ValueError("choice_config required for forced_choice experiments")
-        return _create_forced_choice_trial(item, choice_config, trial_number)
+        return _create_forced_choice_trial(item, template, choice_config, trial_number)
     else:
         raise ValueError(
             f"Unknown experiment type: {experiment_config.experiment_type}"
@@ -91,6 +233,7 @@ def create_trial(
 
 def _create_likert_trial(
     item: Item,
+    template: ItemTemplate,
     config: RatingScaleConfig,
     trial_number: int,
 ) -> dict[str, Any]:
@@ -100,6 +243,8 @@ def _create_likert_trial(
     ----------
     item : Item
         The item to create a trial from.
+    template : ItemTemplate
+        The item template.
     config : RatingScaleConfig
         Rating scale configuration.
     trial_number : int
@@ -128,23 +273,24 @@ def _create_likert_trial(
         f"</p>"
     )
 
+    # Serialize complete metadata
+    metadata = _serialize_item_metadata(item, template)
+    metadata["trial_number"] = trial_number
+    metadata["trial_type"] = "likert_rating"
+
     return {
         "type": "html-button-response",
         "stimulus": stimulus_html,
         "choices": labels,
         "prompt": prompt_html,
-        "data": {
-            "item_id": str(item.id),
-            "trial_number": trial_number,
-            "trial_type": "likert_rating",
-            "item_metadata": item.item_metadata,
-        },
+        "data": metadata,
         "button_html": '<button class="jspsych-btn likert-button">%choice%</button>',
     }
 
 
 def _create_slider_trial(
     item: Item,
+    template: ItemTemplate,
     config: RatingScaleConfig,
     trial_number: int,
 ) -> dict[str, Any]:
@@ -154,6 +300,8 @@ def _create_slider_trial(
     ----------
     item : Item
         The item to create a trial from.
+    template : ItemTemplate
+        The item template.
     config : RatingScaleConfig
         Rating scale configuration.
     trial_number : int
@@ -166,6 +314,11 @@ def _create_slider_trial(
     """
     stimulus_html = _generate_stimulus_html(item)
 
+    # Serialize complete metadata
+    metadata = _serialize_item_metadata(item, template)
+    metadata["trial_number"] = trial_number
+    metadata["trial_type"] = "slider_rating"
+
     return {
         "type": "html-slider-response",
         "stimulus": stimulus_html,
@@ -175,17 +328,13 @@ def _create_slider_trial(
         "step": config.step,
         "slider_start": (config.min_value + config.max_value) // 2,
         "require_movement": config.required,
-        "data": {
-            "item_id": str(item.id),
-            "trial_number": trial_number,
-            "trial_type": "slider_rating",
-            "item_metadata": item.item_metadata,
-        },
+        "data": metadata,
     }
 
 
 def _create_binary_choice_trial(
     item: Item,
+    template: ItemTemplate,
     config: ChoiceConfig,
     trial_number: int,
 ) -> dict[str, Any]:
@@ -195,6 +344,8 @@ def _create_binary_choice_trial(
     ----------
     item : Item
         The item to create a trial from.
+    template : ItemTemplate
+        The item template.
     config : ChoiceConfig
         Choice configuration.
     trial_number : int
@@ -207,16 +358,16 @@ def _create_binary_choice_trial(
     """
     stimulus_html = _generate_stimulus_html(item)
 
+    # Serialize complete metadata
+    metadata = _serialize_item_metadata(item, template)
+    metadata["trial_number"] = trial_number
+    metadata["trial_type"] = "binary_choice"
+
     return {
         "type": "html-button-response",
         "stimulus": stimulus_html,
         "choices": ["Yes", "No"],
-        "data": {
-            "item_id": str(item.id),
-            "trial_number": trial_number,
-            "trial_type": "binary_choice",
-            "item_metadata": item.item_metadata,
-        },
+        "data": metadata,
         "button_html": config.button_html
         or '<button class="jspsych-btn">%choice%</button>',
     }
@@ -224,6 +375,7 @@ def _create_binary_choice_trial(
 
 def _create_forced_choice_trial(
     item: Item,
+    template: ItemTemplate,
     config: ChoiceConfig,
     trial_number: int,
 ) -> dict[str, Any]:
@@ -237,6 +389,8 @@ def _create_forced_choice_trial(
     ----------
     item : Item
         The item to create a trial from.
+    template : ItemTemplate
+        The item template.
     config : ChoiceConfig
         Choice configuration.
     trial_number : int
@@ -274,16 +428,16 @@ def _create_forced_choice_trial(
             # No choices found, create generic yes/no
             choices = ["Choice A", "Choice B"]
 
+    # Serialize complete metadata
+    metadata = _serialize_item_metadata(item, template)
+    metadata["trial_number"] = trial_number
+    metadata["trial_type"] = "forced_choice"
+
     return {
         "type": "html-button-response",
         "stimulus": stimulus_html,
         "choices": choices,
-        "data": {
-            "item_id": str(item.id),
-            "trial_number": trial_number,
-            "trial_type": "forced_choice",
-            "item_metadata": item.item_metadata,
-        },
+        "data": metadata,
         "button_html": config.button_html
         or '<button class="jspsych-btn">%choice%</button>',
     }

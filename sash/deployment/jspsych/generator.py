@@ -20,7 +20,7 @@ from sash.deployment.jspsych.config import (
 )
 from sash.deployment.jspsych.randomizer import generate_randomizer_function
 from sash.deployment.jspsych.trials import create_trial
-from sash.items.models import Item
+from sash.items.models import Item, ItemTemplate
 from sash.lists.constraints import OrderingConstraint
 from sash.lists.models import ExperimentList
 
@@ -94,6 +94,7 @@ class JsPsychExperimentGenerator:
         self,
         lists: list[ExperimentList],
         items: dict[UUID, Item],
+        templates: dict[UUID, ItemTemplate],
     ) -> Path:
         """Generate complete jsPsych experiment.
 
@@ -104,6 +105,8 @@ class JsPsychExperimentGenerator:
             use a single list, but the API supports multiple lists for future phases.
         items : dict[UUID, Item]
             Dictionary of items keyed by UUID.
+        templates : dict[UUID, ItemTemplate]
+            Dictionary of item templates keyed by UUID.
 
         Returns
         -------
@@ -113,7 +116,7 @@ class JsPsychExperimentGenerator:
         Raises
         ------
         ValueError
-            If no lists provided or if items are missing.
+            If no lists provided or if items/templates are missing.
         """
         if not lists:
             raise ValueError("At least one ExperimentList is required")
@@ -126,7 +129,7 @@ class JsPsychExperimentGenerator:
         experiment_list = lists[0]
 
         # Generate timeline data (trials)
-        timeline_data = self._generate_timeline_data(experiment_list, items)
+        timeline_data = self._generate_timeline_data(experiment_list, items, templates)
 
         # Extract ordering constraints and item metadata
         ordering_constraints = self._extract_ordering_constraints(experiment_list)
@@ -167,6 +170,7 @@ class JsPsychExperimentGenerator:
         self,
         experiment_list: ExperimentList,
         items: dict[UUID, Item],
+        templates: dict[UUID, ItemTemplate],
     ) -> dict[str, Any]:
         """Generate timeline data from experiment list.
 
@@ -176,6 +180,8 @@ class JsPsychExperimentGenerator:
             Experiment list with item IDs.
         items : dict[UUID, Item]
             Dictionary of items keyed by UUID.
+        templates : dict[UUID, ItemTemplate]
+            Dictionary of item templates keyed by UUID.
 
         Returns
         -------
@@ -185,7 +191,8 @@ class JsPsychExperimentGenerator:
         Raises
         ------
         ValueError
-            If an item ID in the list is not found in items dict.
+            If an item ID in the list is not found in items dict,
+            or if a template ID is not found in templates dict.
         """
         trials: list[dict[str, Any]] = []
 
@@ -194,8 +201,19 @@ class JsPsychExperimentGenerator:
                 raise ValueError(f"Item {item_id} not found in items dictionary")
 
             item = items[item_id]
+
+            # Look up the template for this item
+            if item.item_template_id not in templates:
+                raise ValueError(
+                    f"Template {item.item_template_id} not found in "
+                    f"templates dictionary"
+                )
+
+            template = templates[item.item_template_id]
+
             trial = create_trial(
                 item=item,
+                template=template,
                 experiment_config=self.config,
                 trial_number=trial_number,
                 rating_config=self.rating_config,

@@ -18,7 +18,7 @@ from sash.deployment.jspsych.trials import (
     create_instruction_trial,
     create_trial,
 )
-from sash.items.models import Item
+from sash.items.models import Item, ItemTemplate, PresentationSpec, TaskSpec
 
 
 class TestCreateTrial:
@@ -27,12 +27,14 @@ class TestCreateTrial:
     def test_likert_rating(
         self,
         sample_item: Item,
+        sample_item_template: ItemTemplate,
         sample_experiment_config: ExperimentConfig,
         sample_rating_config: RatingScaleConfig,
     ) -> None:
         """Test Likert rating trial creation."""
         trial = create_trial(
             item=sample_item,
+            template=sample_item_template,
             experiment_config=sample_experiment_config,
             trial_number=0,
             rating_config=sample_rating_config,
@@ -43,7 +45,9 @@ class TestCreateTrial:
         assert trial["data"]["item_id"] == str(sample_item.id)
         assert trial["data"]["trial_type"] == "likert_rating"
 
-    def test_slider_rating(self, sample_item: Item) -> None:
+    def test_slider_rating(
+        self, sample_item: Item, sample_item_template: ItemTemplate
+    ) -> None:
         """Test slider rating trial creation."""
         config = ExperimentConfig(
             experiment_type="slider_rating",
@@ -55,6 +59,7 @@ class TestCreateTrial:
 
         trial = create_trial(
             item=sample_item,
+            template=sample_item_template,
             experiment_config=config,
             trial_number=0,
             rating_config=rating_config,
@@ -65,7 +70,9 @@ class TestCreateTrial:
         assert trial["max"] == 7
         assert trial["data"]["trial_type"] == "slider_rating"
 
-    def test_binary_choice(self, sample_item: Item) -> None:
+    def test_binary_choice(
+        self, sample_item: Item, sample_item_template: ItemTemplate
+    ) -> None:
         """Test binary choice trial creation."""
         config = ExperimentConfig(
             experiment_type="binary_choice",
@@ -77,6 +84,7 @@ class TestCreateTrial:
 
         trial = create_trial(
             item=sample_item,
+            template=sample_item_template,
             experiment_config=config,
             trial_number=0,
             choice_config=choice_config,
@@ -88,8 +96,19 @@ class TestCreateTrial:
 
     def test_forced_choice(self) -> None:
         """Test forced choice trial creation."""
+        template = ItemTemplate(
+            name="test_template",
+            description="Test item template",
+            judgment_type="preference",
+            task_type="forced_choice",
+            task_spec=TaskSpec(
+                prompt="Which is more natural?",
+            ),
+            presentation_spec=PresentationSpec(mode="static"),
+        )
+
         item = Item(
-            item_template_id=uuid4(),
+            item_template_id=template.id,
             rendered_elements={
                 "sentence": "Which is more natural?",
                 "choice_0": "The cat broke the vase.",
@@ -107,6 +126,7 @@ class TestCreateTrial:
 
         trial = create_trial(
             item=item,
+            template=template,
             experiment_config=config,
             trial_number=0,
             choice_config=choice_config,
@@ -118,8 +138,20 @@ class TestCreateTrial:
 
     def test_missing_config_raises_error(self) -> None:
         """Test trial creation with missing required config."""
+        template = ItemTemplate(
+            name="test_template",
+            description="Test item template",
+            judgment_type="acceptability",
+            task_type="ordinal_scale",
+            task_spec=TaskSpec(
+                prompt="How natural is this sentence?",
+                scale_bounds=(1, 7),
+            ),
+            presentation_spec=PresentationSpec(mode="static"),
+        )
+
         item = Item(
-            item_template_id=uuid4(),
+            item_template_id=template.id,
             rendered_elements={"sentence": "Test sentence."},
         )
 
@@ -133,6 +165,7 @@ class TestCreateTrial:
         with pytest.raises(ValueError, match="rating_config required"):
             create_trial(
                 item=item,
+                template=template,
                 experiment_config=config,
                 trial_number=0,
             )
@@ -155,7 +188,9 @@ class TestCreateTrial:
                 instructions="Test instructions",
             )
 
-    def test_metadata_inclusion(self, sample_item: Item) -> None:
+    def test_metadata_inclusion(
+        self, sample_item: Item, sample_item_template: ItemTemplate
+    ) -> None:
         """Test that item metadata is included in trial data."""
         config = ExperimentConfig(
             experiment_type="likert_rating",
@@ -167,6 +202,7 @@ class TestCreateTrial:
 
         trial = create_trial(
             item=sample_item,
+            template=sample_item_template,
             experiment_config=config,
             trial_number=5,
             rating_config=rating_config,
@@ -181,8 +217,20 @@ class TestLikertConfiguration:
 
     def test_custom_labels(self) -> None:
         """Test Likert trial with custom labels."""
+        template = ItemTemplate(
+            name="test_template",
+            description="Test item template",
+            judgment_type="acceptability",
+            task_type="ordinal_scale",
+            task_spec=TaskSpec(
+                prompt="How natural is this sentence?",
+                scale_bounds=(1, 5),
+            ),
+            presentation_spec=PresentationSpec(mode="static"),
+        )
+
         item = Item(
-            item_template_id=uuid4(),
+            item_template_id=template.id,
             rendered_elements={"sentence": "Test sentence."},
         )
 
@@ -202,6 +250,7 @@ class TestLikertConfiguration:
 
         trial = create_trial(
             item=item,
+            template=template,
             experiment_config=config,
             trial_number=0,
             rating_config=rating_config,
@@ -217,8 +266,20 @@ class TestSliderConfiguration:
 
     def test_require_movement(self) -> None:
         """Test slider trial with require_movement setting."""
+        template = ItemTemplate(
+            name="test_template",
+            description="Test item template",
+            judgment_type="acceptability",
+            task_type="ordinal_scale",
+            task_spec=TaskSpec(
+                prompt="How natural is this sentence?",
+                scale_bounds=(1, 7),
+            ),
+            presentation_spec=PresentationSpec(mode="static"),
+        )
+
         item = Item(
-            item_template_id=uuid4(),
+            item_template_id=template.id,
             rendered_elements={"sentence": "Test sentence."},
         )
 
@@ -233,6 +294,7 @@ class TestSliderConfiguration:
 
         trial = create_trial(
             item=item,
+            template=template,
             experiment_config=config,
             trial_number=0,
             rating_config=rating_config,
