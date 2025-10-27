@@ -88,12 +88,15 @@ class GlazingAdapter(ResourceAdapter):
         ----------
         query : str | None
             Lemma or predicate to query (e.g., "break", "run").
+            If None, fetches ALL items from the resource.
         language_code : LanguageCode
             Language code filter. Glazing resources are primarily English,
             so language_code="en" is typical. Other languages may not be
             supported.
         **kwargs : Any
-            Additional parameters (resource-specific).
+            Additional parameters:
+            - include_frames (bool): Include detailed frame information
+              (syntax, examples, descriptions). Default: False.
 
         Returns
         -------
@@ -102,21 +105,25 @@ class GlazingAdapter(ResourceAdapter):
 
         Raises
         ------
-        ValueError
-            If query is None (glazing requires a query).
         RuntimeError
             If glazing resource access fails.
 
         Examples
         --------
+        >>> # Query specific verb
         >>> adapter = GlazingAdapter(resource="verbnet")
         >>> items = adapter.fetch_items(query="break", language_code="en")
         >>> len(items) > 0
         True
+        >>> # Fetch all items from resource
+        >>> all_items = adapter.fetch_items(query=None, language_code="en")
+        >>> len(all_items) > 100
+        True
+        >>> # Include detailed frame information
+        >>> items = adapter.fetch_items(query="break", language_code="en", include_frames=True)
+        >>> "frames" in items[0].attributes
+        True
         """
-        if query is None:
-            raise ValueError("GlazingAdapter requires a query string")
-
         # Check cache
         cache_key = None
         if self.cache:
@@ -132,7 +139,7 @@ class GlazingAdapter(ResourceAdapter):
 
         # Fetch from glazing
         try:
-            items = self._fetch_from_resource(query, language_code)
+            items = self._fetch_from_resource(query, language_code, **kwargs)
 
             # Cache result
             if self.cache and cache_key:
@@ -140,22 +147,27 @@ class GlazingAdapter(ResourceAdapter):
 
             return items
 
+        except NotImplementedError:
+            # Re-raise NotImplementedError without wrapping
+            raise
         except Exception as e:
             raise RuntimeError(
                 f"Failed to fetch from glazing {self.resource}: {e}"
             ) from e
 
     def _fetch_from_resource(
-        self, query: str, language_code: LanguageCode
+        self, query: str | None, language_code: LanguageCode, **kwargs: Any
     ) -> list[LexicalItem]:
         """Fetch from specific glazing resource.
 
         Parameters
         ----------
-        query : str
-            Lemma or predicate to query.
+        query : str | None
+            Lemma or predicate to query. If None, fetch all items.
         language_code : LanguageCode
             Language code filter.
+        **kwargs : Any
+            Additional parameters (e.g., include_frames).
 
         Returns
         -------
@@ -163,23 +175,26 @@ class GlazingAdapter(ResourceAdapter):
             Lexical items from the resource.
         """
         if self.resource == "verbnet":
-            return self._fetch_verbnet(query, language_code)
+            return self._fetch_verbnet(query, language_code, **kwargs)
         elif self.resource == "propbank":
-            return self._fetch_propbank(query, language_code)
+            return self._fetch_propbank(query, language_code, **kwargs)
         else:  # framenet
-            return self._fetch_framenet(query, language_code)
+            return self._fetch_framenet(query, language_code, **kwargs)
 
     def _fetch_verbnet(
-        self, query: str, language_code: LanguageCode
+        self, query: str | None, language_code: LanguageCode, **kwargs: Any
     ) -> list[LexicalItem]:
         """Fetch from VerbNet using VerbNetLoader.
 
         Parameters
         ----------
-        query : str
-            Verb lemma to search for.
+        query : str | None
+            Verb lemma to search for. If None, fetch ALL verbs.
         language_code : LanguageCode
             Language code filter.
+        **kwargs : Any
+            Additional parameters:
+            - include_frames (bool): Include detailed frame information.
 
         Returns
         -------
@@ -189,43 +204,87 @@ class GlazingAdapter(ResourceAdapter):
         loader = self._get_loader()
         assert isinstance(loader, VerbNetLoader)
 
+        include_frames = kwargs.get("include_frames", False)
         items: list[LexicalItem] = []
 
-        # Search through all verb classes for members matching the query
+        # Search through all verb classes
         for verb_class in loader.classes.values():
-            if verb_class.members:
-                for member in verb_class.members:
-                    if member.name == query:
-                        # Create LexicalItem for this verb class
-                        item = LexicalItem(
-                            lemma=query,
-                            pos="VERB",
-                            language_code=language_code or "en",
-                            attributes={
-                                "verbnet_class": verb_class.id,
-                                "themroles": [r.type for r in verb_class.themroles]
-                                if verb_class.themroles
-                                else [],
-                                "frame_count": len(verb_class.frames)
-                                if verb_class.frames
-                                else 0,
-                            },
-                        )
-                        items.append(item)
+            if not verb_class.members:
+                continue
+
+            for member in verb_class.members:
+                # Filter by query if provided
+                if query is not None and member.name != query:
+                    continue
+
+                # Build attributes
+                attributes: dict[str, Any] = {
+                    "verbnet_class": verb_class.id,
+                    "themroles": [r.type for r in verb_class.themroles]
+                    if verb_class.themroles
+                    else [],
+                    "frame_count": len(verb_class.frames)
+                    if verb_class.frames
+                    else 0,
+                }
+
+                # Add detailed frame information if requested
+                if include_frames and verb_class.frames:
+                    frames_data = []
+                    for frame in verb_class.frames:
+                        frame_dict: dict[str, Any] = {
+                            "primary": frame.description.primary,
+                            "secondary": frame.description.secondary,
+                        }
+
+                        # Extract syntax elements
+                        if frame.syntax and hasattr(frame.syntax, "elements"):
+                            syntax_elements = []
+                            for element in frame.syntax.elements:
+                                pos = element.pos
+                                value = (
+                                    element.value if hasattr(element, "value") else None
+                                )
+                                syntax_elements.append((pos, value))
+                            frame_dict["syntax"] = syntax_elements
+                        else:
+                            frame_dict["syntax"] = []
+
+                        # Extract examples
+                        if frame.examples:
+                            frame_dict["examples"] = [ex.text for ex in frame.examples]
+                        else:
+                            frame_dict["examples"] = []
+
+                        frames_data.append(frame_dict)
+
+                    attributes["frames"] = frames_data
+
+                # Create LexicalItem for this verb class
+                item = LexicalItem(
+                    lemma=member.name,
+                    pos="VERB",
+                    language_code=language_code or "en",
+                    attributes=attributes,
+                )
+                items.append(item)
 
         return items
 
     def _fetch_propbank(
-        self, query: str, language_code: LanguageCode
+        self, query: str | None, language_code: LanguageCode, **kwargs: Any
     ) -> list[LexicalItem]:
         """Fetch from PropBank using PropBankLoader.
 
         Parameters
         ----------
-        query : str
-            Predicate lemma to search for.
+        query : str | None
+            Predicate lemma to search for. If None, fetch ALL predicates.
         language_code : LanguageCode
             Language code filter.
+        **kwargs : Any
+            Additional parameters:
+            - include_frames (bool): Include detailed frame/roleset information.
 
         Returns
         -------
@@ -235,83 +294,128 @@ class GlazingAdapter(ResourceAdapter):
         loader = self._get_loader()
         assert isinstance(loader, PropBankLoader)
 
+        include_frames = kwargs.get("include_frames", False)
         items: list[LexicalItem] = []
 
-        # Get frameset for the predicate
-        frameset = loader.get_frameset(query)
-        if frameset and frameset.rolesets:
-            for roleset in frameset.rolesets:
-                # Create LexicalItem for each roleset
-                item = LexicalItem(
-                    lemma=query,
-                    pos="VERB",
-                    language_code=language_code or "en",
-                    attributes={
-                        "propbank_roleset_id": roleset.id,
-                        "roleset_name": roleset.name if roleset.name else "",
-                        "roles": [
-                            {
-                                "arg": role.n,
-                                "function": role.f,
-                                "description": role.descr,
-                            }
-                            for role in roleset.roles
-                        ]
-                        if roleset.roles
-                        else [],
-                    },
+        # If query is None, iterate through all framesets
+        if query is None:
+            # Get all framesets from PropBank
+            for frameset in loader.framesets.values():
+                items.extend(
+                    self._create_propbank_items(
+                        frameset, language_code, include_frames
+                    )
                 )
-                items.append(item)
+        else:
+            # Get specific frameset for the predicate
+            frameset = loader.get_frameset(query)
+            if frameset:
+                items.extend(
+                    self._create_propbank_items(
+                        frameset, language_code, include_frames
+                    )
+                )
+
+        return items
+
+    def _create_propbank_items(
+        self, frameset: Any, language_code: LanguageCode, include_frames: bool
+    ) -> list[LexicalItem]:
+        """Create LexicalItem objects from a PropBank frameset.
+
+        Parameters
+        ----------
+        frameset : Any
+            PropBank frameset object.
+        language_code : LanguageCode
+            Language code filter.
+        include_frames : bool
+            Whether to include detailed roleset information.
+
+        Returns
+        -------
+        list[LexicalItem]
+            LexicalItem objects for the frameset's rolesets.
+        """
+        items: list[LexicalItem] = []
+
+        if not frameset.rolesets:
+            return items
+
+        for roleset in frameset.rolesets:
+            attributes: dict[str, Any] = {
+                "propbank_roleset_id": roleset.id,
+                "roleset_name": roleset.name if roleset.name else "",
+            }
+
+            # Add detailed role information if requested
+            if include_frames and roleset.roles:
+                attributes["roles"] = [
+                    {
+                        "arg": role.n,
+                        "function": role.f,
+                        "description": role.descr,
+                    }
+                    for role in roleset.roles
+                ]
+
+                # Add examples if available
+                if hasattr(roleset, "examples") and roleset.examples:
+                    attributes["examples"] = [
+                        ex.text for ex in roleset.examples if hasattr(ex, "text")
+                    ]
+
+            # Create LexicalItem for each roleset
+            # Use predicate_lemma attribute from PropBank frameset
+            lemma = (
+                frameset.predicate_lemma
+                if hasattr(frameset, "predicate_lemma")
+                else str(frameset)
+            )
+            item = LexicalItem(
+                lemma=lemma,
+                pos="VERB",
+                language_code=language_code or "en",
+                attributes=attributes,
+            )
+            items.append(item)
 
         return items
 
     def _fetch_framenet(
-        self, query: str, language_code: LanguageCode
+        self, query: str | None, language_code: LanguageCode, **kwargs: Any
     ) -> list[LexicalItem]:
         """Fetch from FrameNet using FrameNetLoader.
 
         Parameters
         ----------
-        query : str
-            Lexical unit name to search for.
+        query : str | None
+            Lexical unit name to search for. If None, fetch ALL lexical units.
         language_code : LanguageCode
             Language code filter.
+        **kwargs : Any
+            Additional parameters:
+            - include_frames (bool): Include detailed frame information.
 
         Returns
         -------
         list[LexicalItem]
             LexicalItem objects for matching frames.
+
+        Raises
+        ------
+        NotImplementedError
+            FrameNet lexical units are not currently available in glazing.
+            This is a limitation of the glazing package that needs to be
+            fixed upstream.
         """
-        loader = self._get_loader()
-        assert isinstance(loader, FrameNetLoader)
-
-        items: list[LexicalItem] = []
-
-        # Search through all frames for lexical units matching the query
-        for frame in loader.frames:
-            if frame.lexical_units:
-                for lu in frame.lexical_units:
-                    if query.lower() in lu.name.lower():
-                        # Create LexicalItem for each matching lexical unit
-                        item = LexicalItem(
-                            lemma=query,
-                            pos=str(lu.pos) if lu.pos else "UNKNOWN",
-                            language_code=language_code or "en",
-                            attributes={
-                                "framenet_frame": frame.name,
-                                "frame_id": frame.id,
-                                "lexical_unit_id": lu.id,
-                                "lexical_unit_name": lu.name,
-                                "frame_elements": [
-                                    fe.name for fe in frame.frame_elements
-                                ]
-                                if frame.frame_elements
-                                else [],
-                            },
-                        )
-                        items.append(item)
-
-        return items
+        # FrameNet lexical units are not currently loaded by glazing
+        # This is a known limitation that needs to be fixed in the glazing package
+        raise NotImplementedError(
+            "FrameNet lexical unit fetching is not currently supported. "
+            "The glazing package does not load lexical units from FrameNet data. "
+            "This needs to be fixed in the glazing package upstream."
+        )
 
     def is_available(self) -> bool:
         """Check if glazing package is available.

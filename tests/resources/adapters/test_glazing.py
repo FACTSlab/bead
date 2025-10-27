@@ -36,11 +36,14 @@ def test_glazing_adapter_fetch_items(glazing_adapter: GlazingAdapter) -> None:
     assert all("verbnet_class" in item.attributes for item in items)
 
 
-def test_glazing_adapter_fetch_requires_query() -> None:
-    """Test that glazing adapter requires query parameter."""
+def test_glazing_adapter_fetch_all_verbnet() -> None:
+    """Test that glazing adapter can fetch all VerbNet verbs."""
     adapter = GlazingAdapter(resource="verbnet")
-    with pytest.raises(ValueError, match="requires a query string"):
-        adapter.fetch_items(query=None, language_code="en")
+    items = adapter.fetch_items(query=None, language_code="en")
+    # VerbNet has 3000+ verb-class pairs
+    assert len(items) > 3000
+    assert all(item.pos == "VERB" for item in items)
+    assert all("verbnet_class" in item.attributes for item in items)
 
 
 def test_glazing_adapter_caching(
@@ -94,7 +97,7 @@ def test_glazing_adapter_propbank() -> None:
         assert item.lemma == "break"
         assert item.language_code == "eng"
         assert "propbank_roleset_id" in item.attributes
-        assert "roles" in item.attributes
+        assert "roleset_name" in item.attributes
 
 
 def test_glazing_adapter_framenet() -> None:
@@ -102,12 +105,70 @@ def test_glazing_adapter_framenet() -> None:
     adapter = GlazingAdapter(resource="framenet")
     assert adapter.is_available()
 
-    # Search for a lexical unit
-    items = adapter.fetch_items(query="break", language_code="en")
-    # FrameNet should have lexical units for "break"
+    # FrameNet lexical units are not currently supported
+    with pytest.raises(NotImplementedError, match="FrameNet lexical unit"):
+        adapter.fetch_items(query="break", language_code="en")
+
+
+def test_glazing_adapter_include_frames_verbnet(glazing_adapter: GlazingAdapter) -> None:
+    """Test VerbNet adapter with include_frames parameter."""
+    items = glazing_adapter.fetch_items(
+        query="break", language_code="en", include_frames=True
+    )
+    assert len(items) > 0
+
+    # Check that frames are included
+    item = items[0]
+    assert "frames" in item.attributes
+    assert isinstance(item.attributes["frames"], list)
+    assert len(item.attributes["frames"]) > 0
+
+    # Check frame structure
+    frame = item.attributes["frames"][0]
+    assert "primary" in frame
+    assert "secondary" in frame
+    assert "syntax" in frame
+    assert "examples" in frame
+
+
+def test_glazing_adapter_include_frames_propbank() -> None:
+    """Test PropBank adapter with include_frames parameter."""
+    adapter = GlazingAdapter(resource="propbank")
+    items = adapter.fetch_items(query="break", language_code="en", include_frames=True)
+
     if len(items) > 0:
         item = items[0]
-        assert item.lemma == "break"
-        assert item.language_code == "eng"
-        assert "framenet_frame" in item.attributes
-        assert "lexical_unit_name" in item.attributes
+        # Should have detailed role information
+        if "roles" in item.attributes:
+            assert isinstance(item.attributes["roles"], list)
+            if len(item.attributes["roles"]) > 0:
+                role = item.attributes["roles"][0]
+                assert "arg" in role
+                assert "description" in role
+
+
+def test_glazing_adapter_include_frames_framenet() -> None:
+    """Test FrameNet adapter with include_frames parameter."""
+    adapter = GlazingAdapter(resource="framenet")
+
+    # FrameNet lexical units are not currently supported
+    with pytest.raises(NotImplementedError, match="FrameNet lexical unit"):
+        adapter.fetch_items(query="break", language_code="en", include_frames=True)
+
+
+def test_glazing_adapter_fetch_all_propbank() -> None:
+    """Test that glazing adapter can fetch all PropBank predicates."""
+    adapter = GlazingAdapter(resource="propbank")
+    items = adapter.fetch_items(query=None, language_code="en")
+    # PropBank has many predicates
+    assert len(items) > 100
+    assert all("propbank_roleset_id" in item.attributes for item in items)
+
+
+def test_glazing_adapter_fetch_all_framenet() -> None:
+    """Test that glazing adapter raises error for FrameNet (not supported)."""
+    adapter = GlazingAdapter(resource="framenet")
+
+    # FrameNet lexical units are not currently supported
+    with pytest.raises(NotImplementedError, match="FrameNet lexical unit"):
+        adapter.fetch_items(query=None, language_code="en")
