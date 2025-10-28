@@ -205,7 +205,7 @@ class ModelMetrics:
         f1s: list[float] = []
         supports: list[float] = []
 
-        for i, _label in enumerate(labels):
+        for i, _ in enumerate(labels):
             # True positives, false positives, false negatives
             tp = cm[i, i]  # type: ignore[index]
             fp = cm[:, i].sum() - tp  # type: ignore[operator, index]
