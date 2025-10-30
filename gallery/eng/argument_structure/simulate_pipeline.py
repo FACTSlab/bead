@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 """Simulate the complete active learning pipeline with synthetic judgments.
 
-This script:
+This script demonstrates the sash.simulation framework on the argument structure
+project. It:
 1. Loads 2AFC pairs from items/2afc_pairs.jsonl
-2. Simulates human judgments using LM scores
+2. Simulates human judgments using the sash.simulation framework
 3. Trains model on simulated data
 4. Uses active learning to select next batch
 5. Repeats until convergence
 
-The simulation uses sigmoid(lm_score1 - lm_score2) to generate probabilistic
-judgments, mimicking human preference for higher-scoring options.
+The simulation uses the LMBasedAnnotator with temperature noise to generate
+probabilistic judgments based on language model scores.
 """
 
 from __future__ import annotations
@@ -28,82 +29,15 @@ from sash.active_learning.selection import UncertaintySampler
 from sash.config.models import (
     ActiveLearningLoopConfig,
     ForcedChoiceModelConfig,
+    NoiseModelConfig,
+    SimulatedAnnotatorConfig,
     UncertaintySamplerConfig,
 )
 from sash.evaluation.convergence import ConvergenceDetector
 from sash.evaluation.interannotator import InterAnnotatorMetrics
 from sash.evaluation.model_metrics import ModelMetrics
-from sash.items.models import Item, ItemTemplate, TaskType
-
-
-class SimulatedHumanAnnotator:
-    """Simulate human judgments based on language model scores.
-
-    Uses sigmoid function to convert score differences into choice probabilities:
-        P(choose option_a) = sigmoid(lm_score1 - lm_score2)
-
-    This creates realistic preference patterns where humans prefer higher-scoring
-    options but with noise.
-
-    Parameters
-    ----------
-    temperature : float
-        Controls decision noise (higher = more random, default=1.0)
-    random_state : int | None
-        Random seed for reproducibility
-
-    Examples
-    --------
-    >>> annotator = SimulatedHumanAnnotator(temperature=1.0, random_state=42)
-    >>> # item with lm_score1=10, lm_score2=5
-    >>> judgment = annotator.annotate(item)  # More likely to be "option_a"
-    """
-
-    def __init__(self, temperature: float = 1.0, random_state: int | None = None):
-        self.temperature = temperature
-        self.random_state = random_state
-        self.rng = np.random.RandomState(random_state)
-
-    @staticmethod
-    def sigmoid(x: float) -> float:
-        """Sigmoid activation function."""
-        return 1 / (1 + np.exp(-x))
-
-    def annotate(self, item: Item) -> str:
-        """Generate simulated judgment for a 2AFC item.
-
-        Parameters
-        ----------
-        item : Item
-            2AFC item with lm_score1 and lm_score2 in metadata
-
-        Returns
-        -------
-        str
-            "option_a" or "option_b"
-        """
-        # Extract LM scores
-        score_a = item.item_metadata.get("lm_score1", 0.0)
-        score_b = item.item_metadata.get("lm_score2", 0.0)
-
-        # Compute probability of choosing option_a
-        score_diff = (score_a - score_b) / self.temperature
-        prob_a = self.sigmoid(score_diff)
-
-        # Sample from distribution
-        choice = self.rng.choice(["option_a", "option_b"], p=[prob_a, 1 - prob_a])
-
-        return choice
-
-    def annotate_batch(self, items: list[Item]) -> dict[str, str]:
-        """Generate simulated judgments for multiple items.
-
-        Returns
-        -------
-        dict[str, str]
-            Mapping from item_id to judgment
-        """
-        return {str(item.id): self.annotate(item) for item in items}
+from sash.items.models import Item, ItemTemplate, PresentationSpec, TaskSpec, TaskType
+from sash.simulation.annotators.base import SimulatedAnnotator
 
 
 def load_2afc_pairs(path: Path, limit: int | None = None, skip: int = 0) -> list[Item]:
@@ -141,19 +75,17 @@ def get_forced_choice_template() -> ItemTemplate:
     Returns
     -------
     ItemTemplate
-        Template configured for forced_choice task
+        Template configured for forced_choice task using proper TaskSpec
     """
     return ItemTemplate(
         name="2AFC Forced Choice",
-        task_type=TaskType.FORCED_CHOICE,
-        language_code="eng",
-        template_structure="{option_a} vs {option_b}",
-        slots=[
-            {"name": "option_a", "description": "First option"},
-            {"name": "option_b", "description": "Second option"},
-        ],
-        constraints=[],
-        metadata={},
+        judgment_type="preference",
+        task_type="forced_choice",
+        task_spec=TaskSpec(
+            prompt="Which sentence sounds more natural?",
+            options=["option_a", "option_b"],
+        ),
+        presentation_spec=PresentationSpec(mode="static"),
     )
 
 
@@ -246,22 +178,48 @@ def run_simulation(
 
     # [2/7] Setup simulated annotator
     print("[2/7] Setting up simulated annotator...")
-    annotator = SimulatedHumanAnnotator(
-        temperature=temperature,
+
+    # Create annotator configuration using sash.simulation framework
+    annotator_config = SimulatedAnnotatorConfig(
+        strategy="lm_score",
+        model_output_key="lm_score",
+        noise_model=NoiseModelConfig(
+            noise_type="temperature",
+            temperature=temperature,
+        ),
         random_state=random_state,
+        fallback_to_random=True,
     )
+
+    # Create annotator from configuration
+    annotator = SimulatedAnnotator.from_config(annotator_config)
+
+    print(f"  Strategy: lm_score")
     print(f"  Temperature: {temperature}")
     print(f"  Random state: {random_state}")
     print()
 
     # [3/7] Generate initial annotations
     print("[3/7] Generating initial annotations...")
-    human_ratings = annotator.annotate_batch(initial_items)
+
+    # Create ItemTemplate for the simulation
+    item_template = get_forced_choice_template()
+
+    # Generate initial annotations using the simulation framework
+    human_ratings = annotator.annotate_batch(initial_items, item_template)
     print(f"  Generated {len(human_ratings)} initial annotations")
 
-    # Compute simulated human agreement (sample twice)
-    sample1 = annotator.annotate_batch(initial_items)
-    sample2 = annotator.annotate_batch(initial_items)
+    # Compute simulated human agreement (sample twice with different seeds)
+    # Create two new annotators with different random states for agreement calculation
+    annotator_sample1 = SimulatedAnnotator.from_config(
+        annotator_config.model_copy(update={"random_state": (random_state or 0) + 1000})
+    )
+    annotator_sample2 = SimulatedAnnotator.from_config(
+        annotator_config.model_copy(update={"random_state": (random_state or 0) + 2000})
+    )
+
+    sample1 = annotator_sample1.annotate_batch(initial_items, item_template)
+    sample2 = annotator_sample2.annotate_batch(initial_items, item_template)
 
     labels1 = [sample1[str(item.id)] for item in initial_items]
     labels2 = [sample2[str(item.id)] for item in initial_items]
@@ -285,9 +243,6 @@ def run_simulation(
 
     # [5/7] Setup active learning
     print("[5/7] Setting up active learning...")
-
-    # Create ItemTemplate for validation
-    item_template = get_forced_choice_template()
 
     # Create model with configuration
     model_config = ForcedChoiceModelConfig(
@@ -342,7 +297,8 @@ def run_simulation(
         test_size = min(50, len(current_unlabeled))
         if test_size > 0:
             test_items = random.sample(current_unlabeled, test_size)
-            test_labels = [annotator.annotate(item) for item in test_items]
+            test_annotations = annotator.annotate_batch(test_items, item_template)
+            test_labels = [test_annotations[str(item.id)] for item in test_items]
 
             predictions = model.predict(test_items)
             pred_labels = [p.predicted_class for p in predictions]
@@ -393,8 +349,8 @@ def run_simulation(
             n_select=n_select,
         )
 
-        # Simulate annotations for selected items
-        new_annotations = annotator.annotate_batch(selected_items)
+        # Simulate annotations for selected items using the simulation framework
+        new_annotations = annotator.annotate_batch(selected_items, item_template)
         human_ratings.update(new_annotations)
 
         # Update sets
