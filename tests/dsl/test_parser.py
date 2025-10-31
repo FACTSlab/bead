@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from sash.dsl import ast, parse
-from sash.dsl.errors import ParseError
+from bead.dsl import ast, parse
+from bead.dsl.errors import ParseError
 
 
 # Literals

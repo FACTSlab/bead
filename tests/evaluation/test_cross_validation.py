@@ -8,8 +8,8 @@ from uuid import uuid4
 import numpy as np
 import pytest
 
-from sash.evaluation.cross_validation import CrossValidator
-from sash.items.models import Item
+from bead.evaluation.cross_validation import CrossValidator
+from bead.items.models import Item
 
 
 class TestCrossValidatorInitialization:

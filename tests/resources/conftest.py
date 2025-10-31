@@ -6,7 +6,7 @@ from uuid import UUID
 
 import pytest
 
-from sash.resources import (
+from bead.resources import (
     Constraint,
     LexicalItem,
     Lexicon,
@@ -14,7 +14,7 @@ from sash.resources import (
     Template,
     TemplateCollection,
 )
-from sash.resources.classification import LexicalItemClass, TemplateClass
+from bead.resources.classification import LexicalItemClass, TemplateClass
 
 
 @pytest.fixture

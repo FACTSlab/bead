@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from sash.dsl import EvaluationContext
-from sash.dsl.errors import EvaluationError
+from bead.dsl import EvaluationContext
+from bead.dsl.errors import EvaluationError
 
 
 def test_context_creation() -> None:

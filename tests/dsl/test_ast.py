@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from sash.dsl import ast
+from bead.dsl import ast
 
 
 def test_literal_string() -> None:

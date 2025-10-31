@@ -2,9 +2,9 @@
 
 from pathlib import Path
 
-from sash.config.defaults import get_default_config
-from sash.config.profiles import get_profile
-from sash.config.validation import (
+from bead.config.defaults import get_default_config
+from bead.config.profiles import get_profile
+from bead.config.validation import (
     check_deployment_configuration,
     check_model_configuration,
     check_paths_exist,

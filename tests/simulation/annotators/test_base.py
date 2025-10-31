@@ -7,11 +7,11 @@ from typing import TYPE_CHECKING
 import numpy as np
 import pytest
 
-from sash.config.models import SimulatedAnnotatorConfig
-from sash.simulation.annotators.base import SimulatedAnnotator
+from bead.config.models import SimulatedAnnotatorConfig
+from bead.simulation.annotators.base import SimulatedAnnotator
 
 if TYPE_CHECKING:
-    from sash.items.models import Item, ItemTemplate
+    from bead.items.models import Item, ItemTemplate
 
 
 class ConcreteAnnotator(SimulatedAnnotator):
@@ -46,7 +46,7 @@ def test_annotator_random_state() -> None:
 
 def test_annotator_from_config_lm_score() -> None:
     """Test from_config works for lm_score strategy."""
-    from sash.simulation.annotators.lm_based import (  # noqa: PLC0415
+    from bead.simulation.annotators.lm_based import (  # noqa: PLC0415
         LMBasedAnnotator,
     )
 

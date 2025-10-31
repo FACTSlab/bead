@@ -6,12 +6,12 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from sash.resources.constraints import Constraint
-from sash.resources.lexicon import Lexicon
-from sash.resources.models import LexicalItem
-from sash.resources.structures import Slot, Template
-from sash.templates.resolver import ConstraintResolver
-from sash.templates.strategies import MLMFillingStrategy
+from bead.resources.constraints import Constraint
+from bead.resources.lexicon import Lexicon
+from bead.resources.models import LexicalItem
+from bead.resources.structures import Slot, Template
+from bead.templates.resolver import ConstraintResolver
+from bead.templates.strategies import MLMFillingStrategy
 
 
 @pytest.fixture

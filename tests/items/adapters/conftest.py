@@ -11,7 +11,7 @@ import numpy as np
 import pytest
 import torch
 
-from sash.items.cache import ModelOutputCache
+from bead.items.cache import ModelOutputCache
 
 
 @pytest.fixture(autouse=True, scope="function")
@@ -22,13 +22,13 @@ def reset_adapter_imports():
     interfere with imports in subsequent tests.
     """
     # Modules to clean up - only API client adapters and their dependencies
-    # NOTE: We leave sash.items.adapters and huggingface adapters alone to avoid
+    # NOTE: We leave bead.items.adapters and huggingface adapters alone to avoid
     # PyO3 reload issues with transformers/safetensors
     modules_to_clean = [
-        "sash.items.adapters.openai",
-        "sash.items.adapters.anthropic",
-        "sash.items.adapters.google",
-        "sash.items.adapters.togetherai",
+        "bead.items.adapters.openai",
+        "bead.items.adapters.anthropic",
+        "bead.items.adapters.google",
+        "bead.items.adapters.togetherai",
         "openai",
         "anthropic",
         "google.generativeai",

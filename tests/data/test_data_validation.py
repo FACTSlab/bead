@@ -5,10 +5,10 @@ from __future__ import annotations
 from pathlib import Path
 from uuid import UUID, uuid4
 
-from sash.data.base import SashBaseModel
-from sash.data.metadata import MetadataTracker
-from sash.data.serialization import write_jsonlines
-from sash.data.validation import (
+from bead.data.base import BeadBaseModel
+from bead.data.metadata import MetadataTracker
+from bead.data.serialization import write_jsonlines
+from bead.data.validation import (
     ValidationReport,
     validate_jsonlines_file,
     validate_provenance_chain,
@@ -17,21 +17,21 @@ from sash.data.validation import (
 
 
 # Test models
-class SimpleItem(SashBaseModel):
+class SimpleItem(BeadBaseModel):
     """Simple model with UUID reference."""
 
     name: str
     parent_id: UUID | None = None
 
 
-class ItemWithList(SashBaseModel):
+class ItemWithList(BeadBaseModel):
     """Model with list of UUID references."""
 
     name: str
     parent_ids: list[UUID] = []
 
 
-class Template(SashBaseModel):
+class Template(BeadBaseModel):
     """Template model."""
 
     name: str
@@ -265,7 +265,7 @@ def test_validate_uuid_references_mixed_fields() -> None:
 def test_validate_uuid_references_no_uuid_fields() -> None:
     """Test object with no UUID fields."""
 
-    class SimpleModel(SashBaseModel):
+    class SimpleModel(BeadBaseModel):
         name: str
         value: int
 

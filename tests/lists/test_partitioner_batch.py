@@ -4,13 +4,13 @@ from __future__ import annotations
 
 from uuid import uuid4
 
-from sash.lists.constraints import (
+from bead.lists.constraints import (
     BatchBalanceConstraint,
     BatchCoverageConstraint,
     BatchDiversityConstraint,
     BatchMinOccurrenceConstraint,
 )
-from sash.lists.partitioner import ListPartitioner
+from bead.lists.partitioner import ListPartitioner
 
 
 class TestPartitionWithBatchConstraints:

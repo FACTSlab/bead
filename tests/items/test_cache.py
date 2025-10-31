@@ -7,7 +7,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from sash.items.cache import (
+from bead.items.cache import (
     FilesystemBackend,
     InMemoryBackend,
     ModelOutputCache,

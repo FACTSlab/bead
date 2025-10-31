@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from sash.dsl import (
+from bead.dsl import (
     EvaluationContext,
     Evaluator,
     ast,
@@ -12,7 +12,7 @@ from sash.dsl import (
     parse,
     register_stdlib,
 )
-from sash.dsl.errors import EvaluationError
+from bead.dsl.errors import EvaluationError
 
 
 # Test literals

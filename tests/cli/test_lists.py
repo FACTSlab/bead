@@ -6,7 +6,7 @@ from pathlib import Path
 
 from click.testing import CliRunner
 
-from sash.cli.lists import lists
+from bead.cli.lists import lists
 
 
 def test_partition_balanced(

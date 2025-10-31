@@ -11,7 +11,7 @@ from pathlib import Path
 from utils.template_generator import generate_templates_for_all_verbs
 from utils.verbnet_parser import VerbNetExtractor
 
-from sash.resources.adapters.cache import AdapterCache
+from bead.resources.adapters.cache import AdapterCache
 
 
 def main(verb_limit: int | None = None) -> None:

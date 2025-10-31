@@ -4,15 +4,15 @@ from __future__ import annotations
 
 from uuid import uuid4
 
-from sash.config.models import NoiseModelConfig, SimulatedAnnotatorConfig
-from sash.items.models import (
+from bead.config.models import NoiseModelConfig, SimulatedAnnotatorConfig
+from bead.items.models import (
     Item,
     ItemTemplate,
     ModelOutput,
     PresentationSpec,
     TaskSpec,
 )
-from sash.simulation.annotators.distance_based import DistanceBasedAnnotator
+from bead.simulation.annotators.distance_based import DistanceBasedAnnotator
 
 
 def _create_model_output(score: float, idx: int = 0) -> ModelOutput:
@@ -397,7 +397,7 @@ def test_annotate_reproducible_with_seed() -> None:
 
 def test_from_config() -> None:
     """Test creating annotator from config via from_config."""
-    from sash.simulation.annotators.base import (  # noqa: PLC0415
+    from bead.simulation.annotators.base import (  # noqa: PLC0415
         SimulatedAnnotator,
     )
 

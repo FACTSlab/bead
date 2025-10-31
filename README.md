@@ -1,4 +1,4 @@
-# sash
+# bead
 
 A comprehensive Python framework for constructing, deploying, and analyzing large-scale linguistic judgment experiments with active learning.
 
@@ -10,7 +10,7 @@ A comprehensive Python framework for constructing, deploying, and analyzing larg
 
 ## Overview
 
-`sash` implements a complete pipeline for linguistic research, from lexical resource construction through experimental deployment to model training with active learning. The framework is designed for researchers collecting acceptability judgments, inference judgments, and other linguistic annotations at scale.
+`bead` implements a complete pipeline for linguistic research, from lexical resource construction through experimental deployment to model training with active learning. The framework is designed for researchers collecting acceptability judgments, inference judgments, and other linguistic annotations at scale.
 
 ### Key Features
 
@@ -23,9 +23,9 @@ A comprehensive Python framework for constructing, deploying, and analyzing larg
 - **Multi-Language Support**: Language-agnostic core with ISO 639 language codes
 - **Beautiful UI**: Material Design interfaces with jsPsych 7.x and JATOS deployment
 
-### Why sash?
+### Why bead?
 
-The name "sash" is a play on the [glazing](https://github.com/aaronstevenwhite/glazing) package (which provides access to VerbNet, PropBank, and FrameNet) — both are window-related terms. More importantly, `sash` provides:
+The name "bead" refers to the small, decorative elements that form part of window glazing — a play on the [glazing](https://github.com/aaronstevenwhite/glazing) package (which provides access to VerbNet, PropBank, and FrameNet). Just as beads add structure and detail to a window, `bead` provides:
 
 - **Reproducibility**: Full provenance tracking and deterministic pipelines
 - **Scalability**: Handles combinatorial explosion with streaming and sampling strategies
@@ -66,21 +66,21 @@ source .venv/bin/activate  # On macOS/Linux
 # OR
 .venv\Scripts\activate     # On Windows
 
-# Install sash
-pip install sash
+# Install bead
+pip install bead
 
 # Install optional dependencies
-pip install sash[api]       # OpenAI, Anthropic, Google APIs
-pip install sash[training]  # PyTorch Lightning, TensorBoard
-pip install sash[dev]       # Development tools (pytest, ruff, pyright)
+pip install bead[api]       # OpenAI, Anthropic, Google APIs
+pip install bead[training]  # PyTorch Lightning, TensorBoard
+pip install bead[dev]       # Development tools (pytest, ruff, pyright)
 ```
 
 ### Development Installation
 
 ```bash
 # Clone repository
-git clone https://github.com/aaronstevenwhite/sash.git
-cd sash
+git clone https://github.com/aaronstevenwhite/bead.git
+cd bead
 
 # Create virtual environment
 python3.13 -m venv .venv
@@ -90,7 +90,7 @@ source .venv/bin/activate
 pip install -e ".[dev,api,training]"
 
 # Verify installation
-sash --version
+bead --version
 pytest tests/
 ```
 
@@ -102,7 +102,7 @@ pytest tests/
 
 ```bash
 # Create new project structure
-sash init my-experiment
+bead init my-experiment
 
 cd my-experiment
 ```
@@ -124,7 +124,7 @@ my-experiment/
 Create lexical items and templates:
 
 ```python
-from sash.resources import LexicalItem, Template, Lexicon, TemplateCollection
+from bead.resources import LexicalItem, Template, Lexicon, TemplateCollection
 
 # Define lexical items
 verb = LexicalItem(
@@ -155,7 +155,7 @@ templates.save("templates/basic.jsonl")
 Generate sentences from templates:
 
 ```python
-from sash.templates import TemplateFiller
+from bead.templates import TemplateFiller
 
 filler = TemplateFiller(
     strategy="exhaustive",  # or "random", "stratified", "mlm"
@@ -172,7 +172,7 @@ filled.save("filled_templates/output.jsonl")
 Create experimental items with model-based constraints:
 
 ```python
-from sash.items import ItemConstructor, ItemTemplate
+from bead.items import ItemConstructor, ItemTemplate
 
 constructor = ItemConstructor(
     models=["gpt2"],
@@ -194,8 +194,8 @@ items.save("items/2afc_items.jsonl")
 Create balanced experimental lists:
 
 ```python
-from sash.lists import ListPartitioner
-from sash.lists.constraints import (
+from bead.lists import ListPartitioner
+from bead.lists.constraints import (
     BatchCoverageConstraint,
     BatchBalanceConstraint
 )
@@ -228,7 +228,7 @@ lists.save("lists/experiment_lists.jsonl")
 Generate jsPsych experiment for JATOS:
 
 ```bash
-sash deploy \
+bead deploy \
   --lists lists/experiment_lists.jsonl \
   --experiment-type 2afc \
   --output deployment/experiment.jzip
@@ -239,7 +239,7 @@ sash deploy \
 Train models with human-in-the-loop:
 
 ```python
-from sash.active_learning import ActiveLearningLoop
+from bead.active_learning import ActiveLearningLoop
 
 loop = ActiveLearningLoop(
     config="config.yaml",
@@ -257,7 +257,7 @@ loop.run()
 
 ### Stand-off Annotation
 
-`sash` uses UUID-based references to avoid data duplication:
+`bead` uses UUID-based references to avoid data duplication:
 
 ```python
 # Items reference filled templates by UUID
@@ -283,8 +283,8 @@ This ensures:
 Every object tracks comprehensive metadata:
 
 ```python
-class SashBaseModel(BaseModel):
-    """Base model for all sash objects."""
+class BeadBaseModel(BaseModel):
+    """Base model for all bead objects."""
 
     id: UUID                # UUIDv7 (time-ordered)
     created_at: datetime    # ISO 8601 timestamp
@@ -369,8 +369,8 @@ active_learning:
 
 **Example**:
 ```python
-from sash.resources import LexicalItem, Template
-from sash.resources.constraints import IntensionalConstraint
+from bead.resources import LexicalItem, Template
+from bead.resources.constraints import IntensionalConstraint
 
 # Lexical item with features
 verb = LexicalItem(
@@ -412,7 +412,7 @@ template = Template(
 
 **Example**:
 ```python
-from sash.templates import TemplateFiller
+from bead.templates import TemplateFiller
 
 # MLM-based filling
 filler = TemplateFiller(
@@ -449,7 +449,7 @@ filled = filler.fill(templates, lexicons)
 
 **Model Integration**:
 ```python
-from sash.items import ItemConstructor
+from bead.items import ItemConstructor
 
 constructor = ItemConstructor(
     models=[
@@ -497,8 +497,8 @@ items = constructor.construct(
 
 **Example**:
 ```python
-from sash.lists import ListPartitioner
-from sash.lists.constraints import (
+from bead.lists import ListPartitioner
+from bead.lists.constraints import (
     BatchCoverageConstraint,
     BatchDiversityConstraint,
     UniquenessConstraint
@@ -549,14 +549,14 @@ lists = partitioner.partition_with_batch_constraints(
 **Example**:
 ```bash
 # Generate JATOS experiment
-sash deploy \
+bead deploy \
   --lists lists/experiment_lists.jsonl \
   --experiment-type likert_scale \
   --attention-checks 3 \
   --output experiments/acceptability.jzip
 
 # Upload to JATOS
-sash jatos upload \
+bead jatos upload \
   --url https://jatos.example.com \
   --study-id 123 \
   --file experiments/acceptability.jzip
@@ -583,7 +583,7 @@ sash jatos upload \
 
 **Active Learning Loop**:
 ```python
-from sash.active_learning import ActiveLearningLoop
+from bead.active_learning import ActiveLearningLoop
 
 loop = ActiveLearningLoop(
     config="config.yaml",
@@ -618,7 +618,7 @@ training:
 ### Package Structure
 
 ```
-sash/
+bead/
 ├── resources/           # Stage 1: Lexical items, templates
 │   ├── models.py
 │   ├── lexicon.py
@@ -980,10 +980,10 @@ logging:
 ### Example 1: Verb Acceptability Study
 
 ```python
-from sash.resources import LexicalItem, Template, Lexicon, TemplateCollection
-from sash.templates import TemplateFiller
-from sash.items import ItemConstructor
-from sash.lists import ListPartitioner
+from bead.resources import LexicalItem, Template, Lexicon, TemplateCollection
+from bead.templates import TemplateFiller
+from bead.items import ItemConstructor
+from bead.lists import ListPartitioner
 
 # 1. Define resources
 verbs = [
@@ -1028,7 +1028,7 @@ lists.save("lists/experiment.jsonl")
 ### Example 2: Inference Judgment Study
 
 ```python
-from sash.items import ItemConstructor, InferenceItemTemplate
+from bead.items import ItemConstructor, InferenceItemTemplate
 
 # Create inference items
 constructor = ItemConstructor(
@@ -1053,7 +1053,7 @@ items = constructor.construct_from_template(
 ### Example 3: MLM-Based Template Filling
 
 ```python
-from sash.templates import TemplateFiller
+from bead.templates import TemplateFiller
 
 # Use BERT for contextually appropriate fillers
 filler = TemplateFiller(
@@ -1075,8 +1075,8 @@ filled = filler.fill(
 ### Example 4: Batch Constraint Optimization
 
 ```python
-from sash.lists import ListPartitioner
-from sash.lists.constraints import (
+from bead.lists import ListPartitioner
+from bead.lists.constraints import (
     BatchCoverageConstraint,
     BatchBalanceConstraint,
     BatchDiversityConstraint,
@@ -1121,8 +1121,8 @@ lists = partitioner.partition_with_batch_constraints(
 ### Example 5: Active Learning Loop
 
 ```python
-from sash.active_learning import ActiveLearningLoop
-from sash.data_collection import JATOSClient, ProlificClient
+from bead.active_learning import ActiveLearningLoop
+from bead.data_collection import JATOSClient, ProlificClient
 
 # Set up active learning
 loop = ActiveLearningLoop(
@@ -1155,7 +1155,7 @@ print(f"Human agreement: {results['human_agreement']:.3f}")
 
 ### Core Modules
 
-#### `sash.resources`
+#### `bead.resources`
 
 **Classes**:
 - `LexicalItem`: Lexical item with features and metadata
@@ -1169,7 +1169,7 @@ print(f"Human agreement: {results['human_agreement']:.3f}")
 - `IntensionalConstraint`: Rule-based constraints (DSL)
 - `RelationalConstraint`: Cross-slot constraints
 
-#### `sash.templates`
+#### `bead.templates`
 
 **Classes**:
 - `TemplateFiller`: Main template filling engine
@@ -1182,7 +1182,7 @@ print(f"Human agreement: {results['human_agreement']:.3f}")
 - `MLMStrategy`: Masked language model generation
 - `MixedStrategy`: Per-slot strategy configuration
 
-#### `sash.items`
+#### `bead.items`
 
 **Classes**:
 - `Item`: Experimental item
@@ -1194,7 +1194,7 @@ print(f"Human agreement: {results['human_agreement']:.3f}")
 
 **Task Types**: `forced_choice`, `multi_select`, `ordinal_scale`, `magnitude`, `binary`, `categorical`, `free_text`, `cloze`
 
-#### `sash.lists`
+#### `bead.lists`
 
 **Classes**:
 - `ExperimentList`: List of items for presentation
@@ -1214,14 +1214,14 @@ print(f"Human agreement: {results['human_agreement']:.3f}")
 - `BatchDiversityConstraint`: Spread values across lists
 - `BatchMinOccurrenceConstraint`: Minimum occurrence guarantees
 
-#### `sash.deployment`
+#### `bead.deployment`
 
 **Classes**:
 - `JSPsychGenerator`: Generate jsPsych experiments
 - `JATOSExporter`: Export to JATOS `.jzip` format
 - `JATOSClient`: JATOS API client
 
-#### `sash.active_learning`
+#### `bead.active_learning`
 
 **Classes**:
 - `ActiveLearningLoop`: Main active learning loop
@@ -1233,17 +1233,17 @@ print(f"Human agreement: {results['human_agreement']:.3f}")
 - `CategoricalClassifier`: Multi-class judgment models
 - `ForcedChoiceModel`: Forced choice models
 
-#### `sash.data_collection`
+#### `bead.data_collection`
 
 **Classes**:
 - `JATOSClient`: Download data from JATOS
 - `ProlificClient`: Download metadata from Prolific
 - `DataMerger`: Merge JATOS + Prolific data
 
-#### `sash.config`
+#### `bead.config`
 
 **Classes**:
-- `SashConfig`: Complete pipeline configuration
+- `BeadConfig`: Complete pipeline configuration
 - `ConfigLoader`: Load and validate YAML config
 - `PathsConfig`: File system paths
 - `ResourceConfig`: Resource configuration
@@ -1264,8 +1264,8 @@ For complete API documentation, see the [API Reference](docs/api-reference/).
 
 ```bash
 # Clone repository
-git clone https://github.com/aaronstevenwhite/sash.git
-cd sash
+git clone https://github.com/aaronstevenwhite/bead.git
+cd bead
 
 # Create virtual environment
 python3.13 -m venv .venv
@@ -1279,7 +1279,7 @@ pip install -e ".[dev,api,training]"
 
 ```bash
 # Run all tests with coverage
-pytest tests/ --cov=sash --cov-report=html
+pytest tests/ --cov=bead --cov-report=html
 
 # Run specific test module
 pytest tests/lists/test_partitioner_batch.py -v
@@ -1292,21 +1292,21 @@ pytest tests/ -n auto
 
 ```bash
 # Lint with ruff
-ruff check sash/
+ruff check bead/
 
 # Format with ruff
-ruff format sash/
+ruff format bead/
 
 # Type check with pyright
-pyright sash/
+pyright bead/
 
 # All checks
-ruff check sash/ && ruff format sash/ && pyright sash/
+ruff check bead/ && ruff format bead/ && pyright bead/
 ```
 
 ### Project Structure
 
-- **`sash/`**: Main package code
+- **`bead/`**: Main package code
 - **`tests/`**: Test suite (pytest)
 - **`docs/`**: Documentation (MkDocs)
 - **`gallery/`**: Language-specific research examples
@@ -1367,14 +1367,14 @@ See [gallery/README.md](gallery/README.md) for contribution guidelines.
 
 ## Citation
 
-If you use `sash` in your research, please cite:
+If you use `bead` in your research, please cite:
 
 ```bibtex
-@software{white2025sash,
+@software{white2025bead,
   author = {White, Aaron Steven},
-  title = {sash: Structured Active learning with Stand-off annotation and Human-in-the-loop},
+  title = {bead: A framework for linguistic judgment experiments},
   year = {2025},
-  url = {https://github.com/aaronstevenwhite/sash},
+  url = {https://github.com/aaronstevenwhite/bead},
   version = {0.1.0}
 }
 ```
@@ -1400,9 +1400,9 @@ MIT License. See [LICENSE](LICENSE) for details.
 
 ## Support
 
-- **Documentation**: [https://sash.readthedocs.io](https://sash.readthedocs.io)
-- **Issues**: [https://github.com/aaronstevenwhite/sash/issues](https://github.com/aaronstevenwhite/sash/issues)
-- **Discussions**: [https://github.com/aaronstevenwhite/sash/discussions](https://github.com/aaronstevenwhite/sash/discussions)
+- **Documentation**: [https://bead.readthedocs.io](https://bead.readthedocs.io)
+- **Issues**: [https://github.com/aaronstevenwhite/bead/issues](https://github.com/aaronstevenwhite/bead/issues)
+- **Discussions**: [https://github.com/aaronstevenwhite/bead/discussions](https://github.com/aaronstevenwhite/bead/discussions)
 - **Email**: aaron.white@rochester.edu
 
 ---

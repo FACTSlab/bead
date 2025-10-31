@@ -5,7 +5,7 @@ from __future__ import annotations
 import time
 from uuid import uuid4
 
-from sash.data.metadata import MetadataTracker, ProcessingRecord, ProvenanceRecord
+from bead.data.metadata import MetadataTracker, ProcessingRecord, ProvenanceRecord
 
 
 # ProvenanceRecord tests
@@ -19,8 +19,8 @@ def test_provenance_record_creation() -> None:
     assert record.parent_id == parent_id
     assert record.parent_type == "Template"
     assert record.relationship == "filled_from"
-    assert record.id is not None  # SashBaseModel field
-    assert record.created_at is not None  # SashBaseModel field
+    assert record.id is not None  # BeadBaseModel field
+    assert record.created_at is not None  # BeadBaseModel field
 
 
 def test_provenance_record_has_timestamp() -> None:
@@ -93,7 +93,7 @@ def test_metadata_tracker_creation() -> None:
     assert tracker.provenance == []
     assert tracker.processing_history == []
     assert tracker.custom_metadata == {}
-    assert tracker.id is not None  # SashBaseModel field
+    assert tracker.id is not None  # BeadBaseModel field
 
 
 def test_add_provenance() -> None:
@@ -230,11 +230,11 @@ def test_custom_metadata() -> None:
     tracker = MetadataTracker()
 
     tracker.custom_metadata["author"] = "Alice"
-    tracker.custom_metadata["project"] = "sash"
+    tracker.custom_metadata["project"] = "bead"
     tracker.custom_metadata["version"] = "1.0"
 
     assert tracker.custom_metadata["author"] == "Alice"
-    assert tracker.custom_metadata["project"] == "sash"
+    assert tracker.custom_metadata["project"] == "bead"
     assert tracker.custom_metadata["version"] == "1.0"
 
 

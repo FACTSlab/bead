@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from sash.config.models import (
+from bead.config.models import (
     ActiveLearningConfig,
     DeploymentConfig,
     ItemConfig,
@@ -15,7 +15,7 @@ from sash.config.models import (
     ModelConfig,
     PathsConfig,
     ResourceConfig,
-    SashConfig,
+    BeadConfig,
     TemplateConfig,
 )
 
@@ -89,9 +89,9 @@ def env_vars(monkeypatch: pytest.MonkeyPatch) -> dict[str, str]:
         Dictionary of environment variables that were set.
     """
     test_vars = {
-        "SASH_LOGGING__LEVEL": "DEBUG",
-        "SASH_PATHS__DATA_DIR": "/env/data",
-        "SASH_TEMPLATES__BATCH_SIZE": "500",
+        "BEAD_LOGGING__LEVEL": "DEBUG",
+        "BEAD_PATHS__DATA_DIR": "/env/data",
+        "BEAD_TEMPLATES__BATCH_SIZE": "500",
     }
     for key, value in test_vars.items():
         monkeypatch.setenv(key, value)
@@ -258,7 +258,7 @@ def sample_full_config(
     sample_deployment_config: DeploymentConfig,
     sample_active_learning_config: ActiveLearningConfig,
     sample_logging_config: LoggingConfig,
-) -> SashConfig:
+) -> BeadConfig:
     """Provide complete sample configuration for testing.
 
     Parameters
@@ -282,7 +282,7 @@ def sample_full_config(
 
     Returns
     -------
-    SashConfig
+    BeadConfig
         A complete sample configuration with all sections configured.
 
     Examples
@@ -291,7 +291,7 @@ def sample_full_config(
     ...     assert sample_full_config.profile == "test"
     ...     assert isinstance(sample_full_config.paths, PathsConfig)
     """
-    return SashConfig(
+    return BeadConfig(
         profile="test",
         paths=sample_paths_config,
         resources=sample_resource_config,

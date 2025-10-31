@@ -9,8 +9,8 @@ import pandas as pd
 import polars as pl
 import pytest
 
-from sash.data.base import SashBaseModel
-from sash.resources import Slot, Template, TemplateCollection
+from bead.data.base import BeadBaseModel
+from bead.resources import Slot, Template, TemplateCollection
 
 # ============================================================================
 # Creation & Basic Operations (6 tests)
@@ -66,10 +66,10 @@ def test_contains_checks_template_presence(
     assert uuid4() not in sample_template_collection
 
 
-def test_collection_inherits_from_sash_base_model() -> None:
-    """Test that TemplateCollection inherits from SashBaseModel."""
+def test_collection_inherits_from_bead_base_model() -> None:
+    """Test that TemplateCollection inherits from BeadBaseModel."""
     collection = TemplateCollection(name="test")
-    assert isinstance(collection, SashBaseModel)
+    assert isinstance(collection, BeadBaseModel)
     assert hasattr(collection, "id")
     assert hasattr(collection, "created_at")
     assert hasattr(collection, "modified_at")

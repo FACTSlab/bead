@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from sash.templates.adapters.base import TemplateFillingModelAdapter
+from bead.templates.adapters.base import TemplateFillingModelAdapter
 
 
 class MockMLMAdapter(TemplateFillingModelAdapter):

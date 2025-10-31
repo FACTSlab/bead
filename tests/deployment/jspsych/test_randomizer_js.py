@@ -14,8 +14,8 @@ from uuid import uuid4
 
 import pytest
 
-from sash.deployment.jspsych.randomizer import generate_randomizer_function
-from sash.lists.constraints import OrderingConstraint
+from bead.deployment.jspsych.randomizer import generate_randomizer_function
+from bead.lists.constraints import OrderingConstraint
 
 
 def check_node_available() -> bool:

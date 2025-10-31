@@ -1,23 +1,23 @@
-"""Morphological paradigm extraction using sash adapters.
+"""Morphological paradigm extraction using bead adapters.
 
 This module wraps UniMorphAdapter to extract verb forms for the
-argument structure project. It uses the sash adapter infrastructure
+argument structure project. It uses the bead adapter infrastructure
 to provide project-specific convenience methods for retrieving
 required verb inflections.
 """
 
 from __future__ import annotations
 
-from sash.resources.adapters.cache import AdapterCache
-from sash.resources.adapters.unimorph import UniMorphAdapter
-from sash.resources.models import LexicalItem
+from bead.resources.adapters.cache import AdapterCache
+from bead.resources.adapters.unimorph import UniMorphAdapter
+from bead.resources.models import LexicalItem
 
 
 class MorphologyExtractor:
     """Extract verb forms using UniMorphAdapter.
 
     This wrapper provides project-specific convenience methods while
-    using the standard sash adapter infrastructure for morphological
+    using the standard bead adapter infrastructure for morphological
     paradigm extraction.
 
     Parameters

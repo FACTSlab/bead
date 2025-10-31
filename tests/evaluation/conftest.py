@@ -7,7 +7,7 @@ from uuid import uuid4
 import numpy as np
 import pytest
 
-from sash.items.models import Item
+from bead.items.models import Item
 
 
 @pytest.fixture

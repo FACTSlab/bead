@@ -7,9 +7,9 @@ import numpy as np
 import pytest
 import torch
 
-from sash.active_learning.models.base import ModelPrediction
-from sash.active_learning.models.forced_choice import ForcedChoiceModel
-from sash.config.models import ForcedChoiceModelConfig
+from bead.active_learning.models.base import ModelPrediction
+from bead.active_learning.models.forced_choice import ForcedChoiceModel
+from bead.config.models import ForcedChoiceModelConfig
 
 
 def test_forced_choice_initialization():
@@ -269,7 +269,7 @@ def test_forced_choice_empty_rendered_elements():
     """Test handling of empty rendered elements."""
     from uuid import uuid4
 
-    from sash.items.models import Item
+    from bead.items.models import Item
 
     items = [
         Item(item_template_id=uuid4(), rendered_elements={}),
@@ -332,7 +332,7 @@ def test_forced_choice_max_length_truncation(test_items):
     """Test that long sequences are truncated."""
     from uuid import uuid4
 
-    from sash.items.models import Item
+    from bead.items.models import Item
 
     # Create item with very long text
     long_text = " ".join(["word"] * 200)

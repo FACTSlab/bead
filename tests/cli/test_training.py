@@ -7,7 +7,7 @@ from pathlib import Path
 
 from click.testing import CliRunner
 
-from sash.cli.training import training
+from bead.cli.training import training
 
 
 def test_show_data_stats_empty_file(cli_runner: CliRunner, tmp_path: Path) -> None:

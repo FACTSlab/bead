@@ -6,8 +6,8 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from sash.resources.classification import LexicalItemClass
-from sash.resources.models import LexicalItem
+from bead.resources.classification import LexicalItemClass
+from bead.resources.models import LexicalItem
 
 
 class TestLexicalItemClassCreation:
@@ -61,7 +61,7 @@ class TestLexicalItemClassCreation:
             LexicalItemClass(name="test", property_name="")
 
     def test_has_id_and_timestamps(self) -> None:
-        """Test that class inherits SashBaseModel fields."""
+        """Test that class inherits BeadBaseModel fields."""
         cls = LexicalItemClass(name="test", property_name="causative")
         assert isinstance(cls.id, UUID)
         assert cls.created_at is not None

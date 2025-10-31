@@ -24,12 +24,12 @@ from typing import Any
 
 import numpy as np
 import yaml
-from sash.training.active_learning.loop import ActiveLearningLoop
-from sash.training.active_learning.selection import UncertaintySampler
-from sash.training.trainers.base import ModelMetadata
+from bead.training.active_learning.loop import ActiveLearningLoop
+from bead.training.active_learning.selection import UncertaintySampler
+from bead.training.trainers.base import ModelMetadata
 
-from sash.evaluation.convergence import ConvergenceDetector
-from sash.items.models import Item
+from bead.evaluation.convergence import ConvergenceDetector
+from bead.items.models import Item
 
 
 def load_config(config_path: Path) -> dict[str, Any]:

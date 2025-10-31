@@ -1,4 +1,4 @@
-"""Root pytest configuration for sash package tests."""
+"""Root pytest configuration for bead package tests."""
 
 from __future__ import annotations
 

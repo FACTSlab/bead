@@ -7,13 +7,13 @@ from uuid import uuid4
 import numpy as np
 import pytest
 
-from sash.items.models import (
+from bead.items.models import (
     Item,
     ItemTemplate,
     PresentationSpec,
     TaskSpec,
 )
-from sash.simulation.strategies.free_text import FreeTextStrategy
+from bead.simulation.strategies.free_text import FreeTextStrategy
 
 
 def test_strategy_instantiation() -> None:

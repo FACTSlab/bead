@@ -8,13 +8,13 @@ from uuid import uuid4
 
 import pytest
 
-from sash.deployment.jspsych.config import (
+from bead.deployment.jspsych.config import (
     ChoiceConfig,
     ExperimentConfig,
     RatingScaleConfig,
 )
-from sash.deployment.jspsych.generator import JsPsychExperimentGenerator
-from sash.lists.models import ExperimentList
+from bead.deployment.jspsych.generator import JsPsychExperimentGenerator
+from bead.lists.models import ExperimentList
 
 
 class TestGeneratorInitialization:

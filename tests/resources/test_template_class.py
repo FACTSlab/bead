@@ -6,8 +6,8 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from sash.resources.classification import TemplateClass
-from sash.resources.structures import Slot, Template
+from bead.resources.classification import TemplateClass
+from bead.resources.structures import Slot, Template
 
 
 class TestTemplateClassCreation:
@@ -61,7 +61,7 @@ class TestTemplateClassCreation:
             TemplateClass(name="test", property_name="")
 
     def test_has_id_and_timestamps(self) -> None:
-        """Test that class inherits SashBaseModel fields."""
+        """Test that class inherits BeadBaseModel fields."""
         cls = TemplateClass(name="test", property_name="transitive")
         assert isinstance(cls.id, UUID)
         assert cls.created_at is not None

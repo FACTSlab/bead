@@ -1,1 +1,1 @@
-"""Tests for sash adapters."""
+"""Tests for bead adapters."""

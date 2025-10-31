@@ -7,7 +7,7 @@ from uuid import UUID, uuid4
 import pytest
 from pydantic import ValidationError
 
-from sash.items.models import (
+from bead.items.models import (
     ChunkingSpec,
     Item,
     ItemCollection,
@@ -947,8 +947,8 @@ def test_item_serialization(item_simple: Item) -> None:
     assert restored.rendered_elements == item_simple.rendered_elements
 
 
-def test_item_inherits_sashbasemodel(item_simple: Item) -> None:
-    """Test item inherits from SashBaseModel."""
+def test_item_inherits_beadbasemodel(item_simple: Item) -> None:
+    """Test item inherits from BeadBaseModel."""
     assert hasattr(item_simple, "id")
     assert hasattr(item_simple, "created_at")
     assert hasattr(item_simple, "modified_at")

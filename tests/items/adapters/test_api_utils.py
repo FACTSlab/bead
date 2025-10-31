@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from pytest_mock import MockerFixture
 
-from sash.items.adapters.api_utils import (
+from bead.items.adapters.api_utils import (
     RateLimiter,
     rate_limit,
     retry_with_backoff,

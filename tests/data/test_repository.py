@@ -5,12 +5,12 @@ from __future__ import annotations
 from pathlib import Path
 from uuid import uuid4
 
-from sash.data.base import SashBaseModel
-from sash.data.repository import Repository
-from sash.data.serialization import read_jsonlines, write_jsonlines
+from bead.data.base import BeadBaseModel
+from bead.data.repository import Repository
+from bead.data.serialization import read_jsonlines, write_jsonlines
 
 
-class SimpleModel(SashBaseModel):
+class SimpleModel(BeadBaseModel):
     """Simple test model for repository tests."""
 
     name: str

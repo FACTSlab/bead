@@ -7,7 +7,7 @@ from uuid import UUID
 import pytest
 from pydantic import ValidationError
 
-from sash.resources import LexicalItem
+from bead.resources import LexicalItem
 
 
 class TestLexicalItemCreation:
@@ -121,15 +121,15 @@ class TestLexicalItemMutability:
 
 
 class TestLexicalItemInheritance:
-    """Test lexical item inheritance from SashBaseModel."""
+    """Test lexical item inheritance from BeadBaseModel."""
 
     def test_inherits_uuidv7_id(self) -> None:
-        """Test that lexical item inherits UUID id from SashBaseModel."""
+        """Test that lexical item inherits UUID id from BeadBaseModel."""
         item = LexicalItem(lemma="test")
         assert isinstance(item.id, UUID)
 
     def test_inherits_timestamps(self) -> None:
-        """Test that lexical item inherits timestamps from SashBaseModel."""
+        """Test that lexical item inherits timestamps from BeadBaseModel."""
         item = LexicalItem(lemma="test")
         assert hasattr(item, "created_at")
         assert hasattr(item, "modified_at")

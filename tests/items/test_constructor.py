@@ -7,21 +7,21 @@ from uuid import uuid4
 import numpy as np
 import pytest
 
-from sash.dsl.context import EvaluationContext
-from sash.dsl.parser import parse
-from sash.items.adapters.base import ModelAdapter
-from sash.items.adapters.registry import ModelAdapterRegistry
-from sash.items.cache import ModelOutputCache
-from sash.items.constructor import ItemConstructor
-from sash.items.models import (
+from bead.dsl.context import EvaluationContext
+from bead.dsl.parser import parse
+from bead.items.adapters.base import ModelAdapter
+from bead.items.adapters.registry import ModelAdapterRegistry
+from bead.items.cache import ModelOutputCache
+from bead.items.constructor import ItemConstructor
+from bead.items.models import (
     ItemElement,
     ItemTemplate,
     PresentationSpec,
     TaskSpec,
 )
-from sash.resources.constraints import Constraint
-from sash.resources.models import LexicalItem
-from sash.templates.filler import FilledTemplate
+from bead.resources.constraints import Constraint
+from bead.resources.models import LexicalItem
+from bead.templates.filler import FilledTemplate
 
 
 @pytest.fixture

@@ -10,14 +10,14 @@ import pytest
 from click.testing import CliRunner
 from pytest_mock import MockerFixture
 
-from sash.deployment.jatos.api import JATOSClient
-from sash.items.adapters.base import ModelAdapter
-from sash.items.models import Item, ModelOutput
-from sash.lists.models import ExperimentList
-from sash.resources.lexicon import LexicalItem, Lexicon
-from sash.resources.structures import Slot, Template
-from sash.resources.template_collection import TemplateCollection
-from sash.templates.filler import FilledTemplate
+from bead.deployment.jatos.api import JATOSClient
+from bead.items.adapters.base import ModelAdapter
+from bead.items.models import Item, ModelOutput
+from bead.lists.models import ExperimentList
+from bead.resources.lexicon import LexicalItem, Lexicon
+from bead.resources.structures import Slot, Template
+from bead.resources.template_collection import TemplateCollection
+from bead.templates.filler import FilledTemplate
 
 
 @pytest.fixture
@@ -51,7 +51,7 @@ def temp_project_dir(tmp_path: Path) -> Path:
 
 @pytest.fixture
 def mock_config_file(tmp_path: Path) -> Path:
-    """Create mock sash.yaml config file.
+    """Create mock bead.yaml config file.
 
     Parameters
     ----------
@@ -63,7 +63,7 @@ def mock_config_file(tmp_path: Path) -> Path:
     Path
         Path to mock config file.
     """
-    config_file = tmp_path / "sash.yaml"
+    config_file = tmp_path / "bead.yaml"
     config_content = """
 profile: test
 

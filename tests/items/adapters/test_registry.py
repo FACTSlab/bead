@@ -6,9 +6,9 @@ import numpy as np
 import pytest
 from pytest_mock import MockerFixture
 
-from sash.items.adapters.base import ModelAdapter
-from sash.items.adapters.registry import ModelAdapterRegistry, default_registry
-from sash.items.cache import ModelOutputCache
+from bead.items.adapters.base import ModelAdapter
+from bead.items.adapters.registry import ModelAdapterRegistry, default_registry
+from bead.items.cache import ModelOutputCache
 
 
 class DummyAdapter(ModelAdapter):
@@ -197,7 +197,7 @@ class TestRegistryWithAPIAdapters:
         mocker.patch.dict("sys.modules", {"openai": mock_openai_module})
 
         # Now import and register
-        from sash.items.adapters.openai import OpenAIAdapter  # noqa: PLC0415
+        from bead.items.adapters.openai import OpenAIAdapter  # noqa: PLC0415
 
         registry = ModelAdapterRegistry()
         registry.register("openai", OpenAIAdapter)
@@ -221,7 +221,7 @@ class TestRegistryWithAPIAdapters:
         mocker.patch.dict("sys.modules", {"anthropic": mock_anthropic_module})
 
         # Now import and register
-        from sash.items.adapters.anthropic import AnthropicAdapter  # noqa: PLC0415
+        from bead.items.adapters.anthropic import AnthropicAdapter  # noqa: PLC0415
 
         registry = ModelAdapterRegistry()
         registry.register("anthropic", AnthropicAdapter)

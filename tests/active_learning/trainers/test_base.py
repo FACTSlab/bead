@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from sash.active_learning.trainers.base import BaseTrainer, ModelMetadata
+from bead.active_learning.trainers.base import BaseTrainer, ModelMetadata
 
 
 class TestModelMetadata:
@@ -69,7 +69,7 @@ class TestModelMetadata:
         assert metadata_dict["framework"] == "huggingface"
 
     def test_model_metadata_inherits_base_fields(self) -> None:
-        """Test ModelMetadata inherits SashBaseModel fields."""
+        """Test ModelMetadata inherits BeadBaseModel fields."""
         metadata = ModelMetadata(
             model_name="bert-base-uncased",
             framework="huggingface",
@@ -80,7 +80,7 @@ class TestModelMetadata:
             training_timestamp="2025-01-17T00:00:00+00:00",
         )
 
-        # Should have inherited fields from SashBaseModel
+        # Should have inherited fields from BeadBaseModel
         assert hasattr(metadata, "id")
         assert hasattr(metadata, "created_at")
         assert hasattr(metadata, "modified_at")

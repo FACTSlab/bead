@@ -7,15 +7,15 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from sash.lists.constraints import (
+from bead.lists.constraints import (
     BalanceConstraint,
     OrderingConstraint,
     QuantileConstraint,
     SizeConstraint,
     UniquenessConstraint,
 )
-from sash.lists.models import ExperimentList, ListCollection
-from sash.lists.partitioner import ListPartitioner
+from bead.lists.models import ExperimentList, ListCollection
+from bead.lists.partitioner import ListPartitioner
 
 
 @pytest.fixture

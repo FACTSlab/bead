@@ -8,7 +8,7 @@ from uuid import UUID, uuid4
 import pytest
 from pydantic import ValidationError
 
-from sash.lists.models import ExperimentList, ListCollection
+from bead.lists.models import ExperimentList, ListCollection
 
 
 class TestExperimentList:
@@ -239,10 +239,10 @@ class TestExperimentList:
             experiment_list_with_constraints.list_constraints
         )
 
-    def test_inherits_sashbasemodel(
+    def test_inherits_beadbasemodel(
         self, empty_experiment_list: ExperimentList
     ) -> None:
-        """Test has SashBaseModel fields."""
+        """Test has BeadBaseModel fields."""
         assert hasattr(empty_experiment_list, "id")
         assert hasattr(empty_experiment_list, "created_at")
         assert hasattr(empty_experiment_list, "modified_at")
@@ -478,10 +478,10 @@ class TestListCollection:
         assert restored.source_items_id == sample_list_collection.source_items_id
         assert len(restored.lists) == len(sample_list_collection.lists)
 
-    def test_inherits_sashbasemodel(
+    def test_inherits_beadbasemodel(
         self, sample_list_collection: ListCollection
     ) -> None:
-        """Test has SashBaseModel fields."""
+        """Test has BeadBaseModel fields."""
         assert hasattr(sample_list_collection, "id")
         assert hasattr(sample_list_collection, "created_at")
         assert hasattr(sample_list_collection, "modified_at")

@@ -5,7 +5,7 @@ from __future__ import annotations
 import time
 from datetime import UTC, datetime
 
-from sash.data.timestamps import format_iso8601, now_iso8601, parse_iso8601
+from bead.data.timestamps import format_iso8601, now_iso8601, parse_iso8601
 
 
 def test_now_iso8601_returns_utc() -> None:

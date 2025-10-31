@@ -5,7 +5,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from sash.evaluation.interannotator import InterAnnotatorMetrics
+from bead.evaluation.interannotator import InterAnnotatorMetrics
 
 
 class TestPercentageAgreement:

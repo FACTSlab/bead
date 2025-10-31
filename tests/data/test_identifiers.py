@@ -5,7 +5,7 @@ from __future__ import annotations
 import time
 from uuid import uuid4
 
-from sash.data.identifiers import extract_timestamp, generate_uuid, is_valid_uuid7
+from bead.data.identifiers import extract_timestamp, generate_uuid, is_valid_uuid7
 
 
 def test_generate_uuid_returns_valid_uuid7() -> None:

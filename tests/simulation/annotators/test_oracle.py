@@ -6,14 +6,14 @@ from uuid import uuid4
 
 import pytest
 
-from sash.config.models import SimulatedAnnotatorConfig
-from sash.items.models import (
+from bead.config.models import SimulatedAnnotatorConfig
+from bead.items.models import (
     Item,
     ItemTemplate,
     PresentationSpec,
     TaskSpec,
 )
-from sash.simulation.annotators.oracle import OracleAnnotator
+from bead.simulation.annotators.oracle import OracleAnnotator
 
 
 def test_annotator_instantiation() -> None:

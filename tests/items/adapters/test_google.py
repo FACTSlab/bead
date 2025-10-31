@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 from pytest_mock import MockerFixture
 
-from sash.items.cache import ModelOutputCache
+from bead.items.cache import ModelOutputCache
 
 
 @pytest.fixture(autouse=True)
@@ -44,7 +44,7 @@ def mock_genai(mocker: MockerFixture):
     )
 
     # Import directly from google module
-    import sash.items.adapters.google as google_adapter_module  # noqa: PLC0415
+    import bead.items.adapters.google as google_adapter_module  # noqa: PLC0415
 
     mocker.patch.object(google_adapter_module, "genai", mock_genai)
 
@@ -57,7 +57,7 @@ def google_adapter(mock_genai, mocker: MockerFixture):
     mock_genai_module, mock_model = mock_genai
     mocker.patch.dict(os.environ, {"GOOGLE_API_KEY": "test-key"})
 
-    from sash.items.adapters.google import GoogleAdapter  # noqa: PLC0415
+    from bead.items.adapters.google import GoogleAdapter  # noqa: PLC0415
 
     cache = ModelOutputCache(backend="memory")
     return GoogleAdapter(model_name="gemini-pro", cache=cache, api_key="test-key")
@@ -83,11 +83,11 @@ class TestGoogleAdapterInitialization:
         )
 
         # Import directly from google module to avoid __init__.py
-        import sash.items.adapters.google as google_adapter_module  # noqa: PLC0415
+        import bead.items.adapters.google as google_adapter_module  # noqa: PLC0415
 
         mocker.patch.object(google_adapter_module, "genai", mock_genai)
 
-        from sash.items.adapters.google import GoogleAdapter  # noqa: PLC0415
+        from bead.items.adapters.google import GoogleAdapter  # noqa: PLC0415
 
         cache = ModelOutputCache(backend="memory")
         adapter = GoogleAdapter(
@@ -115,12 +115,12 @@ class TestGoogleAdapterInitialization:
         )
 
         # Import directly from google module to avoid __init__.py
-        import sash.items.adapters.google as google_adapter_module  # noqa: PLC0415
+        import bead.items.adapters.google as google_adapter_module  # noqa: PLC0415
 
         mocker.patch.object(google_adapter_module, "genai", mock_genai)
         mocker.patch.dict(os.environ, {"GOOGLE_API_KEY": "env-key"})
 
-        from sash.items.adapters.google import GoogleAdapter  # noqa: PLC0415
+        from bead.items.adapters.google import GoogleAdapter  # noqa: PLC0415
 
         cache = ModelOutputCache(backend="memory")
         adapter = GoogleAdapter(model_name="gemini-pro", cache=cache)
@@ -144,12 +144,12 @@ class TestGoogleAdapterInitialization:
         )
 
         # Import directly from google module to avoid __init__.py
-        import sash.items.adapters.google as google_adapter_module  # noqa: PLC0415
+        import bead.items.adapters.google as google_adapter_module  # noqa: PLC0415
 
         mocker.patch.object(google_adapter_module, "genai", mock_genai)
         mocker.patch.dict(os.environ, {}, clear=True)
 
-        from sash.items.adapters.google import GoogleAdapter  # noqa: PLC0415
+        from bead.items.adapters.google import GoogleAdapter  # noqa: PLC0415
 
         cache = ModelOutputCache(backend="memory")
 

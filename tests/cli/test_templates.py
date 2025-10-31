@@ -7,9 +7,9 @@ from pathlib import Path
 
 from click.testing import CliRunner
 
-from sash.cli.templates import templates
-from sash.resources.lexicon import LexicalItem
-from sash.templates.filler import FilledTemplate
+from bead.cli.templates import templates
+from bead.resources.lexicon import LexicalItem
+from bead.templates.filler import FilledTemplate
 
 
 def test_fill_exhaustive(

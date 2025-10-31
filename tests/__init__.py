@@ -1,1 +1,1 @@
-"""Test suite for sash package."""
+"""Test suite for bead package."""

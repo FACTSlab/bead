@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from sash.config.models import SashConfig
-from sash.config.profiles import (
+from bead.config.models import BeadConfig
+from bead.config.profiles import (
     DEV_CONFIG,
     PROD_CONFIG,
     PROFILES,
@@ -19,8 +19,8 @@ class TestDevConfig:
     """Tests for DEV_CONFIG profile."""
 
     def test_dev_config_is_valid(self) -> None:
-        """Test DEV_CONFIG is a valid SashConfig."""
-        assert isinstance(DEV_CONFIG, SashConfig)
+        """Test DEV_CONFIG is a valid BeadConfig."""
+        assert isinstance(DEV_CONFIG, BeadConfig)
 
     def test_dev_config_has_dev_profile(self) -> None:
         """Test DEV_CONFIG has 'dev' profile."""
@@ -63,8 +63,8 @@ class TestProdConfig:
     """Tests for PROD_CONFIG profile."""
 
     def test_prod_config_is_valid(self) -> None:
-        """Test PROD_CONFIG is a valid SashConfig."""
-        assert isinstance(PROD_CONFIG, SashConfig)
+        """Test PROD_CONFIG is a valid BeadConfig."""
+        assert isinstance(PROD_CONFIG, BeadConfig)
 
     def test_prod_config_has_prod_profile(self) -> None:
         """Test PROD_CONFIG has 'prod' profile."""
@@ -119,8 +119,8 @@ class TestTestConfig:
     """Tests for TEST_CONFIG profile."""
 
     def test_test_config_is_valid(self) -> None:
-        """Test TEST_CONFIG is a valid SashConfig."""
-        assert isinstance(TEST_CONFIG, SashConfig)
+        """Test TEST_CONFIG is a valid BeadConfig."""
+        assert isinstance(TEST_CONFIG, BeadConfig)
 
     def test_test_config_has_test_profile(self) -> None:
         """Test TEST_CONFIG has 'test' profile."""
@@ -194,7 +194,7 @@ class TestProfilesRegistry:
 
     def test_profiles_default_is_valid(self) -> None:
         """Test default profile in registry is valid."""
-        assert isinstance(PROFILES["default"], SashConfig)
+        assert isinstance(PROFILES["default"], BeadConfig)
         assert PROFILES["default"].profile == "default"
 
     def test_profiles_dev_is_dev_config(self) -> None:
@@ -219,27 +219,27 @@ class TestGetProfile:
     def test_get_profile_with_default(self) -> None:
         """Test get_profile with 'default' name."""
         config = get_profile("default")
-        assert isinstance(config, SashConfig)
+        assert isinstance(config, BeadConfig)
         assert config.profile == "default"
 
     def test_get_profile_with_dev(self) -> None:
         """Test get_profile with 'dev' name."""
         config = get_profile("dev")
-        assert isinstance(config, SashConfig)
+        assert isinstance(config, BeadConfig)
         assert config.profile == "dev"
         assert config.logging.level == "DEBUG"
 
     def test_get_profile_with_prod(self) -> None:
         """Test get_profile with 'prod' name."""
         config = get_profile("prod")
-        assert isinstance(config, SashConfig)
+        assert isinstance(config, BeadConfig)
         assert config.profile == "prod"
         assert config.logging.level == "WARNING"
 
     def test_get_profile_with_test(self) -> None:
         """Test get_profile with 'test' name."""
         config = get_profile("test")
-        assert isinstance(config, SashConfig)
+        assert isinstance(config, BeadConfig)
         assert config.profile == "test"
         assert config.logging.level == "CRITICAL"
 

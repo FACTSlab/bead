@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from sash.dsl import STDLIB_FUNCTIONS, EvaluationContext, register_stdlib, stdlib
+from bead.dsl import STDLIB_FUNCTIONS, EvaluationContext, register_stdlib, stdlib
 
 
 # String functions tests

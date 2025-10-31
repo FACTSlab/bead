@@ -5,8 +5,8 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from sash.items.adapters.base import ModelAdapter
-from sash.items.cache import ModelOutputCache
+from bead.items.adapters.base import ModelAdapter
+from bead.items.cache import ModelOutputCache
 
 
 class ConcreteAdapter(ModelAdapter):

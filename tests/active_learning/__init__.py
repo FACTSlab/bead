@@ -1,1 +1,1 @@
-"""Tests for sash.training module."""
+"""Tests for bead.training module."""

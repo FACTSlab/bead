@@ -6,16 +6,16 @@ from uuid import uuid4
 
 import pytest
 
-from sash.config.models import NoiseModelConfig, SimulatedAnnotatorConfig
-from sash.items.models import (
+from bead.config.models import NoiseModelConfig, SimulatedAnnotatorConfig
+from bead.items.models import (
     Item,
     ItemTemplate,
     ModelOutput,
     PresentationSpec,
     TaskSpec,
 )
-from sash.simulation.annotators.base import SimulatedAnnotator
-from sash.simulation.annotators.lm_based import LMBasedAnnotator
+from bead.simulation.annotators.base import SimulatedAnnotator
+from bead.simulation.annotators.lm_based import LMBasedAnnotator
 
 
 def test_lm_based_annotator_instantiation() -> None:

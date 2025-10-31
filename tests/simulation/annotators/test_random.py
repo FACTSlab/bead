@@ -6,15 +6,15 @@ from uuid import uuid4
 
 import pytest
 
-from sash.config.models import SimulatedAnnotatorConfig
-from sash.items.models import (
+from bead.config.models import SimulatedAnnotatorConfig
+from bead.items.models import (
     Item,
     ItemTemplate,
     PresentationSpec,
     TaskSpec,
     UnfilledSlot,
 )
-from sash.simulation.annotators.random import RandomAnnotator
+from bead.simulation.annotators.random import RandomAnnotator
 
 
 def test_annotator_instantiation() -> None:

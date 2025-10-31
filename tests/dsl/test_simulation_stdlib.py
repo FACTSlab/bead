@@ -6,7 +6,7 @@ import math
 
 import pytest
 
-from sash.dsl import SIMULATION_FUNCTIONS, stdlib
+from bead.dsl import SIMULATION_FUNCTIONS, stdlib
 
 
 def test_sigmoid_zero() -> None:

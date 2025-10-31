@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from sash.dsl.errors import DSLError, EvaluationError, ParseError
+from bead.dsl.errors import DSLError, EvaluationError, ParseError
 
 
 def test_dsl_error_creation() -> None:

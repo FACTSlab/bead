@@ -2,7 +2,7 @@
 """
 Generate JSONL lexicon files for the argument structure alternations dataset.
 
-This script creates all required lexicons using the sash adapter infrastructure:
+This script creates all required lexicons using the bead adapter infrastructure:
 1. verbnet_verbs.jsonl - All VerbNet verbs with inflected forms
 2. bleached_nouns.jsonl - Controlled noun inventory from CSV
 3. bleached_verbs.jsonl - Controlled verb inventory from CSV
@@ -18,9 +18,9 @@ from pathlib import Path
 from utils.morphology import MorphologyExtractor
 from utils.verbnet_parser import VerbNetExtractor
 
-from sash.resources.adapters.cache import AdapterCache
-from sash.resources.lexicon import Lexicon
-from sash.resources.models import LexicalItem
+from bead.resources.adapters.cache import AdapterCache
+from bead.resources.lexicon import Lexicon
+from bead.resources.models import LexicalItem
 
 
 def main(verb_limit: int | None = None):

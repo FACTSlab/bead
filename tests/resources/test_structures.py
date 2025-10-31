@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from sash.resources import (
+from bead.resources import (
     Constraint,
     Slot,
     Template,

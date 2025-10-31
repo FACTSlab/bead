@@ -4,12 +4,12 @@ from __future__ import annotations
 
 import pytest
 
-from sash.resources.constraints import Constraint
-from sash.resources.lexicon import Lexicon
-from sash.resources.models import LexicalItem
-from sash.resources.structures import Slot, Template
-from sash.templates.filler import FilledTemplate
-from sash.templates.streaming import StreamingFiller
+from bead.resources.constraints import Constraint
+from bead.resources.lexicon import Lexicon
+from bead.resources.models import LexicalItem
+from bead.resources.structures import Slot, Template
+from bead.templates.filler import FilledTemplate
+from bead.templates.streaming import StreamingFiller
 
 
 @pytest.fixture

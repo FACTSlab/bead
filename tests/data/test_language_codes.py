@@ -2,7 +2,7 @@
 
 import pytest
 
-from sash.data.language_codes import validate_iso639_code
+from bead.data.language_codes import validate_iso639_code
 
 
 def test_validate_iso639_1_codes() -> None:

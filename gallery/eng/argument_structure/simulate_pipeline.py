@@ -23,21 +23,21 @@ from typing import Any
 
 import numpy as np
 
-from sash.active_learning.loop import ActiveLearningLoop
-from sash.active_learning.models.forced_choice import ForcedChoiceModel
-from sash.active_learning.selection import UncertaintySampler
-from sash.config.models import (
+from bead.active_learning.loop import ActiveLearningLoop
+from bead.active_learning.models.forced_choice import ForcedChoiceModel
+from bead.active_learning.selection import UncertaintySampler
+from bead.config.models import (
     ActiveLearningLoopConfig,
     ForcedChoiceModelConfig,
     NoiseModelConfig,
     SimulatedAnnotatorConfig,
     UncertaintySamplerConfig,
 )
-from sash.evaluation.convergence import ConvergenceDetector
-from sash.evaluation.interannotator import InterAnnotatorMetrics
-from sash.evaluation.model_metrics import ModelMetrics
-from sash.items.models import Item, ItemTemplate, PresentationSpec, TaskSpec, TaskType
-from sash.simulation.annotators.base import SimulatedAnnotator
+from bead.evaluation.convergence import ConvergenceDetector
+from bead.evaluation.interannotator import InterAnnotatorMetrics
+from bead.evaluation.model_metrics import ModelMetrics
+from bead.items.models import Item, ItemTemplate, PresentationSpec, TaskSpec, TaskType
+from bead.simulation.annotators.base import SimulatedAnnotator
 
 
 def load_2afc_pairs(path: Path, limit: int | None = None, skip: int = 0) -> list[Item]:
@@ -179,7 +179,7 @@ def run_simulation(
     # [2/7] Setup simulated annotator
     print("[2/7] Setting up simulated annotator...")
 
-    # Create annotator configuration using sash.simulation framework
+    # Create annotator configuration using bead.simulation framework
     annotator_config = SimulatedAnnotatorConfig(
         strategy="lm_score",
         model_output_key="lm_score",

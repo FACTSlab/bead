@@ -6,7 +6,7 @@ from unittest.mock import Mock, patch
 import pytest
 import requests
 
-from sash.deployment.jatos.api import JATOSClient
+from bead.deployment.jatos.api import JATOSClient
 
 
 def test_jatos_client_creation() -> None:
@@ -29,7 +29,7 @@ def test_upload_study(tmp_path: Path) -> None:
     jzip_path.write_bytes(b"test data")
 
     # Mock the response
-    with patch("sash.deployment.jatos.api.requests.Session") as mock_session_cls:
+    with patch("bead.deployment.jatos.api.requests.Session") as mock_session_cls:
         mock_session = mock_session_cls.return_value
         mock_response = Mock()
         mock_response.json.return_value = {"id": 1, "uuid": "test-uuid-123"}
@@ -63,7 +63,7 @@ def test_upload_study_http_error(tmp_path: Path) -> None:
     jzip_path = tmp_path / "test.jzip"
     jzip_path.write_bytes(b"test data")
 
-    with patch("sash.deployment.jatos.api.requests.Session") as mock_session_cls:
+    with patch("bead.deployment.jatos.api.requests.Session") as mock_session_cls:
         mock_session = mock_session_cls.return_value
         mock_response = Mock()
         mock_response.raise_for_status.side_effect = requests.HTTPError("404 Not Found")
@@ -77,7 +77,7 @@ def test_upload_study_http_error(tmp_path: Path) -> None:
 
 def test_list_studies() -> None:
     """Test listing studies."""
-    with patch("sash.deployment.jatos.api.requests.Session") as mock_session_cls:
+    with patch("bead.deployment.jatos.api.requests.Session") as mock_session_cls:
         mock_session = mock_session_cls.return_value
         mock_response = Mock()
         mock_response.json.return_value = [
@@ -101,7 +101,7 @@ def test_list_studies() -> None:
 
 def test_get_study() -> None:
     """Test getting study details."""
-    with patch("sash.deployment.jatos.api.requests.Session") as mock_session_cls:
+    with patch("bead.deployment.jatos.api.requests.Session") as mock_session_cls:
         mock_session = mock_session_cls.return_value
         mock_response = Mock()
         mock_response.json.return_value = {
@@ -125,7 +125,7 @@ def test_get_study() -> None:
 
 def test_delete_study() -> None:
     """Test deleting a study."""
-    with patch("sash.deployment.jatos.api.requests.Session") as mock_session_cls:
+    with patch("bead.deployment.jatos.api.requests.Session") as mock_session_cls:
         mock_session = mock_session_cls.return_value
         mock_response = Mock()
         mock_session.delete.return_value = mock_response
@@ -142,7 +142,7 @@ def test_delete_study() -> None:
 
 def test_get_results() -> None:
     """Test getting study results."""
-    with patch("sash.deployment.jatos.api.requests.Session") as mock_session_cls:
+    with patch("bead.deployment.jatos.api.requests.Session") as mock_session_cls:
         mock_session = mock_session_cls.return_value
         mock_response = Mock()
         mock_response.json.return_value = [
@@ -165,7 +165,7 @@ def test_get_results() -> None:
 
 def test_api_token_in_headers() -> None:
     """Test that API token is included in headers."""
-    with patch("sash.deployment.jatos.api.requests.Session") as mock_session_cls:
+    with patch("bead.deployment.jatos.api.requests.Session") as mock_session_cls:
         mock_session = mock_session_cls.return_value
 
         JATOSClient("https://jatos.example.com", "my-secret-token")
@@ -178,7 +178,7 @@ def test_api_token_in_headers() -> None:
 
 def test_session_reuse() -> None:
     """Test that the same session is reused for multiple requests."""
-    with patch("sash.deployment.jatos.api.requests.Session") as mock_session_cls:
+    with patch("bead.deployment.jatos.api.requests.Session") as mock_session_cls:
         mock_session = mock_session_cls.return_value
         mock_response = Mock()
         mock_response.json.return_value = []
@@ -196,7 +196,7 @@ def test_session_reuse() -> None:
 
 def test_http_error_raised_on_list_studies() -> None:
     """Test that HTTP errors are raised for list_studies."""
-    with patch("sash.deployment.jatos.api.requests.Session") as mock_session_cls:
+    with patch("bead.deployment.jatos.api.requests.Session") as mock_session_cls:
         mock_session = mock_session_cls.return_value
         mock_response = Mock()
         mock_response.raise_for_status.side_effect = requests.HTTPError(
@@ -212,7 +212,7 @@ def test_http_error_raised_on_list_studies() -> None:
 
 def test_http_error_raised_on_get_results() -> None:
     """Test that HTTP errors are raised for get_results."""
-    with patch("sash.deployment.jatos.api.requests.Session") as mock_session_cls:
+    with patch("bead.deployment.jatos.api.requests.Session") as mock_session_cls:
         mock_session = mock_session_cls.return_value
         mock_response = Mock()
         mock_response.raise_for_status.side_effect = requests.HTTPError("403 Forbidden")
@@ -226,7 +226,7 @@ def test_http_error_raised_on_get_results() -> None:
 
 def test_delete_study_http_error() -> None:
     """Test that HTTP errors are raised for delete_study."""
-    with patch("sash.deployment.jatos.api.requests.Session") as mock_session_cls:
+    with patch("bead.deployment.jatos.api.requests.Session") as mock_session_cls:
         mock_session = mock_session_cls.return_value
         mock_response = Mock()
         mock_response.raise_for_status.side_effect = requests.HTTPError("404 Not Found")

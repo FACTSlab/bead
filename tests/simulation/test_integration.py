@@ -10,12 +10,12 @@ import uuid
 import numpy as np
 import pytest
 
-from sash.config.models import (
+from bead.config.models import (
     NoiseModelConfig,
     SimulatedAnnotatorConfig,
     SimulationRunnerConfig,
 )
-from sash.items.models import (
+from bead.items.models import (
     Item,
     ItemTemplate,
     ModelOutput,
@@ -23,8 +23,8 @@ from sash.items.models import (
     TaskSpec,
     TaskType,
 )
-from sash.simulation.annotators.base import SimulatedAnnotator
-from sash.simulation.runner import SimulationRunner
+from bead.simulation.annotators.base import SimulatedAnnotator
+from bead.simulation.runner import SimulationRunner
 
 
 # ============================================================================

@@ -7,14 +7,14 @@ from uuid import uuid4
 import numpy as np
 import pytest
 
-from sash.items.models import (
+from bead.items.models import (
     Item,
     ItemTemplate,
     ModelOutput,
     PresentationSpec,
     TaskSpec,
 )
-from sash.simulation.strategies.forced_choice import ForcedChoiceStrategy
+from bead.simulation.strategies.forced_choice import ForcedChoiceStrategy
 
 
 def test_strategy_instantiation() -> None:

@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 from pytest_mock import MockerFixture
 
-from sash.items.cache import ModelOutputCache
+from bead.items.cache import ModelOutputCache
 
 
 @pytest.fixture
@@ -26,7 +26,7 @@ def mock_openai(mocker: MockerFixture):
 
     # Patch both sys.modules and the module-level import in the adapter
     mocker.patch.dict("sys.modules", {"openai": mock_openai_module})
-    mocker.patch("sash.items.adapters.togetherai.openai", mock_openai_module)
+    mocker.patch("bead.items.adapters.togetherai.openai", mock_openai_module)
 
     return mock_client
 
@@ -36,7 +36,7 @@ def togetherai_adapter(mock_openai, mocker: MockerFixture):
     """Create TogetherAI adapter instance for testing."""
     mocker.patch.dict(os.environ, {"TOGETHER_API_KEY": "test-key"})
 
-    from sash.items.adapters.togetherai import TogetherAIAdapter  # noqa: PLC0415
+    from bead.items.adapters.togetherai import TogetherAIAdapter  # noqa: PLC0415
 
     cache = ModelOutputCache(backend="memory")
     return TogetherAIAdapter(
@@ -54,9 +54,9 @@ class TestTogetherAIAdapterInitialization:
         mock_openai_module.OpenAI.return_value = mock_client
         mock_openai_module.__spec__ = mocker.MagicMock()
         mocker.patch.dict("sys.modules", {"openai": mock_openai_module})
-        mocker.patch("sash.items.adapters.togetherai.openai", mock_openai_module)
+        mocker.patch("bead.items.adapters.togetherai.openai", mock_openai_module)
 
-        from sash.items.adapters.togetherai import TogetherAIAdapter  # noqa: PLC0415
+        from bead.items.adapters.togetherai import TogetherAIAdapter  # noqa: PLC0415
 
         cache = ModelOutputCache(backend="memory")
         adapter = TogetherAIAdapter(
@@ -78,10 +78,10 @@ class TestTogetherAIAdapterInitialization:
         mock_openai_module.OpenAI.return_value = mock_client
         mock_openai_module.__spec__ = mocker.MagicMock()
         mocker.patch.dict("sys.modules", {"openai": mock_openai_module})
-        mocker.patch("sash.items.adapters.togetherai.openai", mock_openai_module)
+        mocker.patch("bead.items.adapters.togetherai.openai", mock_openai_module)
         mocker.patch.dict(os.environ, {"TOGETHER_API_KEY": "env-key"})
 
-        from sash.items.adapters.togetherai import TogetherAIAdapter  # noqa: PLC0415
+        from bead.items.adapters.togetherai import TogetherAIAdapter  # noqa: PLC0415
 
         cache = ModelOutputCache(backend="memory")
         adapter = TogetherAIAdapter(
@@ -98,10 +98,10 @@ class TestTogetherAIAdapterInitialization:
         mock_openai_module = mocker.MagicMock()
         mock_openai_module.__spec__ = mocker.MagicMock()
         mocker.patch.dict("sys.modules", {"openai": mock_openai_module})
-        mocker.patch("sash.items.adapters.togetherai.openai", mock_openai_module)
+        mocker.patch("bead.items.adapters.togetherai.openai", mock_openai_module)
         mocker.patch.dict(os.environ, {}, clear=True)
 
-        from sash.items.adapters.togetherai import TogetherAIAdapter  # noqa: PLC0415
+        from bead.items.adapters.togetherai import TogetherAIAdapter  # noqa: PLC0415
 
         cache = ModelOutputCache(backend="memory")
 

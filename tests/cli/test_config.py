@@ -6,7 +6,7 @@ from pathlib import Path
 
 from click.testing import CliRunner
 
-from sash.cli.main import cli
+from bead.cli.main import cli
 
 
 def test_config_help(cli_runner: CliRunner) -> None:

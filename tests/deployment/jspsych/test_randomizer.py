@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from uuid import UUID, uuid4
 
-from sash.deployment.jspsych.randomizer import (
+from bead.deployment.jspsych.randomizer import (
     _extract_property_name,
     _generate_distance_constraints,
     _get_nested_property,
@@ -12,7 +12,7 @@ from sash.deployment.jspsych.randomizer import (
     _serialize_metadata,
     generate_randomizer_function,
 )
-from sash.lists.constraints import OrderingConstraint
+from bead.lists.constraints import OrderingConstraint
 
 
 class TestGenerateRandomizerFunction:

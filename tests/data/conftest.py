@@ -7,7 +7,7 @@ from uuid import uuid4
 
 import pytest
 
-from sash.data.metadata import MetadataTracker
+from bead.data.metadata import MetadataTracker
 from tests.data.data_helpers import SimpleTestModel
 
 

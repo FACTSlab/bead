@@ -7,8 +7,8 @@ from pathlib import Path
 
 from click.testing import CliRunner
 
-from sash import __version__
-from sash.cli.main import cli
+from bead import __version__
+from bead.cli.main import cli
 
 
 def test_cli_version(cli_runner: CliRunner) -> None:
@@ -22,8 +22,8 @@ def test_cli_help(cli_runner: CliRunner) -> None:
     """Test --help option."""
     result = cli_runner.invoke(cli, ["--help"])
     assert result.exit_code == 0
-    assert "sash" in result.output
-    assert "Semantic Acceptability" in result.output
+    assert "bead" in result.output.lower()
+    assert "linguistic" in result.output.lower() or "judgment" in result.output.lower()
 
 
 def test_cli_with_config_file(cli_runner: CliRunner, mock_config_file: Path) -> None:
@@ -94,11 +94,11 @@ def test_init_command_creates_project(cli_runner: CliRunner, tmp_path: Path) -> 
         assert (project_dir / subdir).exists(), f"Missing directory: {subdir}"
 
     # Check files
-    assert (project_dir / "sash.yaml").exists()
+    assert (project_dir / "bead.yaml").exists()
     assert (project_dir / ".gitignore").exists()
 
     # Check config content
-    config_content = (project_dir / "sash.yaml").read_text()
+    config_content = (project_dir / "bead.yaml").read_text()
     assert "profile:" in config_content
     assert "paths:" in config_content
 
@@ -117,7 +117,7 @@ def test_init_command_with_profile(cli_runner: CliRunner, tmp_path: Path) -> Non
 
     assert result.exit_code == 0
     project_dir = tmp_path / "test_project"
-    config_content = (project_dir / "sash.yaml").read_text()
+    config_content = (project_dir / "bead.yaml").read_text()
     assert "profile: dev" in config_content
 
 
@@ -131,7 +131,7 @@ def test_init_command_current_directory(cli_runner: CliRunner, tmp_path: Path) -
         os.chdir(old_cwd)
 
     assert result.exit_code == 0
-    assert (tmp_path / "sash.yaml").exists()
+    assert (tmp_path / "bead.yaml").exists()
 
 
 def test_init_command_existing_directory_with_force(
@@ -155,7 +155,7 @@ def test_init_command_existing_directory_with_force(
         os.chdir(old_cwd)
 
     assert result.exit_code == 0
-    assert (project_dir / "sash.yaml").exists()
+    assert (project_dir / "bead.yaml").exists()
 
 
 def test_init_command_invalid_project_name(
@@ -226,7 +226,7 @@ def test_gitignore_content(cli_runner: CliRunner, tmp_path: Path) -> None:
 
 
 def test_config_yaml_structure(cli_runner: CliRunner, tmp_path: Path) -> None:
-    """Test generated sash.yaml structure."""
+    """Test generated bead.yaml structure."""
     old_cwd = os.getcwd()
     try:
         os.chdir(tmp_path)
@@ -239,7 +239,7 @@ def test_config_yaml_structure(cli_runner: CliRunner, tmp_path: Path) -> None:
 
     assert result.exit_code == 0
 
-    config_path = tmp_path / "test_config" / "sash.yaml"
+    config_path = tmp_path / "test_config" / "bead.yaml"
     config_content = config_path.read_text()
 
     # Check for all major sections

@@ -6,8 +6,8 @@ import numpy as np
 import pytest
 from pytest_mock import MockerFixture
 
-from sash.items.adapters.sentence_transformers import HuggingFaceSentenceTransformer
-from sash.items.cache import ModelOutputCache
+from bead.items.adapters.sentence_transformers import HuggingFaceSentenceTransformer
+from bead.items.cache import ModelOutputCache
 
 
 def test_sentence_transformer_initialization(

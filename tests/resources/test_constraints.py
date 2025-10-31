@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from sash.resources.constraints import Constraint
+from bead.resources.constraints import Constraint
 
 
 class TestConstraint:

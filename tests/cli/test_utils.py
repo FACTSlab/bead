@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from sash.cli.utils import (
+from bead.cli.utils import (
     format_output,
     get_nested_value,
     load_config_for_cli,

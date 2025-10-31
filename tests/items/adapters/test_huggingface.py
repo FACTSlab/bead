@@ -6,12 +6,12 @@ import numpy as np
 import pytest
 from pytest_mock import MockerFixture
 
-from sash.items.adapters.huggingface import (
+from bead.items.adapters.huggingface import (
     HuggingFaceLanguageModel,
     HuggingFaceMaskedLanguageModel,
     HuggingFaceNLI,
 )
-from sash.items.cache import ModelOutputCache
+from bead.items.cache import ModelOutputCache
 
 # ============================================================================
 # HuggingFaceLanguageModel Tests
@@ -26,11 +26,11 @@ def test_gpt2_initialization(
 ) -> None:
     """Test GPT-2 language model initialization."""
     mocker.patch(
-        "sash.items.adapters.huggingface.AutoModelForCausalLM.from_pretrained",
+        "bead.items.adapters.huggingface.AutoModelForCausalLM.from_pretrained",
         return_value=mock_gpt2_model,
     )
     mocker.patch(
-        "sash.items.adapters.huggingface.AutoTokenizer.from_pretrained",
+        "bead.items.adapters.huggingface.AutoTokenizer.from_pretrained",
         return_value=mock_gpt2_tokenizer,
     )
 
@@ -50,11 +50,11 @@ def test_gpt2_compute_log_probability(
 ) -> None:
     """Test log probability computation for causal LM."""
     mocker.patch(
-        "sash.items.adapters.huggingface.AutoModelForCausalLM.from_pretrained",
+        "bead.items.adapters.huggingface.AutoModelForCausalLM.from_pretrained",
         return_value=mock_gpt2_model,
     )
     mocker.patch(
-        "sash.items.adapters.huggingface.AutoTokenizer.from_pretrained",
+        "bead.items.adapters.huggingface.AutoTokenizer.from_pretrained",
         return_value=mock_gpt2_tokenizer,
     )
 
@@ -76,11 +76,11 @@ def test_gpt2_compute_perplexity(
 ) -> None:
     """Test perplexity computation for causal LM."""
     mocker.patch(
-        "sash.items.adapters.huggingface.AutoModelForCausalLM.from_pretrained",
+        "bead.items.adapters.huggingface.AutoModelForCausalLM.from_pretrained",
         return_value=mock_gpt2_model,
     )
     mocker.patch(
-        "sash.items.adapters.huggingface.AutoTokenizer.from_pretrained",
+        "bead.items.adapters.huggingface.AutoTokenizer.from_pretrained",
         return_value=mock_gpt2_tokenizer,
     )
 
@@ -102,11 +102,11 @@ def test_gpt2_get_embedding(
 ) -> None:
     """Test embedding extraction for causal LM."""
     mocker.patch(
-        "sash.items.adapters.huggingface.AutoModelForCausalLM.from_pretrained",
+        "bead.items.adapters.huggingface.AutoModelForCausalLM.from_pretrained",
         return_value=mock_gpt2_model,
     )
     mocker.patch(
-        "sash.items.adapters.huggingface.AutoTokenizer.from_pretrained",
+        "bead.items.adapters.huggingface.AutoTokenizer.from_pretrained",
         return_value=mock_gpt2_tokenizer,
     )
 
@@ -126,11 +126,11 @@ def test_gpt2_compute_nli_not_supported(
 ) -> None:
     """Test that NLI is not supported for causal LMs."""
     mocker.patch(
-        "sash.items.adapters.huggingface.AutoModelForCausalLM.from_pretrained",
+        "bead.items.adapters.huggingface.AutoModelForCausalLM.from_pretrained",
         return_value=mock_gpt2_model,
     )
     mocker.patch(
-        "sash.items.adapters.huggingface.AutoTokenizer.from_pretrained",
+        "bead.items.adapters.huggingface.AutoTokenizer.from_pretrained",
         return_value=mock_gpt2_tokenizer,
     )
 
@@ -148,11 +148,11 @@ def test_gpt2_caching(
 ) -> None:
     """Test that results are cached properly."""
     mocker.patch(
-        "sash.items.adapters.huggingface.AutoModelForCausalLM.from_pretrained",
+        "bead.items.adapters.huggingface.AutoModelForCausalLM.from_pretrained",
         return_value=mock_gpt2_model,
     )
     mocker.patch(
-        "sash.items.adapters.huggingface.AutoTokenizer.from_pretrained",
+        "bead.items.adapters.huggingface.AutoTokenizer.from_pretrained",
         return_value=mock_gpt2_tokenizer,
     )
 
@@ -176,15 +176,15 @@ def test_gpt2_device_fallback(
 ) -> None:
     """Test device fallback when CUDA unavailable."""
     mocker.patch(
-        "sash.items.adapters.huggingface.torch.cuda.is_available",
+        "bead.items.adapters.huggingface.torch.cuda.is_available",
         return_value=False,
     )
     mocker.patch(
-        "sash.items.adapters.huggingface.AutoModelForCausalLM.from_pretrained",
+        "bead.items.adapters.huggingface.AutoModelForCausalLM.from_pretrained",
         return_value=mock_gpt2_model,
     )
     mocker.patch(
-        "sash.items.adapters.huggingface.AutoTokenizer.from_pretrained",
+        "bead.items.adapters.huggingface.AutoTokenizer.from_pretrained",
         return_value=mock_gpt2_tokenizer,
     )
 
@@ -207,11 +207,11 @@ def test_bert_initialization(
 ) -> None:
     """Test BERT masked language model initialization."""
     mocker.patch(
-        "sash.items.adapters.huggingface.AutoModelForMaskedLM.from_pretrained",
+        "bead.items.adapters.huggingface.AutoModelForMaskedLM.from_pretrained",
         return_value=mock_bert_model,
     )
     mocker.patch(
-        "sash.items.adapters.huggingface.AutoTokenizer.from_pretrained",
+        "bead.items.adapters.huggingface.AutoTokenizer.from_pretrained",
         return_value=mock_bert_tokenizer,
     )
 
@@ -232,11 +232,11 @@ def test_bert_compute_log_probability(
 ) -> None:
     """Test pseudo-log-likelihood computation for masked LM."""
     mocker.patch(
-        "sash.items.adapters.huggingface.AutoModelForMaskedLM.from_pretrained",
+        "bead.items.adapters.huggingface.AutoModelForMaskedLM.from_pretrained",
         return_value=mock_bert_model,
     )
     mocker.patch(
-        "sash.items.adapters.huggingface.AutoTokenizer.from_pretrained",
+        "bead.items.adapters.huggingface.AutoTokenizer.from_pretrained",
         return_value=mock_bert_tokenizer,
     )
 
@@ -257,11 +257,11 @@ def test_bert_get_embedding(
 ) -> None:
     """Test [CLS] embedding extraction for masked LM."""
     mocker.patch(
-        "sash.items.adapters.huggingface.AutoModelForMaskedLM.from_pretrained",
+        "bead.items.adapters.huggingface.AutoModelForMaskedLM.from_pretrained",
         return_value=mock_bert_model,
     )
     mocker.patch(
-        "sash.items.adapters.huggingface.AutoTokenizer.from_pretrained",
+        "bead.items.adapters.huggingface.AutoTokenizer.from_pretrained",
         return_value=mock_bert_tokenizer,
     )
 
@@ -281,11 +281,11 @@ def test_bert_compute_nli_not_supported(
 ) -> None:
     """Test that NLI is not supported for masked LMs."""
     mocker.patch(
-        "sash.items.adapters.huggingface.AutoModelForMaskedLM.from_pretrained",
+        "bead.items.adapters.huggingface.AutoModelForMaskedLM.from_pretrained",
         return_value=mock_bert_model,
     )
     mocker.patch(
-        "sash.items.adapters.huggingface.AutoTokenizer.from_pretrained",
+        "bead.items.adapters.huggingface.AutoTokenizer.from_pretrained",
         return_value=mock_bert_tokenizer,
     )
 
@@ -309,15 +309,15 @@ def test_nli_initialization(
 ) -> None:
     """Test NLI model initialization."""
     mocker.patch(
-        "sash.items.adapters.huggingface.AutoModelForSequenceClassification.from_pretrained",
+        "bead.items.adapters.huggingface.AutoModelForSequenceClassification.from_pretrained",
         return_value=mock_nli_model,
     )
     mocker.patch(
-        "sash.items.adapters.huggingface.AutoTokenizer.from_pretrained",
+        "bead.items.adapters.huggingface.AutoTokenizer.from_pretrained",
         return_value=mock_nli_tokenizer,
     )
     mocker.patch(
-        "sash.items.adapters.huggingface.AutoConfig.from_pretrained",
+        "bead.items.adapters.huggingface.AutoConfig.from_pretrained",
         return_value=mock_nli_config,
     )
 
@@ -337,15 +337,15 @@ def test_nli_compute_nli(
 ) -> None:
     """Test NLI score computation."""
     mocker.patch(
-        "sash.items.adapters.huggingface.AutoModelForSequenceClassification.from_pretrained",
+        "bead.items.adapters.huggingface.AutoModelForSequenceClassification.from_pretrained",
         return_value=mock_nli_model,
     )
     mocker.patch(
-        "sash.items.adapters.huggingface.AutoTokenizer.from_pretrained",
+        "bead.items.adapters.huggingface.AutoTokenizer.from_pretrained",
         return_value=mock_nli_tokenizer,
     )
     mocker.patch(
-        "sash.items.adapters.huggingface.AutoConfig.from_pretrained",
+        "bead.items.adapters.huggingface.AutoConfig.from_pretrained",
         return_value=mock_nli_config,
     )
 
@@ -374,15 +374,15 @@ def test_nli_get_embedding(
 ) -> None:
     """Test embedding extraction from NLI model."""
     mocker.patch(
-        "sash.items.adapters.huggingface.AutoModelForSequenceClassification.from_pretrained",
+        "bead.items.adapters.huggingface.AutoModelForSequenceClassification.from_pretrained",
         return_value=mock_nli_model,
     )
     mocker.patch(
-        "sash.items.adapters.huggingface.AutoTokenizer.from_pretrained",
+        "bead.items.adapters.huggingface.AutoTokenizer.from_pretrained",
         return_value=mock_nli_tokenizer,
     )
     mocker.patch(
-        "sash.items.adapters.huggingface.AutoConfig.from_pretrained",
+        "bead.items.adapters.huggingface.AutoConfig.from_pretrained",
         return_value=mock_nli_config,
     )
 
@@ -403,15 +403,15 @@ def test_nli_log_probability_not_supported(
 ) -> None:
     """Test that log probability is not supported for NLI models."""
     mocker.patch(
-        "sash.items.adapters.huggingface.AutoModelForSequenceClassification.from_pretrained",
+        "bead.items.adapters.huggingface.AutoModelForSequenceClassification.from_pretrained",
         return_value=mock_nli_model,
     )
     mocker.patch(
-        "sash.items.adapters.huggingface.AutoTokenizer.from_pretrained",
+        "bead.items.adapters.huggingface.AutoTokenizer.from_pretrained",
         return_value=mock_nli_tokenizer,
     )
     mocker.patch(
-        "sash.items.adapters.huggingface.AutoConfig.from_pretrained",
+        "bead.items.adapters.huggingface.AutoConfig.from_pretrained",
         return_value=mock_nli_config,
     )
 
@@ -430,15 +430,15 @@ def test_nli_perplexity_not_supported(
 ) -> None:
     """Test that perplexity is not supported for NLI models."""
     mocker.patch(
-        "sash.items.adapters.huggingface.AutoModelForSequenceClassification.from_pretrained",
+        "bead.items.adapters.huggingface.AutoModelForSequenceClassification.from_pretrained",
         return_value=mock_nli_model,
     )
     mocker.patch(
-        "sash.items.adapters.huggingface.AutoTokenizer.from_pretrained",
+        "bead.items.adapters.huggingface.AutoTokenizer.from_pretrained",
         return_value=mock_nli_tokenizer,
     )
     mocker.patch(
-        "sash.items.adapters.huggingface.AutoConfig.from_pretrained",
+        "bead.items.adapters.huggingface.AutoConfig.from_pretrained",
         return_value=mock_nli_config,
     )
 
@@ -460,15 +460,15 @@ def test_nli_label_mapping(
     config.id2label = {0: "ENTAILMENT", 1: "NEUTRAL", 2: "CONTRADICTION"}
 
     mocker.patch(
-        "sash.items.adapters.huggingface.AutoModelForSequenceClassification.from_pretrained",
+        "bead.items.adapters.huggingface.AutoModelForSequenceClassification.from_pretrained",
         return_value=mock_nli_model,
     )
     mocker.patch(
-        "sash.items.adapters.huggingface.AutoTokenizer.from_pretrained",
+        "bead.items.adapters.huggingface.AutoTokenizer.from_pretrained",
         return_value=mock_nli_tokenizer,
     )
     mocker.patch(
-        "sash.items.adapters.huggingface.AutoConfig.from_pretrained",
+        "bead.items.adapters.huggingface.AutoConfig.from_pretrained",
         return_value=config,
     )
 
@@ -491,15 +491,15 @@ def test_nli_caching(
 ) -> None:
     """Test that NLI results are cached properly."""
     mocker.patch(
-        "sash.items.adapters.huggingface.AutoModelForSequenceClassification.from_pretrained",
+        "bead.items.adapters.huggingface.AutoModelForSequenceClassification.from_pretrained",
         return_value=mock_nli_model,
     )
     mocker.patch(
-        "sash.items.adapters.huggingface.AutoTokenizer.from_pretrained",
+        "bead.items.adapters.huggingface.AutoTokenizer.from_pretrained",
         return_value=mock_nli_tokenizer,
     )
     mocker.patch(
-        "sash.items.adapters.huggingface.AutoConfig.from_pretrained",
+        "bead.items.adapters.huggingface.AutoConfig.from_pretrained",
         return_value=mock_nli_config,
     )
 

@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 from pytest_mock import MockerFixture
 
-from sash.items.cache import ModelOutputCache
+from bead.items.cache import ModelOutputCache
 
 
 @pytest.fixture
@@ -27,7 +27,7 @@ def mock_openai(mocker: MockerFixture):
 
     # Patch both sys.modules and the module-level import in the adapter
     mocker.patch.dict("sys.modules", {"openai": mock_openai_module})
-    mocker.patch("sash.items.adapters.openai.openai", mock_openai_module)
+    mocker.patch("bead.items.adapters.openai.openai", mock_openai_module)
 
     return mock_client
 
@@ -39,7 +39,7 @@ def openai_adapter(mock_openai, mocker: MockerFixture):
     mocker.patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"})
 
     # Import after mocking
-    from sash.items.adapters.openai import OpenAIAdapter  # noqa: PLC0415
+    from bead.items.adapters.openai import OpenAIAdapter  # noqa: PLC0415
 
     cache = ModelOutputCache(backend="memory")
     return OpenAIAdapter(model_name="gpt-4", cache=cache, api_key="test-key")
@@ -55,9 +55,9 @@ class TestOpenAIAdapterInitialization:
         mock_openai_module.OpenAI.return_value = mock_client
         mock_openai_module.__spec__ = mocker.MagicMock()
         mocker.patch.dict("sys.modules", {"openai": mock_openai_module})
-        mocker.patch("sash.items.adapters.openai.openai", mock_openai_module)
+        mocker.patch("bead.items.adapters.openai.openai", mock_openai_module)
 
-        from sash.items.adapters.openai import OpenAIAdapter  # noqa: PLC0415
+        from bead.items.adapters.openai import OpenAIAdapter  # noqa: PLC0415
 
         cache = ModelOutputCache(backend="memory")
         adapter = OpenAIAdapter(model_name="gpt-4", cache=cache, api_key="explicit-key")
@@ -73,10 +73,10 @@ class TestOpenAIAdapterInitialization:
         mock_openai_module.OpenAI.return_value = mock_client
         mock_openai_module.__spec__ = mocker.MagicMock()
         mocker.patch.dict("sys.modules", {"openai": mock_openai_module})
-        mocker.patch("sash.items.adapters.openai.openai", mock_openai_module)
+        mocker.patch("bead.items.adapters.openai.openai", mock_openai_module)
         mocker.patch.dict(os.environ, {"OPENAI_API_KEY": "env-key"})
 
-        from sash.items.adapters.openai import OpenAIAdapter  # noqa: PLC0415
+        from bead.items.adapters.openai import OpenAIAdapter  # noqa: PLC0415
 
         cache = ModelOutputCache(backend="memory")
         adapter = OpenAIAdapter(model_name="gpt-4", cache=cache)
@@ -91,10 +91,10 @@ class TestOpenAIAdapterInitialization:
         mock_openai_module = mocker.MagicMock()
         mock_openai_module.__spec__ = mocker.MagicMock()
         mocker.patch.dict("sys.modules", {"openai": mock_openai_module})
-        mocker.patch("sash.items.adapters.openai.openai", mock_openai_module)
+        mocker.patch("bead.items.adapters.openai.openai", mock_openai_module)
         mocker.patch.dict(os.environ, {}, clear=True)
 
-        from sash.items.adapters.openai import OpenAIAdapter  # noqa: PLC0415
+        from bead.items.adapters.openai import OpenAIAdapter  # noqa: PLC0415
 
         cache = ModelOutputCache(backend="memory")
 

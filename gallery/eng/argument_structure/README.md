@@ -609,7 +609,7 @@ The model stops when its agreement level matches human agreement (typically α �
 - **Cohen's Kappa:** Pairwise agreement
 - **Accuracy:** Model vs. majority vote
 
-**Implementation:** See `sash/evaluation/convergence.py` for full details.
+**Implementation:** See `bead/evaluation/convergence.py` for full details.
 
 ### Active Learning Loop
 
@@ -705,7 +705,7 @@ make clean-all           # Remove everything (including lexicons)
 Human inter-annotator agreement is computed from double-annotated items:
 
 ```python
-from sash.evaluation.interannotator import compute_interannotator_agreement
+from bead.evaluation.interannotator import compute_interannotator_agreement
 
 human_agreement = compute_interannotator_agreement(
     annotations_1=annotator1_labels,
@@ -720,7 +720,7 @@ human_agreement = compute_interannotator_agreement(
 Model-human agreement is computed by treating the model as a "virtual annotator":
 
 ```python
-from sash.evaluation.convergence import ConvergenceDetector
+from bead.evaluation.convergence import ConvergenceDetector
 
 detector = ConvergenceDetector(
     human_agreement_metric="krippendorff_alpha",
@@ -948,7 +948,7 @@ gallery/eng/argument_structure/
 
 **Core:**
 - Python ≥3.10
-- sash (parent library)
+- bead (parent library)
   - `sash.resources.adapters.glazing` - VerbNet access
   - `sash.resources.adapters.unimorph` - Morphology access
   - `sash.resources.lexicon` - Lexicon management
@@ -983,7 +983,7 @@ If you use this pipeline or dataset in your research, please cite:
   title={Argument Structure Active Learning with Convergence Detection},
   author={White, Aaron Steven},
   year={2025},
-  url={https://github.com/aaronstevenwhite/sash/gallery/eng/argument_structure}
+  url={https://github.com/aaronstevenwhite/bead/gallery/eng/argument_structure}
 }
 ```
 

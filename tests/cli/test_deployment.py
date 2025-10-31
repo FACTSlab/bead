@@ -6,7 +6,7 @@ from pathlib import Path
 
 from click.testing import CliRunner
 
-from sash.cli.deployment import deployment
+from bead.cli.deployment import deployment
 
 
 def test_validate_missing_directory(cli_runner: CliRunner, tmp_path: Path) -> None:

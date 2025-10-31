@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from sash.deployment.jatos.exporter import JATOSExporter
+from bead.deployment.jatos.exporter import JATOSExporter
 
 
 def test_jatos_exporter_creation() -> None:

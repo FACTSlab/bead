@@ -7,7 +7,7 @@ from uuid import uuid4
 import pytest
 from pydantic import ValidationError
 
-from sash.lists.constraints import (
+from bead.lists.constraints import (
     BalanceConstraint,
     OrderingConstraint,
     QuantileConstraint,
@@ -71,8 +71,8 @@ class TestUniquenessConstraint:
         assert restored.property_expression == constraint.property_expression
         assert restored.allow_null == constraint.allow_null
 
-    def test_inherits_sashbasemodel(self) -> None:
-        """Test has SashBaseModel fields."""
+    def test_inherits_beadbasemodel(self) -> None:
+        """Test has BeadBaseModel fields."""
         constraint = UniquenessConstraint(property_expression="test")
 
         assert hasattr(constraint, "id")
@@ -536,8 +536,8 @@ class TestOrderingConstraint:
         assert restored.no_adjacent_property == constraint.no_adjacent_property
         assert restored.min_distance == constraint.min_distance
 
-    def test_inherits_sashbasemodel(self) -> None:
-        """Test has SashBaseModel fields."""
+    def test_inherits_beadbasemodel(self) -> None:
+        """Test has BeadBaseModel fields."""
         constraint = OrderingConstraint()
 
         assert hasattr(constraint, "id")

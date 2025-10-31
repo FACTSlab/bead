@@ -7,14 +7,14 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from sash.deployment.jspsych.config import (
+from bead.deployment.jspsych.config import (
     ChoiceConfig,
     ExperimentConfig,
     RatingScaleConfig,
 )
-from sash.items.models import Item, ItemTemplate, PresentationSpec, TaskSpec
-from sash.lists.constraints import OrderingConstraint
-from sash.lists.models import ExperimentList
+from bead.items.models import Item, ItemTemplate, PresentationSpec, TaskSpec
+from bead.lists.constraints import OrderingConstraint
+from bead.lists.models import ExperimentList
 
 
 @pytest.fixture

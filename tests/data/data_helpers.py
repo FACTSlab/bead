@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from sash.data.base import SashBaseModel
+from bead.data.base import BeadBaseModel
 
 
-class SimpleTestModel(SashBaseModel):
+class SimpleTestModel(BeadBaseModel):
     """Simple test model for serialization tests."""
 
     name: str

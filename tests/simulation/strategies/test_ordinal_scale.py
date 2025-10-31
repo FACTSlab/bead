@@ -7,14 +7,14 @@ from uuid import uuid4
 import numpy as np
 import pytest
 
-from sash.items.models import (
+from bead.items.models import (
     Item,
     ItemTemplate,
     ModelOutput,
     PresentationSpec,
     TaskSpec,
 )
-from sash.simulation.strategies.ordinal_scale import OrdinalScaleStrategy
+from bead.simulation.strategies.ordinal_scale import OrdinalScaleStrategy
 
 
 def _create_model_output(score: float) -> ModelOutput:

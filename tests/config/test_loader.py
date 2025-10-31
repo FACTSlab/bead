@@ -6,8 +6,8 @@ import pytest
 import yaml
 from pydantic import ValidationError
 
-from sash.config.loader import load_config, load_yaml_file, merge_configs
-from sash.config.models import SashConfig
+from bead.config.loader import load_config, load_yaml_file, merge_configs
+from bead.config.models import BeadConfig
 
 
 class TestMergeConfigs:
@@ -153,25 +153,25 @@ class TestLoadConfig:
     def test_load_config_from_profile_default(self) -> None:
         """Test loading config from default profile."""
         config = load_config(profile="default")
-        assert isinstance(config, SashConfig)
+        assert isinstance(config, BeadConfig)
         assert config.profile == "default"
 
     def test_load_config_from_profile_dev(self) -> None:
         """Test loading config from dev profile."""
         config = load_config(profile="dev")
-        assert isinstance(config, SashConfig)
+        assert isinstance(config, BeadConfig)
         assert config.profile == "dev"
 
     def test_load_config_from_profile_prod(self) -> None:
         """Test loading config from prod profile."""
         config = load_config(profile="prod")
-        assert isinstance(config, SashConfig)
+        assert isinstance(config, BeadConfig)
         assert config.profile == "prod"
 
     def test_load_config_from_profile_test(self) -> None:
         """Test loading config from test profile."""
         config = load_config(profile="test")
-        assert isinstance(config, SashConfig)
+        assert isinstance(config, BeadConfig)
         assert config.profile == "test"
 
     def test_load_config_with_none_path(self) -> None:

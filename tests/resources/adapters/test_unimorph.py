@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from sash.resources.adapters.cache import AdapterCache
-from sash.resources.adapters.unimorph import UniMorphAdapter
+from bead.resources.adapters.cache import AdapterCache
+from bead.resources.adapters.unimorph import UniMorphAdapter
 
 
 def test_unimorph_adapter_initialization() -> None:

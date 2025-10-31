@@ -8,19 +8,19 @@ from uuid import uuid4
 
 import pytest
 
-from sash.config.models import (
+from bead.config.models import (
     NoiseModelConfig,
     SimulatedAnnotatorConfig,
     SimulationRunnerConfig,
 )
-from sash.items.models import (
+from bead.items.models import (
     Item,
     ItemTemplate,
     ModelOutput,
     PresentationSpec,
     TaskSpec,
 )
-from sash.simulation.runner import SimulationRunner
+from bead.simulation.runner import SimulationRunner
 
 
 def test_runner_instantiation() -> None:

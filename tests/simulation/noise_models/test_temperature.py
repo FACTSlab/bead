@@ -5,7 +5,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from sash.simulation.noise_models.temperature import TemperatureNoiseModel
+from bead.simulation.noise_models.temperature import TemperatureNoiseModel
 
 
 def test_temperature_model_instantiation() -> None:

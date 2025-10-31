@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from sash.config.models import (
+from bead.config.models import (
     ActiveLearningConfig,
     DeploymentConfig,
     ItemConfig,
@@ -16,7 +16,7 @@ from sash.config.models import (
     ModelConfig,
     PathsConfig,
     ResourceConfig,
-    SashConfig,
+    BeadConfig,
     TemplateConfig,
 )
 
@@ -439,12 +439,12 @@ class TestLoggingConfig:
         assert config.console is False
 
 
-class TestSashConfig:
-    """Tests for SashConfig model."""
+class TestBeadConfig:
+    """Tests for BeadConfig model."""
 
     def test_creation_with_all_nested_configs(self) -> None:
-        """Test creating SashConfig with all nested configs."""
-        config = SashConfig(
+        """Test creating BeadConfig with all nested configs."""
+        config = BeadConfig(
             profile="test",
             paths=PathsConfig(),
             resources=ResourceConfig(),
@@ -467,7 +467,7 @@ class TestSashConfig:
 
     def test_to_dict_method(self) -> None:
         """Test to_dict() method."""
-        config = SashConfig()
+        config = BeadConfig()
         d = config.to_dict()
         assert isinstance(d, dict)
         assert d["profile"] == "default"
@@ -477,7 +477,7 @@ class TestSashConfig:
 
     def test_validate_paths_method_empty_errors(self) -> None:
         """Test validate_paths() method with relative paths."""
-        config = SashConfig()
+        config = BeadConfig()
         errors = config.validate_paths()
         # Relative paths should not generate errors
         assert isinstance(errors, list)
@@ -486,7 +486,7 @@ class TestSashConfig:
         self, tmp_path: Path
     ) -> None:
         """Test validate_paths() method with missing absolute paths."""
-        config = SashConfig(
+        config = BeadConfig(
             paths=PathsConfig(data_dir=tmp_path / "nonexistent"),
         )
         errors = config.validate_paths()
@@ -495,27 +495,27 @@ class TestSashConfig:
 
     def test_profile_field(self) -> None:
         """Test profile field."""
-        config = SashConfig(profile="production")
+        config = BeadConfig(profile="production")
         assert config.profile == "production"
 
     def test_model_serialization(self) -> None:
         """Test model serialization."""
-        config = SashConfig()
+        config = BeadConfig()
         json_str = config.model_dump_json()
         assert isinstance(json_str, str)
         assert "default" in json_str
 
     def test_model_deserialization(self) -> None:
         """Test model deserialization."""
-        config = SashConfig()
+        config = BeadConfig()
         d = config.model_dump()
-        config2 = SashConfig(**d)
+        config2 = BeadConfig(**d)
         assert config2.profile == config.profile
         assert config2.paths.data_dir == config.paths.data_dir
 
     def test_to_yaml_implemented(self) -> None:
         """Test to_yaml() is now implemented and works."""
-        config = SashConfig()
+        config = BeadConfig()
         yaml_str = config.to_yaml()
         assert isinstance(yaml_str, str)
         assert len(yaml_str) > 0

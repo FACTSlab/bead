@@ -1,1 +1,1 @@
-"""Tests for sash.lists module."""
+"""Tests for bead.lists module."""

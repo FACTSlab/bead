@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from sash.templates.combinatorics import (
+from bead.templates.combinatorics import (
     cartesian_product,
     count_combinations,
     stratified_sample,

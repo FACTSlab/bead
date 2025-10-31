@@ -7,8 +7,8 @@ from unittest.mock import Mock
 
 import pytest
 
-from sash.active_learning.trainers.base import ModelMetadata
-from sash.active_learning.trainers.huggingface import HuggingFaceTrainer
+from bead.active_learning.trainers.base import ModelMetadata
+from bead.active_learning.trainers.huggingface import HuggingFaceTrainer
 
 
 class TestHuggingFaceTrainer:

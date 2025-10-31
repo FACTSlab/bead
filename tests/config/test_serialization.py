@@ -5,10 +5,10 @@ from pathlib import Path
 import pytest
 import yaml
 
-from sash.config.defaults import get_default_config
-from sash.config.loader import load_config
-from sash.config.models import SashConfig
-from sash.config.serialization import config_to_dict, save_yaml, to_yaml
+from bead.config.defaults import get_default_config
+from bead.config.loader import load_config
+from bead.config.models import BeadConfig
+from bead.config.serialization import config_to_dict, save_yaml, to_yaml
 
 
 class TestConfigToDict:
@@ -137,7 +137,7 @@ class TestToYaml:
         parsed = yaml.safe_load(yaml_str)
 
         # Create new config from parsed data
-        new_config = SashConfig(**parsed)
+        new_config = BeadConfig(**parsed)
 
         # Should match original
         assert new_config.logging.level == config.logging.level
@@ -223,7 +223,7 @@ class TestSaveYaml:
             content = yaml.safe_load(f)
 
         # Reload to verify
-        new_config = SashConfig(**content)
+        new_config = BeadConfig(**content)
         assert new_config.logging.level == "DEBUG"
 
     def test_save_yaml_without_defaults(self, tmp_path: Path) -> None:
@@ -242,26 +242,26 @@ class TestSaveYaml:
         assert "logging" in content or "ERROR" in content
 
 
-class TestSashConfigToYaml:
-    """Tests for SashConfig.to_yaml() method."""
+class TestBeadConfigToYaml:
+    """Tests for BeadConfig.to_yaml() method."""
 
-    def test_sash_config_to_yaml_method(self) -> None:
-        """Test SashConfig.to_yaml() method."""
+    def test_bead_config_to_yaml_method(self) -> None:
+        """Test BeadConfig.to_yaml() method."""
         config = get_default_config()
         yaml_str = config.to_yaml()
         assert isinstance(yaml_str, str)
         assert len(yaml_str) > 0
 
-    def test_sash_config_to_yaml_is_valid(self) -> None:
-        """Test that SashConfig.to_yaml() produces valid YAML."""
+    def test_bead_config_to_yaml_is_valid(self) -> None:
+        """Test that BeadConfig.to_yaml() produces valid YAML."""
         config = get_default_config()
         config.logging.level = "DEBUG"
         yaml_str = config.to_yaml()
         parsed = yaml.safe_load(yaml_str)
         assert isinstance(parsed, dict)
 
-    def test_sash_config_to_yaml_excludes_defaults(self) -> None:
-        """Test that SashConfig.to_yaml() excludes defaults by default."""
+    def test_bead_config_to_yaml_excludes_defaults(self) -> None:
+        """Test that BeadConfig.to_yaml() excludes defaults by default."""
         config = get_default_config()
         config.logging.level = "CRITICAL"
         yaml_str = config.to_yaml()

@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from sash.resources.models import LexicalItem
-from sash.templates.strategies import (
+from bead.resources.models import LexicalItem
+from bead.templates.strategies import (
     ExhaustiveStrategy,
     RandomStrategy,
     StratifiedStrategy,

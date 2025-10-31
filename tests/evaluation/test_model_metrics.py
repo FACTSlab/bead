@@ -5,7 +5,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from sash.evaluation.model_metrics import ModelMetrics
+from bead.evaluation.model_metrics import ModelMetrics
 
 
 class TestAccuracy:

@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from sash.lists.constraints import (
+from bead.lists.constraints import (
     BatchBalanceConstraint,
     BatchCoverageConstraint,
     BatchDiversityConstraint,
@@ -134,8 +134,8 @@ class TestBatchCoverageConstraint:
         assert restored.target_values == constraint.target_values
         assert restored.min_coverage == constraint.min_coverage
 
-    def test_inherits_sashbasemodel(self) -> None:
-        """Test has SashBaseModel fields."""
+    def test_inherits_beadbasemodel(self) -> None:
+        """Test has BeadBaseModel fields."""
         constraint = BatchCoverageConstraint(
             property_expression="item['test']",
             target_values=[1, 2, 3],
@@ -359,8 +359,8 @@ class TestBatchDiversityConstraint:
         assert restored.property_expression == constraint.property_expression
         assert restored.max_lists_per_value == constraint.max_lists_per_value
 
-    def test_inherits_sashbasemodel(self) -> None:
-        """Test has SashBaseModel fields."""
+    def test_inherits_beadbasemodel(self) -> None:
+        """Test has BeadBaseModel fields."""
         constraint = BatchDiversityConstraint(
             property_expression="item['test']",
             max_lists_per_value=3,
@@ -450,8 +450,8 @@ class TestBatchMinOccurrenceConstraint:
         assert restored.property_expression == constraint.property_expression
         assert restored.min_occurrences == constraint.min_occurrences
 
-    def test_inherits_sashbasemodel(self) -> None:
-        """Test has SashBaseModel fields."""
+    def test_inherits_beadbasemodel(self) -> None:
+        """Test has BeadBaseModel fields."""
         constraint = BatchMinOccurrenceConstraint(
             property_expression="item['test']",
             min_occurrences=20,

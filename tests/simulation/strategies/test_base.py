@@ -7,10 +7,10 @@ from typing import TYPE_CHECKING
 import numpy as np
 import pytest
 
-from sash.simulation.strategies.base import SimulationStrategy
+from bead.simulation.strategies.base import SimulationStrategy
 
 if TYPE_CHECKING:
-    from sash.items.models import Item, ItemTemplate
+    from bead.items.models import Item, ItemTemplate
 
 
 class ConcreteStrategy(SimulationStrategy):

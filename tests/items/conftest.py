@@ -6,7 +6,7 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from sash.items.models import (
+from bead.items.models import (
     Item,
     ItemCollection,
     ItemElement,

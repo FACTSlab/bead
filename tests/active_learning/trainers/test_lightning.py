@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from sash.active_learning.trainers.base import ModelMetadata
-from sash.active_learning.trainers.lightning import PyTorchLightningTrainer
+from bead.active_learning.trainers.base import ModelMetadata
+from bead.active_learning.trainers.lightning import PyTorchLightningTrainer
 
 
 class TestPyTorchLightningTrainer:

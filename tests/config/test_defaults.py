@@ -6,12 +6,12 @@ from pathlib import Path
 
 import pytest
 
-from sash.config.defaults import (
+from bead.config.defaults import (
     DEFAULT_CONFIG,
     get_default_config,
     get_default_for_model,
 )
-from sash.config.models import (
+from bead.config.models import (
     ActiveLearningConfig,
     DeploymentConfig,
     ItemConfig,
@@ -20,7 +20,7 @@ from sash.config.models import (
     ModelConfig,
     PathsConfig,
     ResourceConfig,
-    SashConfig,
+    BeadConfig,
     TemplateConfig,
 )
 
@@ -28,9 +28,9 @@ from sash.config.models import (
 class TestDefaultConfig:
     """Tests for DEFAULT_CONFIG constant."""
 
-    def test_default_config_is_valid_sash_config(self) -> None:
-        """Test DEFAULT_CONFIG is a valid SashConfig instance."""
-        assert isinstance(DEFAULT_CONFIG, SashConfig)
+    def test_default_config_is_valid_bead_config(self) -> None:
+        """Test DEFAULT_CONFIG is a valid BeadConfig instance."""
+        assert isinstance(DEFAULT_CONFIG, BeadConfig)
 
     def test_default_config_has_default_profile(self) -> None:
         """Test DEFAULT_CONFIG has 'default' profile."""
@@ -79,10 +79,10 @@ class TestDefaultConfig:
 class TestGetDefaultConfig:
     """Tests for get_default_config function."""
 
-    def test_returns_sash_config(self) -> None:
-        """Test get_default_config returns a SashConfig instance."""
+    def test_returns_bead_config(self) -> None:
+        """Test get_default_config returns a BeadConfig instance."""
         config = get_default_config()
-        assert isinstance(config, SashConfig)
+        assert isinstance(config, BeadConfig)
 
     def test_returns_copy(self) -> None:
         """Test get_default_config returns a copy, not the original."""
@@ -178,10 +178,10 @@ class TestGetDefaultForModel:
         assert isinstance(config, LoggingConfig)
         assert config.level == "INFO"
 
-    def test_returns_sash_config_default(self) -> None:
-        """Test get_default_for_model returns SashConfig default."""
-        config = get_default_for_model(SashConfig)
-        assert isinstance(config, SashConfig)
+    def test_returns_bead_config_default(self) -> None:
+        """Test get_default_for_model returns BeadConfig default."""
+        config = get_default_for_model(BeadConfig)
+        assert isinstance(config, BeadConfig)
         assert config.profile == "default"
 
     def test_raises_type_error_for_non_model(self) -> None:

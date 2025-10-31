@@ -14,7 +14,7 @@ import json
 from collections import defaultdict
 from pathlib import Path
 
-from sash.resources.structures import Template
+from bead.resources.structures import Template
 
 
 def main(input_file: str = "templates/verbnet_frames.jsonl") -> None:

@@ -7,7 +7,7 @@ from uuid import uuid4
 import pytest
 from pydantic import ValidationError
 
-from sash.items.models import (
+from bead.items.models import (
     Item,
     ItemElement,
     ItemTemplate,
@@ -15,7 +15,7 @@ from sash.items.models import (
     PresentationSpec,
     TaskSpec,
 )
-from sash.items.validation import (
+from bead.items.validation import (
     item_passes_all_constraints,
     validate_constraint_satisfaction,
     validate_item,
@@ -284,7 +284,7 @@ class TestValidateMetadataCompleteness:
     def test_valid_metadata(self, simple_item) -> None:
         """Test validation of item with complete metadata."""
         errors = validate_metadata_completeness(simple_item)
-        # Should have id, created_at, modified_at from SashBaseModel
+        # Should have id, created_at, modified_at from BeadBaseModel
         assert errors == []
 
     def test_item_has_id(self, simple_item) -> None:

@@ -12,7 +12,7 @@ from __future__ import annotations
 import csv
 from pathlib import Path
 
-from sash.resources.constraints import Constraint
+from bead.resources.constraints import Constraint
 
 
 def build_determiner_constraint(det_slot: str, noun_slot: str) -> Constraint:

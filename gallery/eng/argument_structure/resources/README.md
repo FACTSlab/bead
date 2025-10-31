@@ -24,11 +24,11 @@ Controlled adjective inventory for small clause predicates:
 
 ## Usage
 
-These CSV files are read by `generate_lexicons.py` to create the JSONLines lexicon files used in the sash pipeline:
+These CSV files are read by `generate_lexicons.py` to create the JSONLines lexicon files used in the bead pipeline:
 
 ```python
 import csv
-from sash.resources.models import LexicalItem
+from bead.resources.models import LexicalItem
 
 with open("resources/bleached_nouns.csv") as f:
     reader = csv.DictReader(f)

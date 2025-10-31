@@ -4,12 +4,12 @@ from __future__ import annotations
 
 import pytest
 
-from sash.resources.adapters.glazing import GlazingAdapter
-from sash.resources.adapters.registry import AdapterRegistry
-from sash.resources.adapters.unimorph import UniMorphAdapter
-from sash.resources.lexicon import Lexicon
-from sash.resources.models import LexicalItem
-from sash.templates.resolver import ConstraintResolver
+from bead.resources.adapters.glazing import GlazingAdapter
+from bead.resources.adapters.registry import AdapterRegistry
+from bead.resources.adapters.unimorph import UniMorphAdapter
+from bead.resources.lexicon import Lexicon
+from bead.resources.models import LexicalItem
+from bead.templates.resolver import ConstraintResolver
 
 
 @pytest.fixture

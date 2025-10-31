@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from sash.dsl import EvaluationContext, ast, register_stdlib
+from bead.dsl import EvaluationContext, ast, register_stdlib
 
 
 @pytest.fixture

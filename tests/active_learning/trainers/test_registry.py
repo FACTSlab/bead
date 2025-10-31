@@ -6,10 +6,10 @@ from pathlib import Path
 
 import pytest
 
-from sash.active_learning.trainers.base import BaseTrainer, ModelMetadata
-from sash.active_learning.trainers.huggingface import HuggingFaceTrainer
-from sash.active_learning.trainers.lightning import PyTorchLightningTrainer
-from sash.active_learning.trainers.registry import (
+from bead.active_learning.trainers.base import BaseTrainer, ModelMetadata
+from bead.active_learning.trainers.huggingface import HuggingFaceTrainer
+from bead.active_learning.trainers.lightning import PyTorchLightningTrainer
+from bead.active_learning.trainers.registry import (
     get_trainer,
     list_trainers,
     register_trainer,

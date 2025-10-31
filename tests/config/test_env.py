@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from sash.config.env import env_to_nested_dict, load_from_env, parse_env_value
+from bead.config.env import env_to_nested_dict, load_from_env, parse_env_value
 
 
 class TestParseEnvValue:
@@ -121,20 +121,20 @@ class TestEnvToNestedDict:
 
     def test_env_to_nested_dict_single_level(self) -> None:
         """Test converting single-level env vars."""
-        env_vars = {"SASH_PROFILE": "dev"}
-        result = env_to_nested_dict(env_vars, "SASH_")
+        env_vars = {"BEAD_PROFILE": "dev"}
+        result = env_to_nested_dict(env_vars, "BEAD_")
         assert result == {"profile": "dev"}
 
     def test_env_to_nested_dict_two_levels(self) -> None:
         """Test converting two-level nested env vars."""
-        env_vars = {"SASH_LOGGING__LEVEL": "DEBUG"}
-        result = env_to_nested_dict(env_vars, "SASH_")
+        env_vars = {"BEAD_LOGGING__LEVEL": "DEBUG"}
+        result = env_to_nested_dict(env_vars, "BEAD_")
         assert result == {"logging": {"level": "DEBUG"}}
 
     def test_env_to_nested_dict_three_levels(self) -> None:
         """Test converting three-level nested env vars."""
-        env_vars = {"SASH_PATHS__DATA__DIR": "/data"}
-        result = env_to_nested_dict(env_vars, "SASH_")
+        env_vars = {"BEAD_PATHS__DATA__DIR": "/data"}
+        result = env_to_nested_dict(env_vars, "BEAD_")
         # Note: This creates paths -> data -> dir structure
         # The actual config uses paths__data_dir, not paths__data__dir
         assert "paths" in result
@@ -143,11 +143,11 @@ class TestEnvToNestedDict:
     def test_env_to_nested_dict_multiple_vars(self) -> None:
         """Test converting multiple env vars."""
         env_vars = {
-            "SASH_LOGGING__LEVEL": "DEBUG",
-            "SASH_LOGGING__CONSOLE": "true",
-            "SASH_PATHS__DATA_DIR": "/data",
+            "BEAD_LOGGING__LEVEL": "DEBUG",
+            "BEAD_LOGGING__CONSOLE": "true",
+            "BEAD_PATHS__DATA_DIR": "/data",
         }
-        result = env_to_nested_dict(env_vars, "SASH_")
+        result = env_to_nested_dict(env_vars, "BEAD_")
         assert result["logging"]["level"] == "DEBUG"
         assert result["logging"]["console"] is True
         assert isinstance(result["paths"]["data_dir"], Path)
@@ -155,11 +155,11 @@ class TestEnvToNestedDict:
     def test_env_to_nested_dict_ignores_other_prefixes(self) -> None:
         """Test that vars with different prefixes are ignored."""
         env_vars = {
-            "SASH_LOGGING__LEVEL": "DEBUG",
+            "BEAD_LOGGING__LEVEL": "DEBUG",
             "OTHER_VAR": "value",
             "PATH": "/usr/bin",
         }
-        result = env_to_nested_dict(env_vars, "SASH_")
+        result = env_to_nested_dict(env_vars, "BEAD_")
         assert "logging" in result
         assert "other_var" not in result
         assert "path" not in result
@@ -167,7 +167,7 @@ class TestEnvToNestedDict:
     def test_env_to_nested_dict_empty(self) -> None:
         """Test with no matching env vars."""
         env_vars = {"OTHER_VAR": "value"}
-        result = env_to_nested_dict(env_vars, "SASH_")
+        result = env_to_nested_dict(env_vars, "BEAD_")
         assert result == {}
 
     def test_env_to_nested_dict_custom_prefix(self) -> None:
@@ -178,8 +178,8 @@ class TestEnvToNestedDict:
 
     def test_env_to_nested_dict_case_conversion(self) -> None:
         """Test that keys are converted to lowercase."""
-        env_vars = {"SASH_LOGGING__LEVEL": "DEBUG"}
-        result = env_to_nested_dict(env_vars, "SASH_")
+        env_vars = {"BEAD_LOGGING__LEVEL": "DEBUG"}
+        result = env_to_nested_dict(env_vars, "BEAD_")
         assert "logging" in result
         assert "level" in result["logging"]
         # Should not have uppercase keys
@@ -188,11 +188,11 @@ class TestEnvToNestedDict:
     def test_env_to_nested_dict_with_type_parsing(self) -> None:
         """Test that values are parsed to correct types."""
         env_vars = {
-            "SASH_TEMPLATES__BATCH_SIZE": "500",
-            "SASH_LOGGING__CONSOLE": "false",
-            "SASH_PATHS__DATA_DIR": "/data",
+            "BEAD_TEMPLATES__BATCH_SIZE": "500",
+            "BEAD_LOGGING__CONSOLE": "false",
+            "BEAD_PATHS__DATA_DIR": "/data",
         }
-        result = env_to_nested_dict(env_vars, "SASH_")
+        result = env_to_nested_dict(env_vars, "BEAD_")
         assert result["templates"]["batch_size"] == 500
         assert isinstance(result["templates"]["batch_size"], int)
         assert result["logging"]["console"] is False
@@ -206,7 +206,7 @@ class TestLoadFromEnv:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Test loading from env with default prefix."""
-        monkeypatch.setenv("SASH_LOGGING__LEVEL", "DEBUG")
+        monkeypatch.setenv("BEAD_LOGGING__LEVEL", "DEBUG")
         result = load_from_env()
         assert result == {"logging": {"level": "DEBUG"}}
 
@@ -218,9 +218,9 @@ class TestLoadFromEnv:
 
     def test_load_from_env_multiple_vars(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test loading multiple env vars."""
-        monkeypatch.setenv("SASH_LOGGING__LEVEL", "ERROR")
-        monkeypatch.setenv("SASH_LOGGING__CONSOLE", "false")
-        monkeypatch.setenv("SASH_PATHS__DATA_DIR", "/custom/data")
+        monkeypatch.setenv("BEAD_LOGGING__LEVEL", "ERROR")
+        monkeypatch.setenv("BEAD_LOGGING__CONSOLE", "false")
+        monkeypatch.setenv("BEAD_PATHS__DATA_DIR", "/custom/data")
         result = load_from_env()
         assert result["logging"]["level"] == "ERROR"
         assert result["logging"]["console"] is False
@@ -228,16 +228,16 @@ class TestLoadFromEnv:
 
     def test_load_from_env_no_vars(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test loading when no matching env vars exist."""
-        # Clear any SASH_ vars that might exist
+        # Clear any BEAD_ vars that might exist
         for key in list(os.environ.keys()):
-            if key.startswith("SASH_"):
+            if key.startswith("BEAD_"):
                 monkeypatch.delenv(key, raising=False)
         result = load_from_env()
         assert result == {}
 
     def test_load_from_env_mixed_vars(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Test loading with mix of SASH_ and other vars."""
-        monkeypatch.setenv("SASH_PROFILE", "dev")
+        """Test loading with mix of BEAD_ and other vars."""
+        monkeypatch.setenv("BEAD_PROFILE", "dev")
         monkeypatch.setenv("OTHER_VAR", "ignored")
         monkeypatch.setenv("PATH", "/usr/bin")
         result = load_from_env()
@@ -249,9 +249,9 @@ class TestLoadFromEnv:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Test that nested structure is created correctly."""
-        monkeypatch.setenv("SASH_LOGGING__LEVEL", "INFO")
-        monkeypatch.setenv("SASH_LOGGING__CONSOLE", "true")
-        monkeypatch.setenv("SASH_LOGGING__FILE", "/var/log/app.log")
+        monkeypatch.setenv("BEAD_LOGGING__LEVEL", "INFO")
+        monkeypatch.setenv("BEAD_LOGGING__CONSOLE", "true")
+        monkeypatch.setenv("BEAD_LOGGING__FILE", "/var/log/app.log")
         result = load_from_env()
         assert "logging" in result
         assert len(result["logging"]) == 3

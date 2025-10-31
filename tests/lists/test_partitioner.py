@@ -6,15 +6,15 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from sash.dsl.errors import EvaluationError
-from sash.lists.constraints import (
+from bead.dsl.errors import EvaluationError
+from bead.lists.constraints import (
     BalanceConstraint,
     QuantileConstraint,
     SizeConstraint,
     UniquenessConstraint,
 )
-from sash.lists.models import ExperimentList
-from sash.lists.partitioner import ListPartitioner
+from bead.lists.models import ExperimentList
+from bead.lists.partitioner import ListPartitioner
 
 type ItemMetadata = dict[str, str | float | int]
 type MetadataDict = dict[UUID, ItemMetadata]

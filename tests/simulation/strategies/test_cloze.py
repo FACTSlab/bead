@@ -6,7 +6,7 @@ from uuid import uuid4
 
 import numpy as np
 
-from sash.items.models import (
+from bead.items.models import (
     Item,
     ItemTemplate,
     ModelOutput,
@@ -14,7 +14,7 @@ from sash.items.models import (
     TaskSpec,
     UnfilledSlot,
 )
-from sash.simulation.strategies.cloze import ClozeStrategy
+from bead.simulation.strategies.cloze import ClozeStrategy
 
 
 def _create_mlm_output(

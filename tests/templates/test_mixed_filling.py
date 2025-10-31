@@ -4,12 +4,12 @@ from __future__ import annotations
 
 import pytest
 
-from sash.resources.constraints import Constraint
-from sash.resources.lexicon import Lexicon
-from sash.resources.models import LexicalItem
-from sash.resources.structures import Slot, Template
-from sash.templates.resolver import ConstraintResolver
-from sash.templates.strategies import (
+from bead.resources.constraints import Constraint
+from bead.resources.lexicon import Lexicon
+from bead.resources.models import LexicalItem
+from bead.resources.structures import Slot, Template
+from bead.templates.resolver import ConstraintResolver
+from bead.templates.strategies import (
     ExhaustiveStrategy,
     MixedFillingStrategy,
     RandomStrategy,
@@ -310,7 +310,7 @@ def test_mixed_strategy_single_slot():
 
 def test_config_validation():
     """Test that configuration validation works."""
-    from sash.config.models import TemplateConfig
+    from bead.config.models import TemplateConfig
 
     # Valid mixed configuration
     config = TemplateConfig(

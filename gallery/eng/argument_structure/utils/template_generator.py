@@ -6,7 +6,7 @@ This module generates Template objects from VerbNet frame data. It combines:
 - DSL constraint generation
 - Morphological paradigms (via UniMorphAdapter)
 
-The generated templates are compatible with the sash template infrastructure
+The generated templates are compatible with the bead template infrastructure
 and can be filled using the template filling system.
 """
 
@@ -14,9 +14,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from sash.resources.constraints import Constraint
-from sash.resources.models import LexicalItem
-from sash.resources.structures import Slot, Template
+from bead.resources.constraints import Constraint
+from bead.resources.models import LexicalItem
+from bead.resources.structures import Slot, Template
 
 from .clausal_frames import ClausalTemplate, map_verbnet_to_clausal_templates
 from .constraint_builder import (

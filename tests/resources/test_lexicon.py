@@ -9,8 +9,8 @@ import pandas as pd
 import polars as pl
 import pytest
 
-from sash.data.base import SashBaseModel
-from sash.resources import LexicalItem, Lexicon
+from bead.data.base import BeadBaseModel
+from bead.resources import LexicalItem, Lexicon
 
 # ============================================================================
 # Creation & Basic Operations (8 tests)
@@ -75,10 +75,10 @@ def test_lexicon_with_single_item() -> None:
     assert len(lexicon) == 1
 
 
-def test_lexicon_inherits_from_sash_base_model() -> None:
-    """Test that Lexicon inherits from SashBaseModel."""
+def test_lexicon_inherits_from_bead_base_model() -> None:
+    """Test that Lexicon inherits from BeadBaseModel."""
     lexicon = Lexicon(name="test")
-    assert isinstance(lexicon, SashBaseModel)
+    assert isinstance(lexicon, BeadBaseModel)
     assert hasattr(lexicon, "id")
     assert hasattr(lexicon, "created_at")
     assert hasattr(lexicon, "modified_at")

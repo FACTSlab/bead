@@ -2,7 +2,7 @@
 
 **Last Updated:** October 28, 2025
 **Status:** ✅ **COMPLETE** - Ready for production deployment
-**Location:** `/Users/awhite48/Projects/sash/gallery/eng/argument_structure/`
+**Location:** `/Users/awhite48/Projects/bead/gallery/eng/argument_structure/`
 
 ---
 
@@ -18,7 +18,7 @@ This project implements an **active learning pipeline with human-in-the-loop** f
 
 ### Phase 1: Evaluation Infrastructure ✅
 
-**Location:** `sash/evaluation/`
+**Location:** `bead/evaluation/`
 
 Created comprehensive evaluation module with 153 passing tests and 96%+ coverage:
 
@@ -96,7 +96,7 @@ Top structures by verb coverage:
 
 ### Phase 3: Active Learning Integration ✅
 
-**File Modified:** `sash/training/active_learning/loop.py`
+**File Modified:** `bead/training/active_learning/loop.py`
 
 **Changes Implemented:**
 1. ✅ Added `convergence_detector` parameter
@@ -534,7 +534,7 @@ python create_experimental_lists.py
 - Merge with Prolific metadata
 
 ### 5. Implement Model Training
-**File to create:** `sash/training/trainers/huggingface.py`
+**File to create:** `bead/training/trainers/huggingface.py`
 - Fine-tune BERT or similar on 2AFC task
 - Use collected human judgments as training data
 - Implement training loop

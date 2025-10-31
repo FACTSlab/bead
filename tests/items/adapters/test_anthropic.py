@@ -7,7 +7,7 @@ import os
 import pytest
 from pytest_mock import MockerFixture
 
-from sash.items.cache import ModelOutputCache
+from bead.items.cache import ModelOutputCache
 
 
 @pytest.fixture
@@ -24,7 +24,7 @@ def mock_anthropic(mocker: MockerFixture):
 
     # Patch both sys.modules and the module-level import in the adapter
     mocker.patch.dict("sys.modules", {"anthropic": mock_anthropic_module})
-    mocker.patch("sash.items.adapters.anthropic.anthropic", mock_anthropic_module)
+    mocker.patch("bead.items.adapters.anthropic.anthropic", mock_anthropic_module)
 
     return mock_client
 
@@ -34,7 +34,7 @@ def anthropic_adapter(mock_anthropic, mocker: MockerFixture):
     """Create Anthropic adapter instance for testing."""
     mocker.patch.dict(os.environ, {"ANTHROPIC_API_KEY": "test-key"})
 
-    from sash.items.adapters.anthropic import AnthropicAdapter  # noqa: PLC0415
+    from bead.items.adapters.anthropic import AnthropicAdapter  # noqa: PLC0415
 
     cache = ModelOutputCache(backend="memory")
     return AnthropicAdapter(
@@ -52,9 +52,9 @@ class TestAnthropicAdapterInitialization:
         mock_anthropic_module.Anthropic.return_value = mock_client
         mock_anthropic_module.__spec__ = mocker.MagicMock()
         mocker.patch.dict("sys.modules", {"anthropic": mock_anthropic_module})
-        mocker.patch("sash.items.adapters.anthropic.anthropic", mock_anthropic_module)
+        mocker.patch("bead.items.adapters.anthropic.anthropic", mock_anthropic_module)
 
-        from sash.items.adapters.anthropic import AnthropicAdapter  # noqa: PLC0415
+        from bead.items.adapters.anthropic import AnthropicAdapter  # noqa: PLC0415
 
         cache = ModelOutputCache(backend="memory")
         adapter = AnthropicAdapter(
@@ -74,10 +74,10 @@ class TestAnthropicAdapterInitialization:
         mock_anthropic_module.Anthropic.return_value = mock_client
         mock_anthropic_module.__spec__ = mocker.MagicMock()
         mocker.patch.dict("sys.modules", {"anthropic": mock_anthropic_module})
-        mocker.patch("sash.items.adapters.anthropic.anthropic", mock_anthropic_module)
+        mocker.patch("bead.items.adapters.anthropic.anthropic", mock_anthropic_module)
         mocker.patch.dict(os.environ, {"ANTHROPIC_API_KEY": "env-key"})
 
-        from sash.items.adapters.anthropic import AnthropicAdapter  # noqa: PLC0415
+        from bead.items.adapters.anthropic import AnthropicAdapter  # noqa: PLC0415
 
         cache = ModelOutputCache(backend="memory")
         adapter = AnthropicAdapter(model_name="claude-3-5-sonnet-20241022", cache=cache)
@@ -92,10 +92,10 @@ class TestAnthropicAdapterInitialization:
         mock_anthropic_module = mocker.MagicMock()
         mock_anthropic_module.__spec__ = mocker.MagicMock()
         mocker.patch.dict("sys.modules", {"anthropic": mock_anthropic_module})
-        mocker.patch("sash.items.adapters.anthropic.anthropic", mock_anthropic_module)
+        mocker.patch("bead.items.adapters.anthropic.anthropic", mock_anthropic_module)
         mocker.patch.dict(os.environ, {}, clear=True)
 
-        from sash.items.adapters.anthropic import AnthropicAdapter  # noqa: PLC0415
+        from bead.items.adapters.anthropic import AnthropicAdapter  # noqa: PLC0415
 
         cache = ModelOutputCache(backend="memory")
 

@@ -7,14 +7,14 @@ from uuid import uuid4
 import numpy as np
 import pytest
 
-from sash.items.models import (
+from bead.items.models import (
     Item,
     ItemTemplate,
     ModelOutput,
     PresentationSpec,
     TaskSpec,
 )
-from sash.simulation.strategies.multi_select import MultiSelectStrategy
+from bead.simulation.strategies.multi_select import MultiSelectStrategy
 
 
 def _create_model_output(score: float, idx: int = 0) -> ModelOutput:

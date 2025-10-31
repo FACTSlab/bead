@@ -5,7 +5,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from sash.simulation.noise_models.base import NoiseModel
+from bead.simulation.noise_models.base import NoiseModel
 
 
 class ConcreteNoiseModel(NoiseModel):

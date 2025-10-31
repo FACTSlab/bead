@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from sash.resources.adapters.cache import AdapterCache
-from sash.resources.adapters.glazing import GlazingAdapter
+from bead.resources.adapters.cache import AdapterCache
+from bead.resources.adapters.glazing import GlazingAdapter
 
 
 def test_glazing_adapter_initialization() -> None:

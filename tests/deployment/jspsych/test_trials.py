@@ -7,19 +7,19 @@ from uuid import uuid4
 import pytest
 from pydantic import ValidationError
 
-from sash.deployment.jspsych.config import (
+from bead.deployment.jspsych.config import (
     ChoiceConfig,
     ExperimentConfig,
     RatingScaleConfig,
 )
-from sash.deployment.jspsych.trials import (
+from bead.deployment.jspsych.trials import (
     _generate_stimulus_html,
     create_completion_trial,
     create_consent_trial,
     create_instruction_trial,
     create_trial,
 )
-from sash.items.models import Item, ItemTemplate, PresentationSpec, TaskSpec
+from bead.items.models import Item, ItemTemplate, PresentationSpec, TaskSpec
 
 
 class TestCreateTrial:

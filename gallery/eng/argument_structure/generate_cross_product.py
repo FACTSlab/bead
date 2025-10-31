@@ -12,8 +12,8 @@ import argparse
 import json
 from pathlib import Path
 
-from sash.items.models import Item
-from sash.resources.lexicon import Lexicon
+from bead.items.models import Item
+from bead.resources.lexicon import Lexicon
 
 
 def main(

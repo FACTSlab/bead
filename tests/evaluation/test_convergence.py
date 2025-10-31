@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from sash.evaluation.convergence import ConvergenceDetector
+from bead.evaluation.convergence import ConvergenceDetector
 
 
 class TestInitialization:

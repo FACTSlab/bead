@@ -7,15 +7,15 @@ from uuid import uuid4
 
 from click.testing import CliRunner
 
-from sash.cli.items import items
-from sash.items.models import (
+from bead.cli.items import items
+from bead.items.models import (
     ItemElement,
     ItemTemplate,
     PresentationSpec,
     TaskSpec,
 )
-from sash.resources.models import LexicalItem
-from sash.templates.filler import FilledTemplate
+from bead.resources.models import LexicalItem
+from bead.templates.filler import FilledTemplate
 
 
 def test_list_empty_directory(cli_runner: CliRunner, tmp_path: Path) -> None:

@@ -1,9 +1,9 @@
 """Integration tests for active learning loop with TwoAFCModel."""
 
-from sash.active_learning.loop import ActiveLearningLoop
-from sash.active_learning.models.forced_choice import ForcedChoiceModel
-from sash.active_learning.selection import UncertaintySampler
-from sash.config.models import (
+from bead.active_learning.loop import ActiveLearningLoop
+from bead.active_learning.models.forced_choice import ForcedChoiceModel
+from bead.active_learning.selection import UncertaintySampler
+from bead.config.models import (
     ActiveLearningLoopConfig,
     ForcedChoiceModelConfig,
     UncertaintySamplerConfig,

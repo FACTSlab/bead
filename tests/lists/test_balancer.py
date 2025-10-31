@@ -6,7 +6,7 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from sash.lists.balancer import QuantileBalancer
+from bead.lists.balancer import QuantileBalancer
 
 
 def test_balancer_initialization() -> None:

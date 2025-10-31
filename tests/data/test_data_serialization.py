@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from sash.data.serialization import (
+from bead.data.serialization import (
     DeserializationError,
     SerializationError,
     append_jsonlines,

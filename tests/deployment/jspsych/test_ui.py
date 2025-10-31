@@ -2,15 +2,15 @@
 
 from uuid import uuid4
 
-from sash.deployment.jspsych.ui.components import (
+from bead.deployment.jspsych.ui.components import (
     create_cloze_fields,
     create_forced_choice_config,
     create_rating_scale,
     infer_widget_type,
 )
-from sash.deployment.jspsych.ui.styles import MaterialDesignStylesheet
-from sash.items.models import UnfilledSlot
-from sash.resources.constraints import Constraint
+from bead.deployment.jspsych.ui.styles import MaterialDesignStylesheet
+from bead.items.models import UnfilledSlot
+from bead.resources.constraints import Constraint
 
 
 def test_material_design_stylesheet_creation() -> None:
@@ -57,12 +57,12 @@ def test_css_contains_material_design_classes() -> None:
     css = stylesheet.generate_css()
 
     # Check for key Material Design classes
-    assert ".sash-button" in css
-    assert ".sash-rating-scale" in css
-    assert ".sash-text-field" in css
-    assert ".sash-dropdown" in css
-    assert ".sash-card" in css
-    assert ".sash-progress" in css
+    assert ".bead-button" in css
+    assert ".bead-rating-scale" in css
+    assert ".bead-text-field" in css
+    assert ".bead-dropdown" in css
+    assert ".bead-card" in css
+    assert ".bead-progress" in css
 
 
 def test_css_contains_rating_scale_styles() -> None:
@@ -70,10 +70,10 @@ def test_css_contains_rating_scale_styles() -> None:
     stylesheet = MaterialDesignStylesheet()
     css = stylesheet.generate_css()
 
-    assert ".sash-rating-container" in css
-    assert ".sash-rating-prompt" in css
-    assert ".sash-rating-button" in css
-    assert ".sash-rating-label" in css
+    assert ".bead-rating-container" in css
+    assert ".bead-rating-prompt" in css
+    assert ".bead-rating-button" in css
+    assert ".bead-rating-label" in css
 
 
 def test_css_contains_cloze_styles() -> None:
@@ -81,9 +81,9 @@ def test_css_contains_cloze_styles() -> None:
     stylesheet = MaterialDesignStylesheet()
     css = stylesheet.generate_css()
 
-    assert ".sash-cloze-container" in css
-    assert ".sash-cloze-text" in css
-    assert ".sash-cloze-field" in css
+    assert ".bead-cloze-container" in css
+    assert ".bead-cloze-text" in css
+    assert ".bead-cloze-field" in css
 
 
 def test_css_contains_forced_choice_styles() -> None:
@@ -91,9 +91,9 @@ def test_css_contains_forced_choice_styles() -> None:
     stylesheet = MaterialDesignStylesheet()
     css = stylesheet.generate_css()
 
-    assert ".sash-forced-choice-container" in css
-    assert ".sash-forced-choice-alternatives" in css
-    assert ".sash-alternative" in css
+    assert ".bead-forced-choice-container" in css
+    assert ".bead-forced-choice-alternatives" in css
+    assert ".bead-alternative" in css
 
 
 def test_create_rating_scale() -> None:

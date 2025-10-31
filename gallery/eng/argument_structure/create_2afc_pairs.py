@@ -19,11 +19,11 @@ from uuid import uuid4
 
 import numpy as np
 
-from sash.items.adapters.huggingface import HuggingFaceLanguageModel
-from sash.items.cache import ModelOutputCache
-from sash.items.models import Item
-from sash.resources.lexicon import Lexicon
-from sash.resources.structures import Template
+from bead.items.adapters.huggingface import HuggingFaceLanguageModel
+from bead.items.cache import ModelOutputCache
+from bead.items.models import Item
+from bead.resources.lexicon import Lexicon
+from bead.resources.structures import Template
 
 
 def load_cross_product_items(path: str, limit: int | None = None) -> list[Item]:

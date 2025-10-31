@@ -1,20 +1,20 @@
-"""VerbNet data extraction using sash adapters.
+"""VerbNet data extraction using bead adapters.
 
 This module wraps GlazingAdapter to extract all VerbNet verbs and frames
-for the argument structure project. It uses the sash adapter infrastructure
+for the argument structure project. It uses the bead adapter infrastructure
 to provide project-specific extraction methods while maintaining consistency
-with the overall sash architecture.
+with the overall bead architecture.
 """
 
 from __future__ import annotations
 
-from sash.resources.adapters.cache import AdapterCache
-from sash.resources.adapters.glazing import GlazingAdapter
-from sash.resources.models import LexicalItem
+from bead.resources.adapters.cache import AdapterCache
+from bead.resources.adapters.glazing import GlazingAdapter
+from bead.resources.models import LexicalItem
 
 
 class VerbNetExtractor:
-    """Extract VerbNet data using sash adapters.
+    """Extract VerbNet data using bead adapters.
 
     This is a convenience wrapper around GlazingAdapter that provides
     project-specific extraction methods while using the standard sash

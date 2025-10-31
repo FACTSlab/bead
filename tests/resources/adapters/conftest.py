@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import pytest
 
-from sash.resources.adapters.cache import AdapterCache
-from sash.resources.adapters.glazing import GlazingAdapter
-from sash.resources.adapters.registry import AdapterRegistry
-from sash.resources.adapters.unimorph import UniMorphAdapter
+from bead.resources.adapters.cache import AdapterCache
+from bead.resources.adapters.glazing import GlazingAdapter
+from bead.resources.adapters.registry import AdapterRegistry
+from bead.resources.adapters.unimorph import UniMorphAdapter
 
 
 @pytest.fixture

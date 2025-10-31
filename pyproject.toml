@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "sash"
+name = "bead"
 version = "0.1.0"
 description = "Lexicon and Template Collection Construction Pipeline for Acceptability and Inference Judgment Data"
 authors = [{name = "Aaron Steven White", email = "aaron.white@rochester.edu"}]
@@ -46,11 +46,11 @@ training = [
 ]
 
 [project.scripts]
-sash = "sash.cli.main:cli"
+bead = "bead.cli.main:cli"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = ["-ra", "--strict-markers", "--cov=sash", "--cov-report=term-missing"]
+addopts = ["-ra", "--strict-markers", "--cov=bead", "--cov-report=term-missing"]
 
 [tool.ruff]
 line-length = 88
@@ -73,12 +73,12 @@ reportMissingTypeStubs = false
 useLibraryCodeForTypes = true
 exclude = [
     "tests/**",
-    "sash/resources/adapters/unimorph.py",
-    "sash/templates/adapters/huggingface.py",
-    "sash/items/adapters/huggingface.py",
-    "sash/items/adapters/sentence_transformers.py",
-    "sash/items/adapters/openai.py",
-    "sash/items/adapters/anthropic.py",
-    "sash/items/adapters/google.py",
-    "sash/items/adapters/togetherai.py",
+    "bead/resources/adapters/unimorph.py",
+    "bead/templates/adapters/huggingface.py",
+    "bead/items/adapters/huggingface.py",
+    "bead/items/adapters/sentence_transformers.py",
+    "bead/items/adapters/openai.py",
+    "bead/items/adapters/anthropic.py",
+    "bead/items/adapters/google.py",
+    "bead/items/adapters/togetherai.py",
 ]

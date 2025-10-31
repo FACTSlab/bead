@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from sash.resources.adapters.cache import AdapterCache
-from sash.resources.models import LexicalItem
+from bead.resources.adapters.cache import AdapterCache
+from bead.resources.models import LexicalItem
 
 
 def test_cache_initialization(adapter_cache: AdapterCache) -> None:
