@@ -24,9 +24,9 @@ from typing import Any
 
 import numpy as np
 import yaml
-from bead.training.active_learning.loop import ActiveLearningLoop
-from bead.training.active_learning.selection import UncertaintySampler
-from bead.training.trainers.base import ModelMetadata
+from bead.active_learning.loop import ActiveLearningLoop
+from bead.active_learning.selection import UncertaintySampler
+from bead.active_learning.trainers.base import ModelMetadata
 
 from bead.evaluation.convergence import ConvergenceDetector
 from bead.items.item import Item
