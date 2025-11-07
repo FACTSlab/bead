@@ -390,32 +390,65 @@ class TemplateGenerator:
         verb_counter = 0
         pp_counter = 0
 
-        # Parse frame elements
+        # Parse frame elements - first count total NPs to determine argument structure
         parts = frame_primary.split()
+        total_nps = sum(1 for part in parts if part.lower() == "np")
 
         for part in parts:
             part_lower = part.lower()
 
             if part_lower == "np":
-                # Noun phrase
+                # Noun phrase - create determiner + noun slots
                 noun_counter += 1
                 if noun_counter == 1:
-                    slot_name = "subj"
-                    description = "Subject noun phrase"
+                    # Always subject
+                    det_slot_name = "det_subj"
+                    noun_slot_name = "noun_subj"
+                    det_description = "Subject determiner"
+                    noun_description = "Subject noun"
                 elif noun_counter == 2:
-                    slot_name = "obj"
-                    description = "Object noun phrase"
+                    # Second NP: dobj in transitive, iobj in ditransitive
+                    if total_nps >= 3:
+                        det_slot_name = "det_iobj"
+                        noun_slot_name = "noun_iobj"
+                        det_description = "Indirect object determiner"
+                        noun_description = "Indirect object noun"
+                    else:
+                        det_slot_name = "det_dobj"
+                        noun_slot_name = "noun_dobj"
+                        det_description = "Direct object determiner"
+                        noun_description = "Direct object noun"
+                elif noun_counter == 3:
+                    # Third NP: always dobj in ditransitive
+                    det_slot_name = "det_dobj"
+                    noun_slot_name = "noun_dobj"
+                    det_description = "Direct object determiner"
+                    noun_description = "Direct object noun"
                 else:
-                    slot_name = f"noun{noun_counter}"
-                    description = f"Noun phrase {noun_counter}"
+                    # Additional NPs (rare)
+                    det_slot_name = f"det_noun{noun_counter}"
+                    noun_slot_name = f"noun{noun_counter}"
+                    det_description = f"Determiner for noun phrase {noun_counter}"
+                    noun_description = f"Noun {noun_counter}"
 
-                slots[slot_name] = Slot(
-                    name=slot_name,
-                    description=description,
+                # Create determiner slot
+                slots[det_slot_name] = Slot(
+                    name=det_slot_name,
+                    description=det_description,
+                    constraints=[Constraint(expression="self.pos == 'DET'")],
+                    required=True,
+                )
+
+                # Create noun slot
+                slots[noun_slot_name] = Slot(
+                    name=noun_slot_name,
+                    description=noun_description,
                     constraints=[Constraint(expression="self.pos == 'NOUN'")],
                     required=True,
                 )
-                template_parts.append(f"{{{slot_name}}}")
+
+                # Add both to template string
+                template_parts.append(f"{{{det_slot_name}}} {{{noun_slot_name}}}")
 
             elif part_lower == "v":
                 # Verb
@@ -431,10 +464,11 @@ class TemplateGenerator:
                 template_parts.append(f"{{{slot_name}}}")
 
             elif part_lower == "pp" or part_lower.startswith("pp."):
-                # Prepositional phrase
+                # Prepositional phrase - preposition + determiner + noun
                 pp_counter += 1
                 prep_slot = f"prep{pp_counter}" if pp_counter > 1 else "prep"
-                obj_slot = f"pp_obj{pp_counter}" if pp_counter > 1 else "pp_obj"
+                det_slot = f"det_pobj{pp_counter}" if pp_counter > 1 else "det_pobj"
+                obj_slot = f"noun_pobj{pp_counter}" if pp_counter > 1 else "noun_pobj"
 
                 # Preposition slot
                 slots[prep_slot] = Slot(
@@ -444,15 +478,23 @@ class TemplateGenerator:
                     required=True,
                 )
 
-                # PP object slot
+                # PP object determiner slot
+                slots[det_slot] = Slot(
+                    name=det_slot,
+                    description="Prepositional phrase object determiner",
+                    constraints=[Constraint(expression="self.pos == 'DET'")],
+                    required=True,
+                )
+
+                # PP object noun slot
                 slots[obj_slot] = Slot(
                     name=obj_slot,
-                    description="Prepositional phrase object",
+                    description="Prepositional phrase object noun",
                     constraints=[Constraint(expression="self.pos == 'NOUN'")],
                     required=True,
                 )
 
-                template_parts.append(f"{{{prep_slot}}} {{{obj_slot}}}")
+                template_parts.append(f"{{{prep_slot}}} {{{det_slot}}} {{{obj_slot}}}")
 
         # Join template parts
         template_string = " ".join(template_parts)
