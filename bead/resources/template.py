@@ -250,7 +250,9 @@ class Template(BeadBaseModel):
         """
         return {name for name, slot in self.slots.items() if slot.required}
 
-    def fill_with_values(self, slot_values: dict[str, str], strategy_name: str = "manual") -> "FilledTemplate":
+    def fill_with_values(
+        self, slot_values: dict[str, str], strategy_name: str = "manual"
+    ) -> FilledTemplate:
         """Create a FilledTemplate by filling slots with string values.
 
         This is a lightweight alternative to CSPFiller for cases where

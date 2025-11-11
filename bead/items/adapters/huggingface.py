@@ -164,7 +164,9 @@ class HuggingFaceLanguageModel(HuggingFaceAdapterMixin, ModelAdapter):
         import psutil
 
         # Estimate model size
-        model_params = sum(p.numel() * p.element_size() for p in self.model.parameters())
+        model_params = sum(
+            p.numel() * p.element_size() for p in self.model.parameters()
+        )
 
         if self.device == "cuda":
             try:
@@ -188,7 +190,9 @@ class HuggingFaceLanguageModel(HuggingFaceAdapterMixin, ModelAdapter):
                 return batch_size
 
             except Exception as e:
-                logger.warning(f"Failed to infer CUDA batch size: {e}, using default 32")
+                logger.warning(
+                    f"Failed to infer CUDA batch size: {e}, using default 32"
+                )
                 return 32
 
         elif self.device == "mps":
@@ -198,7 +202,9 @@ class HuggingFaceLanguageModel(HuggingFaceAdapterMixin, ModelAdapter):
                 available_memory = psutil.virtual_memory().available
 
                 # Reserve 4GB for system + model
-                available_for_batch = max(0, available_memory - (4 * 1024**3) - model_params)
+                available_for_batch = max(
+                    0, available_memory - (4 * 1024**3) - model_params
+                )
                 memory_per_item = model_params * 3  # MPS is more efficient than CUDA
 
                 batch_size = int(available_for_batch / memory_per_item)
@@ -222,7 +228,9 @@ class HuggingFaceLanguageModel(HuggingFaceAdapterMixin, ModelAdapter):
                 available_memory = psutil.virtual_memory().available
 
                 # Reserve 2GB for system + model
-                available_for_batch = max(0, available_memory - (2 * 1024**3) - model_params)
+                available_for_batch = max(
+                    0, available_memory - (2 * 1024**3) - model_params
+                )
                 memory_per_item = model_params * 2  # CPU has less overhead than GPU
 
                 batch_size = int(available_for_batch / memory_per_item)
@@ -302,13 +310,13 @@ class HuggingFaceLanguageModel(HuggingFaceAdapterMixin, ModelAdapter):
 
         # Process uncached texts in batches with progress tracking
         from rich.progress import (
+            BarColumn,
             Progress,
             SpinnerColumn,
-            TextColumn,
-            BarColumn,
             TaskProgressColumn,
-            TimeRemainingColumn,
+            TextColumn,
             TimeElapsedColumn,
+            TimeRemainingColumn,
         )
 
         uncached_scores: list[float] = []
@@ -387,9 +395,7 @@ class HuggingFaceLanguageModel(HuggingFaceAdapterMixin, ModelAdapter):
             shift_attention = attention_mask[..., 1:].contiguous()
 
             # Compute log probabilities per token
-            log_probs_per_token = torch.nn.functional.log_softmax(
-                shift_logits, dim=-1
-            )
+            log_probs_per_token = torch.nn.functional.log_softmax(shift_logits, dim=-1)
 
             # Gather log probs for actual tokens
             gathered_log_probs = torch.gather(

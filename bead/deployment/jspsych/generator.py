@@ -22,8 +22,8 @@ from bead.deployment.jspsych.randomizer import generate_randomizer_function
 from bead.deployment.jspsych.trials import create_trial
 from bead.items.item import Item
 from bead.items.item_template import ItemTemplate
-from bead.lists.constraints import OrderingConstraint
 from bead.lists import ExperimentList
+from bead.lists.constraints import OrderingConstraint
 
 
 class JsPsychExperimentGenerator:

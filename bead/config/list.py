@@ -70,9 +70,7 @@ class BatchConstraintConfig(BaseModel):
     type: Literal["coverage", "balance", "diversity", "min_occurrence"] = Field(
         ..., description="Type of batch constraint"
     )
-    property_expression: str = Field(
-        ..., description="Expression to extract property"
-    )
+    property_expression: str = Field(..., description="Expression to extract property")
     target_values: list[str | int | float] | None = Field(
         default=None, description="Target values for coverage constraint"
     )
@@ -91,9 +89,7 @@ class BatchConstraintConfig(BaseModel):
     min_occurrences: int | None = Field(
         default=None, ge=1, description="Minimum occurrences for min_occurrence"
     )
-    priority: int = Field(
-        default=1, ge=1, description="Constraint priority"
-    )
+    priority: int = Field(default=1, ge=1, description="Constraint priority")
 
     @field_validator("property_expression")
     @classmethod
@@ -114,10 +110,14 @@ class BatchConstraintConfig(BaseModel):
                 raise ValueError("target_distribution required for balance constraint")
         elif self.type == "diversity":
             if self.max_lists_per_value is None:
-                raise ValueError("max_lists_per_value required for diversity constraint")
+                raise ValueError(
+                    "max_lists_per_value required for diversity constraint"
+                )
         elif self.type == "min_occurrence":
             if self.min_occurrences is None:
-                raise ValueError("min_occurrences required for min_occurrence constraint")
+                raise ValueError(
+                    "min_occurrences required for min_occurrence constraint"
+                )
 
         return self
 

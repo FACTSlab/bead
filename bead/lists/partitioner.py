@@ -14,6 +14,7 @@ from uuid import UUID
 import numpy as np
 
 from bead.dsl.evaluator import DSLEvaluator
+from bead.lists import ExperimentList
 from bead.lists.balancer import QuantileBalancer
 from bead.lists.constraints import (
     BalanceConstraint,
@@ -27,7 +28,6 @@ from bead.lists.constraints import (
     SizeConstraint,
     UniquenessConstraint,
 )
-from bead.lists import ExperimentList
 from bead.resources.constraints import ContextValue
 
 # Type aliases for clarity

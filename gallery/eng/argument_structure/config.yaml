@@ -95,6 +95,8 @@ template:
   # Slot-specific strategies
   # - exhaustive: Use all entries from lexicon (for cross-product design)
   # - mlm: Use MLM to select contextually appropriate fillers
+  #   - max_fills: Limit to top-N items by MLM probability (after constraint filtering)
+  #   - enforce_unique: Ensure each beam hypothesis uses different items for this slot
   slot_strategies:
     verb:
       strategy: "exhaustive"
@@ -120,6 +122,8 @@ template:
       strategy: "mlm"
       description: "Use MLM for contextually appropriate adjectives"
       beam_size: 3
+      max_fills: 5          # Top 5 most likely adjectives from constraint-valid set
+      enforce_unique: true  # Each beam hypothesis uses different adjective
 
 # Items Configuration
 # ============================================================================

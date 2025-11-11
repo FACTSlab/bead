@@ -231,7 +231,9 @@ class LanguageModelScorer(ItemScorer):
 
         return self.model.compute_log_probability(text)
 
-    def score_batch(self, items: list[Item], batch_size: int | None = None) -> list[float]:
+    def score_batch(
+        self, items: list[Item], batch_size: int | None = None
+    ) -> list[float]:
         """Compute scores for multiple items efficiently using batched inference.
 
         Parameters
@@ -263,7 +265,9 @@ class LanguageModelScorer(ItemScorer):
 
         # Use batched scoring if available, otherwise fall back to sequential
         if hasattr(self.model, "compute_log_probability_batch"):
-            scores = self.model.compute_log_probability_batch(texts, batch_size=batch_size)
+            scores = self.model.compute_log_probability_batch(
+                texts, batch_size=batch_size
+            )
         else:
             # Fallback for models without batch support
             scores = [self.model.compute_log_probability(text) for text in texts]

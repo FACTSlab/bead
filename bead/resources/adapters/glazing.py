@@ -416,7 +416,9 @@ class GlazingAdapter(ResourceAdapter):
                     continue
 
                 # Create LexicalItem for this lexical unit
-                item = self._create_framenet_item(lu, frame, language_code, include_frames)
+                item = self._create_framenet_item(
+                    lu, frame, language_code, include_frames
+                )
                 items.append(item)
 
         return items
@@ -471,7 +473,9 @@ class GlazingAdapter(ResourceAdapter):
                     {
                         "name": fe.name,
                         "core_type": fe.core_type,
-                        "definition": fe.definition if hasattr(fe, "definition") else None,
+                        "definition": fe.definition
+                        if hasattr(fe, "definition")
+                        else None,
                     }
                     for fe in frame.frame_elements
                 ]

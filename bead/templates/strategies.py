@@ -5,19 +5,35 @@ from __future__ import annotations
 import random
 from abc import ABC, abstractmethod
 from collections.abc import Iterator
-from typing import Literal
+from typing import Literal, cast
+from uuid import UUID
 
 from bead.data.language_codes import LanguageCode, validate_iso639_code
 from bead.dsl.evaluator import DSLEvaluator
 from bead.items.item import Item
 from bead.resources.constraints import ContextValue
-from bead.resources.lexicon import Lexicon
 from bead.resources.lexical_item import LexicalItem
+from bead.resources.lexicon import Lexicon
 from bead.resources.template import Slot, Template
 from bead.templates.adapters import HuggingFaceMLMAdapter, ModelOutputCache
 from bead.templates.combinatorics import cartesian_product
 from bead.templates.filler import FilledTemplate, TemplateFiller
 from bead.templates.resolver import ConstraintResolver
+
+# Type aliases for strategy configuration
+ConfigValue = (
+    int
+    | str
+    | bool
+    | None
+    | list[int]
+    | ConstraintResolver
+    | HuggingFaceMLMAdapter
+    | ModelOutputCache
+    | dict[str, int]
+    | dict[str, bool]
+)
+StrategyConfig = dict[str, ConfigValue]
 
 
 class FillingStrategy(ABC):
@@ -402,6 +418,8 @@ class MLMFillingStrategy(FillingStrategy):
         top_k: int = 20,
         cache: ModelOutputCache | None = None,
         budget: int | None = None,
+        per_slot_max_fills: dict[str, int] | None = None,
+        per_slot_enforce_unique: dict[str, bool] | None = None,
     ) -> None:
         """Initialize MLM strategy.
 
@@ -423,6 +441,10 @@ class MLMFillingStrategy(FillingStrategy):
             Prediction cache
         budget : int | None
             Max combinations
+        per_slot_max_fills : dict[str, int] | None
+            Maximum number of unique fills per slot (after constraint filtering)
+        per_slot_enforce_unique : dict[str, bool] | None
+            Whether to enforce uniqueness for each slot across beam hypotheses
         """
         self.resolver = resolver
         self.model_adapter = model_adapter
@@ -432,6 +454,8 @@ class MLMFillingStrategy(FillingStrategy):
         self.top_k = top_k
         self.cache = cache
         self.budget = budget
+        self.per_slot_max_fills = per_slot_max_fills or {}
+        self.per_slot_enforce_unique = per_slot_enforce_unique or {}
 
         if not model_adapter.is_loaded():
             raise ValueError("Model adapter must be loaded before use")
@@ -507,12 +531,21 @@ class MLMFillingStrategy(FillingStrategy):
         # Each beam item: (filled_slots_dict, cumulative_log_prob)
         beam: list[tuple[dict[str, LexicalItem], float]] = [({}, 0.0)]
 
+        # Track seen items per slot (for uniqueness enforcement)
+        seen_items_per_slot: dict[str, set[UUID]] = {
+            slot_name: set() for slot_name in slot_names
+        }
+
         # Fill slots in order
         for slot_idx in fill_order:
             slot_name = slot_names[slot_idx]
             slot = template.slots[slot_name]
 
             new_beam: list[tuple[dict[str, LexicalItem], float]] = []
+
+            # Check if uniqueness is enforced for this slot
+            enforce_unique = self.per_slot_enforce_unique.get(slot_name, False)
+            max_fills = self.per_slot_max_fills.get(slot_name, None)
 
             # Expand each hypothesis in current beam
             for filled_slots, cum_log_prob in beam:
@@ -525,6 +558,10 @@ class MLMFillingStrategy(FillingStrategy):
                     slot,
                     lexicons,
                     language_code,
+                    seen_items=seen_items_per_slot[slot_name]
+                    if enforce_unique
+                    else None,
+                    max_fills=max_fills,
                 )
 
                 # Add each candidate to beam
@@ -533,6 +570,10 @@ class MLMFillingStrategy(FillingStrategy):
                     new_filled[slot_name] = item
                     new_log_prob = cum_log_prob + log_prob
                     new_beam.append((new_filled, new_log_prob))
+
+                    # Track seen items if uniqueness is enforced
+                    if enforce_unique:
+                        seen_items_per_slot[slot_name].add(item.id)
 
             # Prune beam to top-K by score (length-normalized)
             if new_beam:
@@ -616,9 +657,11 @@ class MLMFillingStrategy(FillingStrategy):
         slot_names: list[str],
         slot_idx: int,
         filled_slots: dict[str, LexicalItem],
-        slot: object,
+        slot: Slot,
         lexicons: list[Lexicon],
         language_code: LanguageCode | None,
+        seen_items: set[UUID] | None = None,
+        max_fills: int | None = None,
     ) -> list[tuple[LexicalItem, float]]:
         """Get MLM candidates for a slot.
 
@@ -638,11 +681,15 @@ class MLMFillingStrategy(FillingStrategy):
             Lexicons for lookup
         language_code : LanguageCode | None
             Language filter
+        seen_items : set | None
+            Set of item IDs already used for this slot (for uniqueness enforcement)
+        max_fills : int | None
+            Maximum number of candidates to return (applied after filtering)
 
         Returns
         -------
         list[tuple[LexicalItem, float]]
-            (item, log_prob) pairs
+            (item, log_prob) pairs, limited by max_fills and uniqueness
         """
         # Normalize language code to ISO 639-3
         if language_code is not None:
@@ -685,11 +732,15 @@ class MLMFillingStrategy(FillingStrategy):
             # Find matching items in lexicons
             for lexicon in lexicons:
                 for item in lexicon.items.values():
+                    # Skip if already seen (uniqueness enforcement)
+                    if seen_items is not None and item.id in seen_items:
+                        continue
+
                     # Match lemma and language
                     if item.lemma.lower() == token.lower():
                         if language_code is None or item.language_code == language_code:
                             # Check slot constraints
-                            if isinstance(slot, Slot) and slot.constraints:
+                            if slot.constraints:
                                 # Evaluate constraints using resolver
                                 if self.resolver.evaluate_slot_constraints(
                                     item, slot.constraints
@@ -697,6 +748,13 @@ class MLMFillingStrategy(FillingStrategy):
                                     candidates.append((item, log_prob))
                             else:
                                 candidates.append((item, log_prob))
+
+        # Apply max_fills limit (take top-N by log probability)
+        if max_fills is not None and len(candidates) > max_fills:
+            # Already sorted by log_prob (descending) from MLM predictions
+            # But need to ensure we take highest scoring ones
+            candidates.sort(key=lambda x: x[1], reverse=True)
+            candidates = candidates[:max_fills]
 
         return candidates
 
@@ -969,16 +1027,17 @@ class MixedFillingStrategy(FillingStrategy):
 
     def __init__(
         self,
-        slot_strategies: dict[str, tuple[str | FillingStrategy, dict]],
+        slot_strategies: dict[str, tuple[str | FillingStrategy, StrategyConfig]],
         default_strategy: FillingStrategy | None = None,
     ) -> None:
         """Initialize mixed strategy.
 
         Parameters
         ----------
-        slot_strategies : dict[str, tuple[str | FillingStrategy, dict]]
-            Mapping slot names to (strategy_name, config) or (strategy_instance, config).
-            strategy_name can be: "exhaustive", "random", "stratified", "mlm"
+        slot_strategies : dict[str, tuple[str | FillingStrategy, StrategyConfig]]
+            Mapping slot names to (strategy_name, config) or
+            (strategy_instance, config). strategy_name can be:
+            "exhaustive", "random", "stratified", "mlm"
         default_strategy : FillingStrategy | None
             Default strategy for unspecified slots.
         """
@@ -989,7 +1048,7 @@ class MixedFillingStrategy(FillingStrategy):
         self.phase1_slots: list[str] = []  # Non-MLM slots
         self.phase2_slots: list[str] = []  # MLM slots
         self.phase1_strategies: dict[str, FillingStrategy] = {}
-        self.mlm_configs: dict[str, dict] = {}
+        self.mlm_configs: dict[str, StrategyConfig] = {}
 
         for slot_name, (strategy, config) in slot_strategies.items():
             strategy_name = strategy if isinstance(strategy, str) else strategy.name
@@ -1008,7 +1067,7 @@ class MixedFillingStrategy(FillingStrategy):
                     self.phase1_strategies[slot_name] = strategy
 
     def _instantiate_strategy(
-        self, strategy_name: str, config: dict
+        self, strategy_name: str, config: StrategyConfig
     ) -> FillingStrategy:
         """Instantiate strategy from name and config.
 
@@ -1032,9 +1091,16 @@ class MixedFillingStrategy(FillingStrategy):
         if strategy_name == "exhaustive":
             return ExhaustiveStrategy()
         elif strategy_name == "random":
-            return RandomStrategy(**config)
+            return RandomStrategy(
+                n_samples=cast(int, config.get("n_samples", 100)),
+                seed=cast(int | None, config.get("seed")),
+            )
         elif strategy_name == "stratified":
-            return StratifiedStrategy(**config)
+            return StratifiedStrategy(
+                n_samples=cast(int, config.get("n_samples", 100)),
+                grouping_property=cast(str, config.get("grouping_property", "pos")),
+                seed=cast(int | None, config.get("seed")),
+            )
         else:
             raise ValueError(f"Unknown strategy: {strategy_name}")
 
@@ -1130,7 +1196,7 @@ class MixedFillingStrategy(FillingStrategy):
         # Phase 1: Fill non-MLM slots
         if not self.phase1_slots:
             # No phase 1 slots - just use MLM for all phase 2 slots
-            phase1_combinations = [{}]
+            phase1_combinations: list[dict[str, LexicalItem]] = [{}]
         else:
             phase1_combinations = self._generate_phase1_combinations(
                 template, lexicons, language_code
@@ -1139,15 +1205,13 @@ class MixedFillingStrategy(FillingStrategy):
         # Phase 2: Fill MLM slots for each phase 1 combination
         if not self.phase2_slots:
             # No phase 2 slots - just yield phase 1 combinations
-            for combo in phase1_combinations:
-                yield combo
+            yield from phase1_combinations
         else:
             for partial_combo in phase1_combinations:
                 # Fill remaining slots with MLM
-                for complete_combo in self._fill_mlm_slots(
+                yield from self._fill_mlm_slots(
                     template, partial_combo, lexicons, language_code
-                ):
-                    yield complete_combo
+                )
 
     def _generate_phase1_combinations(
         self,
@@ -1171,9 +1235,6 @@ class MixedFillingStrategy(FillingStrategy):
         list[dict[str, LexicalItem]]
             Partial combinations (only phase 1 slots filled)
         """
-        # Build constraint resolver
-        resolver = ConstraintResolver()
-
         # Get valid items for each phase 1 slot
         slot_items: dict[str, list[LexicalItem]] = {}
         normalized_lang = validate_iso639_code(language_code) if language_code else None
@@ -1203,8 +1264,19 @@ class MixedFillingStrategy(FillingStrategy):
                             # Evaluate
                             evaluator = DSLEvaluator()
                             try:
+                                # Cast to expected context type
+                                typed_context = cast(
+                                    dict[
+                                        str,
+                                        ContextValue
+                                        | LexicalItem
+                                        | FilledTemplate
+                                        | Item,
+                                    ],
+                                    eval_context,
+                                )
                                 if not evaluator.evaluate(
-                                    constraint.expression, eval_context
+                                    constraint.expression, typed_context
                                 ):
                                     continue
                             except Exception:
@@ -1270,18 +1342,58 @@ class MixedFillingStrategy(FillingStrategy):
         dict[str, LexicalItem]
             Complete fillings with MLM slots added
         """
-        # Create MLM strategy instance from first MLM config
-        # (Assuming all MLM slots share same model config for now)
         if not self.phase2_slots or not self.mlm_configs:
             yield partial_filling
             return
 
-        # Get config from first MLM slot
+        # Get base config from first MLM slot (model adapter, resolver, etc.)
         first_mlm_slot = self.phase2_slots[0]
-        mlm_config = self.mlm_configs[first_mlm_slot]
+        base_config = self.mlm_configs[first_mlm_slot].copy()
 
-        # Create MLM strategy
-        mlm_strategy = MLMFillingStrategy(**mlm_config)
+        # Extract per-slot max_fills and enforce_unique settings
+        per_slot_max_fills: dict[str, int] = {}
+        per_slot_enforce_unique: dict[str, bool] = {}
+
+        for slot_name in self.phase2_slots:
+            config = self.mlm_configs[slot_name]
+            if "max_fills" in config:
+                per_slot_max_fills[slot_name] = cast(int, config["max_fills"])
+            if "enforce_unique" in config:
+                per_slot_enforce_unique[slot_name] = cast(
+                    bool, config["enforce_unique"]
+                )
+
+        # Remove per-slot settings from base config
+        # (they're not MLMFillingStrategy params)
+        base_config.pop("max_fills", None)
+        base_config.pop("enforce_unique", None)
+
+        # Add per-slot dicts to config
+        base_config["per_slot_max_fills"] = per_slot_max_fills
+        base_config["per_slot_enforce_unique"] = per_slot_enforce_unique
+
+        # Create MLM strategy with properly typed config
+        mlm_strategy = MLMFillingStrategy(
+            resolver=cast(ConstraintResolver, base_config["resolver"]),
+            model_adapter=cast(HuggingFaceMLMAdapter, base_config["model_adapter"]),
+            beam_size=cast(int, base_config.get("beam_size", 5)),
+            fill_direction=cast(
+                Literal[
+                    "left_to_right",
+                    "right_to_left",
+                    "inside_out",
+                    "outside_in",
+                    "custom",
+                ],
+                base_config.get("fill_direction", "left_to_right"),
+            ),
+            custom_order=cast(list[int] | None, base_config.get("custom_order")),
+            top_k=cast(int, base_config.get("top_k", 20)),
+            cache=cast(ModelOutputCache | None, base_config.get("cache")),
+            budget=cast(int | None, base_config.get("budget")),
+            per_slot_max_fills=per_slot_max_fills,
+            per_slot_enforce_unique=per_slot_enforce_unique,
+        )
 
         # Create a modified template with only MLM slots
         mlm_template = self._create_mlm_template(template, partial_filling)

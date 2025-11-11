@@ -5,7 +5,7 @@ and template structures.
 """
 
 from bead.resources.constraints import Constraint
-from bead.resources.lexical_item import LexicalItem, MWEComponent, MultiWordExpression
+from bead.resources.lexical_item import LexicalItem, MultiWordExpression, MWEComponent
 from bead.resources.lexicon import Lexicon
 from bead.resources.template import Slot, Template, TemplateSequence, TemplateTree
 from bead.resources.template_collection import TemplateCollection

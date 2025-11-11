@@ -179,3 +179,163 @@ def test_mlm_strategy_extensional_constraint(
     # Should only return run and walk
     lemmas = {item.lemma for item, _ in candidates}
     assert lemmas <= {"run", "walk"}  # Subset of allowed items
+
+
+def test_mlm_strategy_max_fills(
+    resolver: ConstraintResolver,
+    mock_model_adapter: MagicMock,
+    sample_lexicon: Lexicon,
+) -> None:
+    """Test MLMFillingStrategy with max_fills limiting candidates."""
+    constraint = Constraint(expression="self.pos == 'VERB'")
+    slot = Slot(name="verb", constraints=[constraint])
+    template = Template(
+        name="test",
+        template_string="{verb}",
+        slots={"verb": slot},
+    )
+
+    strategy = MLMFillingStrategy(
+        resolver=resolver,
+        model_adapter=mock_model_adapter,
+        top_k=10,
+    )
+
+    # Get candidates with max_fills=2
+    candidates = strategy._get_mlm_candidates(
+        template=template,
+        slot_names=["verb"],
+        slot_idx=0,
+        filled_slots={},
+        slot=slot,
+        lexicons=[sample_lexicon],
+        language_code="en",
+        max_fills=2,
+    )
+
+    # Should return at most 2 candidates
+    assert len(candidates) <= 2
+
+
+def test_mlm_strategy_enforce_unique(
+    resolver: ConstraintResolver,
+    mock_model_adapter: MagicMock,
+    sample_lexicon: Lexicon,
+) -> None:
+    """Test MLMFillingStrategy with uniqueness enforcement."""
+    constraint = Constraint(expression="self.pos == 'VERB'")
+    slot = Slot(name="verb", constraints=[constraint])
+    template = Template(
+        name="test",
+        template_string="{verb}",
+        slots={"verb": slot},
+    )
+
+    # Get IDs of items to mark as seen
+    run_item = next(i for i in sample_lexicon.items.values() if i.lemma == "run")
+    seen_items = {run_item.id}
+
+    strategy = MLMFillingStrategy(
+        resolver=resolver,
+        model_adapter=mock_model_adapter,
+        top_k=10,
+    )
+
+    # Get candidates with seen_items
+    candidates = strategy._get_mlm_candidates(
+        template=template,
+        slot_names=["verb"],
+        slot_idx=0,
+        filled_slots={},
+        slot=slot,
+        lexicons=[sample_lexicon],
+        language_code="en",
+        seen_items=seen_items,
+    )
+
+    # Should not return "run" since it's in seen_items
+    lemmas = {item.lemma for item, _ in candidates}
+    assert "run" not in lemmas
+
+
+def test_mlm_strategy_max_fills_with_enforce_unique(
+    resolver: ConstraintResolver,
+    mock_model_adapter: MagicMock,
+    sample_lexicon: Lexicon,
+) -> None:
+    """Test MLMFillingStrategy with both max_fills and enforce_unique."""
+    constraint = Constraint(expression="self.pos == 'VERB'")
+    slot = Slot(name="verb", constraints=[constraint])
+    template = Template(
+        name="test",
+        template_string="{verb}",
+        slots={"verb": slot},
+    )
+
+    # Mark one item as seen
+    run_item = next(i for i in sample_lexicon.items.values() if i.lemma == "run")
+    seen_items = {run_item.id}
+
+    strategy = MLMFillingStrategy(
+        resolver=resolver,
+        model_adapter=mock_model_adapter,
+        top_k=10,
+    )
+
+    # Get candidates with both max_fills and seen_items
+    candidates = strategy._get_mlm_candidates(
+        template=template,
+        slot_names=["verb"],
+        slot_idx=0,
+        filled_slots={},
+        slot=slot,
+        lexicons=[sample_lexicon],
+        language_code="en",
+        seen_items=seen_items,
+        max_fills=2,
+    )
+
+    # Should return at most 2 candidates, excluding "run"
+    assert len(candidates) <= 2
+    lemmas = {item.lemma for item, _ in candidates}
+    assert "run" not in lemmas
+
+
+def test_mlm_strategy_per_slot_config(
+    resolver: ConstraintResolver,
+    mock_model_adapter: MagicMock,
+    sample_lexicon: Lexicon,
+) -> None:
+    """Test MLMFillingStrategy with per-slot max_fills and enforce_unique."""
+    constraint = Constraint(expression="self.pos == 'VERB'")
+    slot = Slot(name="verb", constraints=[constraint])
+    template = Template(
+        name="test",
+        template_string="{verb}",
+        slots={"verb": slot},
+    )
+
+    strategy = MLMFillingStrategy(
+        resolver=resolver,
+        model_adapter=mock_model_adapter,
+        top_k=10,
+        per_slot_max_fills={"verb": 2},
+        per_slot_enforce_unique={"verb": True},
+    )
+
+    # Generate from template
+    results = list(strategy.generate_from_template(
+        template=template,
+        lexicons=[sample_lexicon],
+        language_code="en",
+    ))
+
+    # Should generate results
+    assert len(results) > 0
+
+    # All results should have different verb items (due to enforce_unique)
+    verb_ids = [r["verb"].id for r in results]
+    assert len(verb_ids) == len(set(verb_ids))  # All unique
+
+    # Should have at most 2 different verbs (due to max_fills=2)
+    assert len(set(verb_ids)) <= 2
