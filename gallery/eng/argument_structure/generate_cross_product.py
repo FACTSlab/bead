@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""
-Generate cross-product of all verbs × all generic templates.
+"""Generate cross-product of all verbs × all generic templates.
 
 This script creates the foundational item set for the argument structure
 experiment by testing every VerbNet verb in every generic frame structure.
@@ -12,8 +11,14 @@ import argparse
 import json
 from pathlib import Path
 
+from rich.console import Console
+from rich.progress import track
+from rich.table import Table
+
 from bead.items.item import Item
 from bead.resources.lexicon import Lexicon
+
+console = Console()
 
 
 def main(
@@ -39,52 +44,51 @@ def main(
     output_dir.mkdir(exist_ok=True)
     output_path = output_dir / "cross_product_items.jsonl"
 
+    console.rule("[bold]Cross-Product Generation[/bold]")
+    console.print(f"Base directory: [cyan]{base_dir}[/cyan]")
+    console.print(f"Templates: [cyan]{templates_path}[/cyan]")
+    console.print(f"Verbs: [cyan]{verbs_path}[/cyan]")
+    console.print(f"Output: [cyan]{output_path}[/cyan]\n")
+
     # Load generic templates
-    print("=" * 80)
-    print("LOADING GENERIC TEMPLATES")
-    print("=" * 80)
+    console.rule("[1/3] Loading Generic Templates")
+    with console.status("[bold]Loading templates...[/bold]"):
+        templates = []
+        with open(templates_path) as f:
+            for line in f:
+                template = json.loads(line)
+                templates.append(template)
 
-    templates = []
-    with open(templates_path) as f:
-        for line in f:
-            template = json.loads(line)
-            templates.append(template)
-
-    print(f"Loaded {len(templates)} generic templates")
+    console.print(f"[green]✓[/green] Loaded {len(templates)} generic templates\n")
 
     # Load verb lexicon
-    print("\n" + "=" * 80)
-    print("LOADING VERB LEXICON")
-    print("=" * 80)
+    console.rule("[2/3] Loading Verb Lexicon")
+    with console.status("[bold]Loading verb lexicon...[/bold]"):
+        verb_lexicon = Lexicon.from_jsonl(str(verbs_path), "verbnet_verbs")
 
-    verb_lexicon = Lexicon.from_jsonl(str(verbs_path), "verbnet_verbs")
-    print(f"Loaded {len(verb_lexicon.items)} verb forms")
+    console.print(f"[green]✓[/green] Loaded {len(verb_lexicon.items)} verb forms")
 
     # Get unique verb lemmas (we only need base forms for cross-product)
-    verb_lemmas = set()
-    for item in verb_lexicon.items.values():
-        verb_lemmas.add(item.lemma)
-
-    print(f"Unique verb lemmas: {len(verb_lemmas)}")
+    verb_lemmas = sorted(set(item.lemma for item in verb_lexicon.items.values()))
+    console.print(f"[green]✓[/green] Found {len(verb_lemmas)} unique verb lemmas\n")
 
     # Generate cross-product
-    print("\n" + "=" * 80)
-    print("GENERATING CROSS-PRODUCT")
-    print("=" * 80)
-
-    if output_limit:
-        print(f"[TEST MODE] Limiting output to {output_limit} items")
-
-    items_generated = 0
+    console.rule("[3/3] Generating Cross-Product")
     total_combinations = len(verb_lemmas) * len(templates)
 
+    if output_limit:
+        console.print(f"[yellow]⚠[/yellow]  Test mode: Limiting output to {output_limit:,} items")
+        total_combinations = min(output_limit, total_combinations)
+
+    items_generated = 0
+
     with open(output_path, "w") as f:
-        for _template_idx, template in enumerate(templates, 1):
+        for template in track(templates, description="Processing templates"):
             template_id = template["id"]
             template_name = template["name"]
             template_string = template["template_string"]
 
-            for _verb_idx, verb_lemma in enumerate(sorted(verb_lemmas), 1):
+            for verb_lemma in verb_lemmas:
                 # Create Item for this verb×template combination
                 item = Item(
                     item_template_id=template_id,
@@ -106,14 +110,6 @@ def main(
                 f.write(item.model_dump_json() + "\n")
                 items_generated += 1
 
-                # Progress reporting
-                if items_generated % 10000 == 0:
-                    pct = (items_generated / total_combinations) * 100
-                    print(
-                        f"  Progress: {items_generated:,}/"
-                        f"{total_combinations:,} ({pct:.1f}%)"
-                    )
-
                 # Check limit
                 if output_limit and items_generated >= output_limit:
                     break
@@ -121,24 +117,18 @@ def main(
             if output_limit and items_generated >= output_limit:
                 break
 
-    print(f"\n✓ Generated {items_generated:,} cross-product items")
-    print(f"✓ Saved to {output_path}")
+    console.print(f"[green]✓[/green] Generated {items_generated:,} cross-product items\n")
 
     # Summary
-    print("\n" + "=" * 80)
-    print("SUMMARY")
-    print("=" * 80)
-    print(f"Verb lemmas: {len(verb_lemmas)}")
-    print(f"Generic templates: {len(templates)}")
-    print(f"Cross-product items: {items_generated:,}")
-    print()
-    print("Next steps:")
-    print("  1. Fill templates with lexicons (using MixedFillingStrategy)")
-    print("  2. Score filled items with language model")
-    print("  3. Create 2AFC pairs based on LM scores")
-    print("  4. Partition pairs into balanced lists")
-    print("  5. Deploy and collect human judgments")
-    print("  6. Train model and iterate with active learning")
+    console.rule("[bold]Summary[/bold]")
+    table = Table(show_header=False, box=None, padding=(0, 2))
+    table.add_row("Verb lemmas:", f"[cyan]{len(verb_lemmas)}[/cyan]")
+    table.add_row("Generic templates:", f"[cyan]{len(templates)}[/cyan]")
+    table.add_row("Cross-product items:", f"[cyan]{items_generated:,}[/cyan]")
+    table.add_row("Output file:", f"[cyan]{output_path}[/cyan]")
+    console.print(table)
+
+    console.print("\n[dim]Next: Run create_2afc_pairs.py to generate forced-choice pairs[/dim]")
 
 
 if __name__ == "__main__":

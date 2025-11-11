@@ -191,10 +191,10 @@ lists:
         different_verb: 50
       description: "Equal numbers of same-verb and different-verb pairs"
 
-    # Ensure verb uniqueness within lists
+    # Ensure verb uniqueness within lists (check both verb1 and verb2)
     - type: "uniqueness"
-      property_expression: "item.metadata.verb_lemma"
-      description: "No verb appears multiple times in same list"
+      property_expression: "item.metadata.verb1"
+      description: "No verb1 appears multiple times in same list"
 
     # Stratify by LM score difference (grouped by pair type)
     - type: "grouped_quantile"
@@ -236,7 +236,7 @@ lists:
 
     # Ensure no verb appears in more than 4 lists
     - type: "diversity"
-      property_expression: "item['verb_lemma']"
+      property_expression: "item['verb1']"
       max_lists_per_value: 4
       description: "Spread verbs across participants (max 4/8 lists per verb)"
 

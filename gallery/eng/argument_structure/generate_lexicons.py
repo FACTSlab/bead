@@ -272,17 +272,73 @@ def main(verb_limit: int | None = None):
     det_lexicon.to_jsonl(str(output_path))
     print(f"✓ Saved to {output_path}")
 
+    # 7. Generate "be" verb forms lexicon
+    print("\n" + "=" * 80)
+    print("GENERATING BE VERB LEXICON")
+    print("=" * 80)
+
+    # Manually create forms of "be" with proper features
+    # UniMorph doesn't have "be" so we create them manually
+    be_forms_data = [
+        # Present tense forms
+        {"form": "am", "tense": "PRS", "person": "1", "number": "SG"},
+        {"form": "is", "tense": "PRS", "person": "3", "number": "SG"},
+        {"form": "are", "tense": "PRS", "person": "2", "number": "SG"},
+        {"form": "are", "tense": "PRS", "person": "1", "number": "PL"},
+        {"form": "are", "tense": "PRS", "person": "2", "number": "PL"},
+        {"form": "are", "tense": "PRS", "person": "3", "number": "PL"},
+        # Past tense forms
+        {"form": "was", "tense": "PST", "person": "1", "number": "SG"},
+        {"form": "was", "tense": "PST", "person": "3", "number": "SG"},
+        {"form": "were", "tense": "PST", "person": "2", "number": "SG"},
+        {"form": "were", "tense": "PST", "person": "1", "number": "PL"},
+        {"form": "were", "tense": "PST", "person": "2", "number": "PL"},
+        {"form": "were", "tense": "PST", "person": "3", "number": "PL"},
+        # Participles
+        {"form": "being", "verb_form": "V.PTCP", "tense": "PRS"},
+        {"form": "been", "verb_form": "V.PTCP", "tense": "PST"},
+    ]
+
+    be_items: dict[str, LexicalItem] = {}
+    for be_data in be_forms_data:
+        form = be_data.pop("form")
+        item = LexicalItem(
+            lemma="be",
+            form=form,
+            pos="V",
+            language_code="eng",
+            features={"pos": "V", **be_data},
+            attributes={},
+        )
+        # Use unique key combining form and features for deduplication
+        key = str(item.id)
+        be_items[key] = item
+
+    print(f"Created {len(be_items)} forms of 'be'")
+
+    be_lexicon = Lexicon(
+        name="be_forms",
+        description="Inflected forms of auxiliary 'be'",
+        language_code="eng",
+        items=be_items,
+    )
+
+    output_path = lexicons_dir / "be_forms.jsonl"
+    be_lexicon.to_jsonl(str(output_path))
+    print(f"✓ Saved to {output_path}")
+
     # Summary
     print("\n" + "=" * 80)
     print("LEXICON GENERATION COMPLETE")
     print("=" * 80)
-    print(f"\nGenerated {6} lexicon files:")
+    print(f"\nGenerated {7} lexicon files:")
     print(f"  1. verbnet_verbs.jsonl:       {len(verb_items_dict)} entries")
     print(f"  2. bleached_nouns.jsonl:      {len(noun_lexicon.items)} entries")
     print(f"  3. bleached_verbs.jsonl:      {len(bleached_verb_lexicon.items)} entries")
     print(f"  4. bleached_adjectives.jsonl: {len(adj_lexicon.items)} entries")
     print(f"  5. prepositions.jsonl:        {len(prep_items)} entries")
     print(f"  6. determiners.jsonl:         {len(det_items)} entries")
+    print(f"  7. be_forms.jsonl:            {len(be_items)} entries")
     print(f"\nAll files saved to: {lexicons_dir}/")
 
 

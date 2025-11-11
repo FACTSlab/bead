@@ -133,6 +133,9 @@ class FilledTemplate(BeadBaseModel):
         Template string with slots replaced by item lemmas.
     strategy_name : str
         Name of strategy used to generate this filled template.
+    template_slots : dict[str, bool]
+        Mapping of all template slot names to whether they are required.
+        Used to determine unfilled slots.
 
     Examples
     --------
@@ -141,7 +144,8 @@ class FilledTemplate(BeadBaseModel):
     ...     template_name="transitive",
     ...     slot_fillers={"subject": noun_item, "verb": verb_item},
     ...     rendered_text="cat broke the object",
-    ...     strategy_name="exhaustive"
+    ...     strategy_name="exhaustive",
+    ...     template_slots={"subject": True, "verb": True, "object": True}
     ... )
     """
 
@@ -150,6 +154,44 @@ class FilledTemplate(BeadBaseModel):
     slot_fillers: dict[str, LexicalItem]
     rendered_text: str
     strategy_name: str
+    template_slots: dict[str, bool] = {}
+
+    @property
+    def unfilled_slots(self) -> set[str]:
+        """Get names of slots that were not filled.
+
+        Returns
+        -------
+        set[str]
+            Set of slot names present in template but not in slot_fillers.
+        """
+        return set(self.template_slots.keys()) - set(self.slot_fillers.keys())
+
+    @property
+    def unfilled_required_slots(self) -> set[str]:
+        """Get names of required slots that were not filled.
+
+        Returns
+        -------
+        set[str]
+            Set of required slot names that are unfilled.
+        """
+        return {
+            slot_name
+            for slot_name, is_required in self.template_slots.items()
+            if is_required and slot_name not in self.slot_fillers
+        }
+
+    @property
+    def is_complete(self) -> bool:
+        """Check if all required slots are filled.
+
+        Returns
+        -------
+        bool
+            True if all required slots have fillers.
+        """
+        return len(self.unfilled_required_slots) == 0
 
 
 class CSPFiller(TemplateFiller):

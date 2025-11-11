@@ -14,7 +14,87 @@ import json
 from collections import defaultdict
 from pathlib import Path
 
-from bead.resources.template import Template
+from rich.console import Console
+
+from bead.resources.constraints import Constraint
+from bead.resources.template import Slot, Template
+
+console = Console()
+
+
+def create_progressive_variant(base_template: Template, tense: str) -> Template:
+    """Create progressive variant of a template.
+
+    Parameters
+    ----------
+    base_template : Template
+        Base template with finite verb.
+    tense : str
+        "present" or "past" for the auxiliary.
+
+    Returns
+    -------
+    Template
+        Progressive variant with {be} and {verb} slots.
+    """
+    # Only create progressive for templates with {verb} slot
+    if "verb" not in base_template.slots:
+        return None
+
+    # Create new template string by replacing {verb} with {be} {verb}
+    new_template_string = base_template.template_string.replace("{verb}", "{be} {verb}")
+
+    # Create new slots dict
+    new_slots = dict(base_template.slots)
+
+    # Add be slot with tense constraint
+    if tense == "present":
+        be_constraint_expr = "self.lemma == 'be' and self.features.tense == 'PRS'"
+        variant_name = "present_progressive"
+        description_tense = "present progressive"
+    else:  # past
+        be_constraint_expr = "self.lemma == 'be' and self.features.tense == 'PST'"
+        variant_name = "past_progressive"
+        description_tense = "past progressive"
+
+    new_slots["be"] = Slot(
+        name="be",
+        description=f"Auxiliary 'be' ({tense})",
+        constraints=[Constraint(expression=be_constraint_expr)],
+        required=True,
+    )
+
+    # Update verb slot to require present participle
+    verb_slot = new_slots["verb"]
+    new_slots["verb"] = Slot(
+        name=verb_slot.name,
+        description=f"{verb_slot.description} (present participle)",
+        constraints=[
+            Constraint(expression="self.features.get('verb_form') == 'V.PTCP'"),
+            Constraint(expression="self.features.get('tense') == 'PRS'"),
+        ],
+        required=verb_slot.required,
+        default_value=verb_slot.default_value,
+    )
+
+    # Create new template
+    progressive_template = Template(
+        name=f"{base_template.name}_{variant_name}",
+        template_string=new_template_string,
+        slots=new_slots,
+        constraints=base_template.constraints,
+        description=f"{base_template.description} ({description_tense})",
+        language_code=base_template.language_code,
+        tags=base_template.tags + [variant_name, "progressive"],
+        metadata={
+            **base_template.metadata,
+            "base_template_id": str(base_template.id),
+            "tense_aspect_variant": variant_name,
+            "is_progressive": True,
+        },
+    )
+
+    return progressive_template
 
 
 def main(input_file: str = "templates/verbnet_frames.jsonl") -> None:
@@ -32,24 +112,21 @@ def main(input_file: str = "templates/verbnet_frames.jsonl") -> None:
     # Group templates by template_string
     template_groups: dict[str, list[dict]] = defaultdict(list)
 
-    print("=" * 80)
-    print("READING VERB-SPECIFIC TEMPLATES")
-    print("=" * 80)
+    console.rule("[1/4] Reading Verb-Specific Templates")
 
-    with open(input_path) as f:
-        for line in f:
-            template = json.loads(line)
-            template_string = template["template_string"]
-            template_groups[template_string].append(template)
+    with console.status("[bold]Loading templates...[/bold]"):
+        with open(input_path) as f:
+            for line in f:
+                template = json.loads(line)
+                template_string = template["template_string"]
+                template_groups[template_string].append(template)
 
     total = sum(len(g) for g in template_groups.values())
-    print(f"Total verb-specific templates: {total}")
-    print(f"Unique template structures: {len(template_groups)}")
+    console.print(f"[green]✓[/green] Loaded {total:,} verb-specific templates")
+    console.print(f"[green]✓[/green] Found {len(template_groups)} unique template structures\n")
 
     # Create generic templates
-    print("\n" + "=" * 80)
-    print("CREATING GENERIC TEMPLATES")
-    print("=" * 80)
+    console.rule("[2/4] Creating Generic Templates")
 
     generic_templates = []
 
@@ -97,39 +174,55 @@ def main(input_file: str = "templates/verbnet_frames.jsonl") -> None:
 
         generic_templates.append(generic_template)
 
-        print(
+        console.print(
             f"  {len(generic_templates):2d}. {template_name:30s} "
             f"[{len(specific_templates):5d} verbs, {len(frame_primaries):3d} frames]"
         )
 
+    console.print(f"\n[green]✓[/green] Created {len(generic_templates)} base templates\n")
+
+    # Generate progressive variants
+    console.rule("[3/4] Generating Progressive Variants")
+
+    progressive_templates = []
+    with console.status("[bold]Creating progressive variants...[/bold]"):
+        for base_template in generic_templates:
+            # Create present progressive variant
+            present_prog = create_progressive_variant(base_template, "present")
+            if present_prog:
+                progressive_templates.append(present_prog)
+
+            # Create past progressive variant
+            past_prog = create_progressive_variant(base_template, "past")
+            if past_prog:
+                progressive_templates.append(past_prog)
+
+    console.print(f"[green]✓[/green] Generated {len(progressive_templates)} progressive variants\n")
+
+    # Combine base and progressive templates
+    all_templates = generic_templates + progressive_templates
+
     # Save generic templates
-    print("\n" + "=" * 80)
-    print("SAVING GENERIC TEMPLATES")
-    print("=" * 80)
+    console.rule("[4/4] Saving Templates")
 
     with open(output_path, "w") as f:
-        for template in generic_templates:
+        for template in all_templates:
             template_json = template.model_dump_json()
             f.write(template_json + "\n")
 
-    print(f"✓ Saved {len(generic_templates)} generic templates to {output_path}")
+    console.print(f"[green]✓[/green] Saved {len(all_templates)} templates to {output_path}\n")
 
     # Summary statistics
-    print("\n" + "=" * 80)
-    print("SUMMARY")
-    print("=" * 80)
-    print(f"Input: {input_path}")
-    print("  - Verb-specific templates: 21,453")
-    print("  - Unique verbs: ~4,789")
-    print()
-    print(f"Output: {output_path}")
-    print(f"  - Generic frame structures: {len(generic_templates)}")
-    print()
-    print("Cross-product for experiment:")
-    print(f"  - ~4,789 verbs × {len(generic_templates)} frames")
-    print(f"  - ≈ {4789 * len(generic_templates):,} total combinations")
-    print()
-    print("This enables testing ALL verbs in ALL frames!")
+    console.rule("[bold]Summary[/bold]")
+    from rich.table import Table
+    table = Table(show_header=False, box=None, padding=(0, 2))
+    table.add_row("Base generic frames:", f"[cyan]{len(generic_templates)}[/cyan]")
+    table.add_row("Progressive variants:", f"[cyan]{len(progressive_templates)}[/cyan]")
+    table.add_row("Total templates:", f"[cyan]{len(all_templates)}[/cyan]")
+    table.add_row("", "")
+    table.add_row("Cross-product size:", f"[cyan]~2,880 verbs × {len(all_templates)} templates[/cyan]")
+    table.add_row("Total combinations:", f"[cyan]≈ {2880 * len(all_templates):,}[/cyan]")
+    console.print(table)
 
 
 if __name__ == "__main__":

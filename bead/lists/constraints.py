@@ -29,6 +29,7 @@ ListConstraintType = Literal[
     "balance",  # Balanced distribution of property
     "quantile",  # Uniform across quantiles
     "grouped_quantile",  # Quantile distribution within groups
+    "diversity",  # Minimum unique values for property
     "size",  # List size constraints
     "ordering",  # Presentation order constraints (runtime enforcement)
 ]
@@ -490,6 +491,80 @@ class ConditionalUniquenessConstraint(BeadBaseModel):
         return v.strip()
 
 
+class DiversityConstraint(BeadBaseModel):
+    """Constraint requiring minimum diversity (unique values) for a property.
+
+    Ensures that a list contains at least a minimum number of unique values
+    for a specified property. Useful for ensuring template diversity, verb
+    diversity, or other experimental richness requirements.
+
+    Attributes
+    ----------
+    constraint_type : Literal["diversity"]
+        Discriminator field for constraint type (always "diversity").
+    property_expression : str
+        DSL expression that extracts the value to count for diversity.
+        The item is available as 'item' in the expression.
+        Examples: "item.metadata.template_id", "item.metadata.verb_lemma"
+    min_unique_values : int
+        Minimum number of unique values required in the list.
+    context : dict[str, ContextValue]
+        Additional context variables for DSL evaluation.
+    priority : int, default=1
+        Constraint priority (higher = more important). When partitioning,
+        violations of higher-priority constraints are penalized more heavily.
+
+    Examples
+    --------
+    >>> # Ensure at least 15 unique templates per list
+    >>> constraint = DiversityConstraint(
+    ...     property_expression="item.metadata.template_id",
+    ...     min_unique_values=15,
+    ...     priority=2
+    ... )
+    >>> constraint.min_unique_values
+    15
+    """
+
+    constraint_type: Literal["diversity"] = "diversity"
+    property_expression: str = Field(
+        ..., description="DSL expression for value to check for diversity"
+    )
+    min_unique_values: int = Field(
+        ..., ge=1, description="Minimum number of unique values required"
+    )
+    context: dict[str, ContextValue] = Field(
+        default_factory=dict, description="Additional context variables"
+    )
+    priority: int = Field(
+        default=1, ge=1, description="Constraint priority (higher = more important)"
+    )
+
+    @field_validator("property_expression")
+    @classmethod
+    def validate_property_expression(cls, v: str) -> str:
+        """Validate property expression is non-empty.
+
+        Parameters
+        ----------
+        v : str
+            Property expression to validate.
+
+        Returns
+        -------
+        str
+            Validated property expression.
+
+        Raises
+        ------
+        ValueError
+            If property expression is empty or contains only whitespace.
+        """
+        if not v or not v.strip():
+            raise ValueError("property_expression must be non-empty")
+        return v.strip()
+
+
 class SizeConstraint(BeadBaseModel):
     """Constraint on list size.
 
@@ -698,6 +773,7 @@ ListConstraint = Annotated[
     | BalanceConstraint
     | QuantileConstraint
     | GroupedQuantileConstraint
+    | DiversityConstraint
     | SizeConstraint
     | OrderingConstraint,
     Field(discriminator="constraint_type"),

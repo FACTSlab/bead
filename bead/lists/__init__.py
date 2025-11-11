@@ -13,6 +13,7 @@ implemented in the partitioner module (Phase 18).
 
 from bead.lists.constraints import (
     BalanceConstraint,
+    DiversityConstraint,
     ListConstraint,
     OrderingConstraint,
     QuantileConstraint,
@@ -29,6 +30,7 @@ __all__ = [
     "UniquenessConstraint",
     "BalanceConstraint",
     "QuantileConstraint",
+    "DiversityConstraint",
     "SizeConstraint",
     "OrderingConstraint",
 ]

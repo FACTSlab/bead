@@ -147,6 +147,277 @@ class HuggingFaceLanguageModel(HuggingFaceAdapterMixin, ModelAdapter):
 
         return log_prob
 
+    def _infer_optimal_batch_size(self) -> int:
+        """Infer optimal batch size based on available resources.
+
+        Considers:
+        - Device type (CPU, CUDA, MPS)
+        - Available memory
+        - Model size
+        - Sequence length estimates
+
+        Returns
+        -------
+        int
+            Recommended batch size.
+        """
+        import psutil
+
+        # Estimate model size
+        model_params = sum(p.numel() * p.element_size() for p in self.model.parameters())
+
+        if self.device == "cuda":
+            try:
+                # Get GPU memory
+                free_memory, _ = torch.cuda.mem_get_info(self.device)
+
+                # Conservative estimate: allow model + 4x model size for activations
+                # Reserve 20% for safety margin
+                available_for_batch = (free_memory * 0.8) - model_params
+                memory_per_item = model_params * 4  # Very rough estimate
+
+                batch_size = int(available_for_batch / memory_per_item)
+
+                # Clamp between reasonable bounds
+                batch_size = max(8, min(batch_size, 256))
+
+                logger.info(
+                    f"Inferred batch size {batch_size} for CUDA "
+                    f"(free: {free_memory / 1e9:.1f}GB, model: {model_params / 1e9:.2f}GB)"
+                )
+                return batch_size
+
+            except Exception as e:
+                logger.warning(f"Failed to infer CUDA batch size: {e}, using default 32")
+                return 32
+
+        elif self.device == "mps":
+            try:
+                # MPS (Apple Silicon) - use system RAM as proxy
+                # MPS shares unified memory with system
+                available_memory = psutil.virtual_memory().available
+
+                # Reserve 4GB for system + model
+                available_for_batch = max(0, available_memory - (4 * 1024**3) - model_params)
+                memory_per_item = model_params * 3  # MPS is more efficient than CUDA
+
+                batch_size = int(available_for_batch / memory_per_item)
+
+                # Clamp between reasonable bounds
+                batch_size = max(8, min(batch_size, 256))
+
+                logger.info(
+                    f"Inferred batch size {batch_size} for MPS "
+                    f"(available: {available_memory / 1e9:.1f}GB, model: {model_params / 1e9:.2f}GB)"
+                )
+                return batch_size
+
+            except Exception as e:
+                logger.warning(f"Failed to infer MPS batch size: {e}, using default 64")
+                return 64
+
+        else:  # CPU
+            try:
+                # CPU - check available RAM
+                available_memory = psutil.virtual_memory().available
+
+                # Reserve 2GB for system + model
+                available_for_batch = max(0, available_memory - (2 * 1024**3) - model_params)
+                memory_per_item = model_params * 2  # CPU has less overhead than GPU
+
+                batch_size = int(available_for_batch / memory_per_item)
+
+                # Clamp between reasonable bounds
+                batch_size = max(4, min(batch_size, 128))
+
+                logger.info(
+                    f"Inferred batch size {batch_size} for CPU "
+                    f"(available: {available_memory / 1e9:.1f}GB, model: {model_params / 1e9:.2f}GB)"
+                )
+                return batch_size
+
+            except Exception as e:
+                logger.warning(f"Failed to infer CPU batch size: {e}, using default 16")
+                return 16
+
+    def compute_log_probability_batch(
+        self, texts: list[str], batch_size: int | None = None
+    ) -> list[float]:
+        """Compute log probabilities for multiple texts efficiently.
+
+        Uses batched tokenization and inference for significant speedup.
+        Checks cache before computing, only processes uncached texts.
+
+        Parameters
+        ----------
+        texts : list[str]
+            Texts to compute log probabilities for.
+        batch_size : int | None, default=None
+            Number of texts to process in each batch. If None, automatically
+            infers optimal batch size based on available device memory and
+            model size.
+
+        Returns
+        -------
+        list[float]
+            Log probabilities for each text, in the same order as input.
+
+        Examples
+        --------
+        >>> texts = ["The cat sat.", "The dog ran.", "The bird flew."]
+        >>> log_probs = model.compute_log_probability_batch(texts)
+        >>> len(log_probs) == len(texts)
+        True
+        """
+        # Infer batch size if not provided
+        if batch_size is None:
+            batch_size = self._infer_optimal_batch_size()
+
+        # Check cache for all texts
+        results: list[float | None] = []
+        uncached_indices: list[int] = []
+        uncached_texts: list[str] = []
+
+        for i, text in enumerate(texts):
+            cached = self.cache.get(self.model_name, "log_probability", text=text)
+            if cached is not None:
+                results.append(cached)
+            else:
+                results.append(None)  # Placeholder
+                uncached_indices.append(i)
+                uncached_texts.append(text)
+
+        # If everything was cached, return immediately
+        if not uncached_texts:
+            logger.info(f"All {len(texts)} texts found in cache")
+            return [r for r in results if r is not None]
+
+        # Log cache statistics
+        n_cached = len(texts) - len(uncached_texts)
+        cache_rate = (n_cached / len(texts)) * 100 if texts else 0
+        logger.info(
+            f"Cache: {n_cached}/{len(texts)} texts ({cache_rate:.1f}%), "
+            f"processing {len(uncached_texts)} uncached with batch_size={batch_size}"
+        )
+
+        # Process uncached texts in batches with progress tracking
+        from rich.progress import (
+            Progress,
+            SpinnerColumn,
+            TextColumn,
+            BarColumn,
+            TaskProgressColumn,
+            TimeRemainingColumn,
+            TimeElapsedColumn,
+        )
+
+        uncached_scores: list[float] = []
+
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            TaskProgressColumn(),
+            TimeElapsedColumn(),
+            TimeRemainingColumn(),
+        ) as progress:
+            task = progress.add_task(
+                f"[cyan]Scoring with {self.model_name}[/cyan]",
+                total=len(uncached_texts),
+            )
+
+            for batch_start in range(0, len(uncached_texts), batch_size):
+                batch_texts = uncached_texts[batch_start : batch_start + batch_size]
+                batch_scores = self._process_batch(batch_texts)
+                uncached_scores.extend(batch_scores)
+                progress.update(task, advance=len(batch_texts))
+
+        # Merge cached and newly computed results
+        uncached_iter = iter(uncached_scores)
+        final_results: list[float] = []
+        for result in results:
+            if result is None:
+                final_results.append(next(uncached_iter))
+            else:
+                final_results.append(result)
+
+        return final_results
+
+    def _process_batch(self, batch_texts: list[str]) -> list[float]:
+        """Process a single batch of texts and return scores.
+
+        Parameters
+        ----------
+        batch_texts : list[str]
+            Texts to process in this batch.
+
+        Returns
+        -------
+        list[float]
+            Log probabilities for each text.
+        """
+        batch_scores: list[float] = []
+
+        # Tokenize batch
+        inputs = self.tokenizer(
+            batch_texts,
+            return_tensors="pt",
+            padding=True,
+            truncation=True,
+        )
+        input_ids = inputs["input_ids"].to(self.device)
+        attention_mask = inputs["attention_mask"].to(self.device)
+
+        # Compute losses for batch
+        with torch.no_grad():
+            outputs = self.model(
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+                labels=input_ids,
+            )
+
+            # For batched inputs, we need to compute loss per item
+            # The model returns average loss across batch, so we need
+            # to compute per-item losses manually
+            logits = outputs.logits  # [batch, seq_len, vocab]
+
+            # Shift for causal LM: predict next token
+            shift_logits = logits[..., :-1, :].contiguous()
+            shift_labels = input_ids[..., 1:].contiguous()
+            shift_attention = attention_mask[..., 1:].contiguous()
+
+            # Compute log probabilities per token
+            log_probs_per_token = torch.nn.functional.log_softmax(
+                shift_logits, dim=-1
+            )
+
+            # Gather log probs for actual tokens
+            gathered_log_probs = torch.gather(
+                log_probs_per_token,
+                dim=-1,
+                index=shift_labels.unsqueeze(-1),
+            ).squeeze(-1)
+
+            # Mask padding tokens and sum per sequence
+            masked_log_probs = gathered_log_probs * shift_attention
+            sequence_log_probs = masked_log_probs.sum(dim=1)
+
+        # Convert to list and cache
+        for text, log_prob_tensor in zip(batch_texts, sequence_log_probs):
+            log_prob = log_prob_tensor.item()
+            batch_scores.append(log_prob)
+
+            # Cache result
+            self.cache.set(
+                self.model_name,
+                "log_probability",
+                log_prob,
+                model_version=self.model_version,
+                text=text,
+            )
+
+        return batch_scores
+
     def compute_perplexity(self, text: str) -> float:
         """Compute perplexity of text.
 

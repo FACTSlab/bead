@@ -24,6 +24,8 @@ dependencies = [
     "scikit-learn>=1.3.0",
     "click>=8.0.0",
     "rich>=13.0.0",
+    "lark>=1.0.0",
+    "psutil>=5.9.0",
 ]
 
 [project.optional-dependencies]

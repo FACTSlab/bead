@@ -239,6 +239,77 @@ class Template(BeadBaseModel):
 
         return self
 
+    @property
+    def required_slot_names(self) -> set[str]:
+        """Get names of all required slots.
+
+        Returns
+        -------
+        set[str]
+            Set of slot names where required=True.
+        """
+        return {name for name, slot in self.slots.items() if slot.required}
+
+    def fill_with_values(self, slot_values: dict[str, str], strategy_name: str = "manual") -> "FilledTemplate":
+        """Create a FilledTemplate by filling slots with string values.
+
+        This is a lightweight alternative to CSPFiller for cases where
+        you already have the values and just need a FilledTemplate object.
+
+        Parameters
+        ----------
+        slot_values : dict[str, str]
+            Mapping of slot names to string values to fill them with.
+        strategy_name : str
+            Name of strategy used (for metadata).
+
+        Returns
+        -------
+        FilledTemplate
+            A filled template with the provided values.
+
+        Examples
+        --------
+        >>> template = Template(
+        ...     name="test",
+        ...     template_string="{subj} {verb}.",
+        ...     slots={"subj": Slot(name="subj"), "verb": Slot(name="verb")}
+        ... )
+        >>> filled = template.fill_with_values({"subj": "cat", "verb": "runs"})
+        >>> filled.rendered_text
+        'cat runs.'
+        """
+        from bead.resources.lexical_item import LexicalItem
+        from bead.templates.filler import FilledTemplate
+
+        # Create LexicalItem objects for each value
+        slot_fillers = {}
+        for slot_name, value in slot_values.items():
+            if slot_name in self.slots:
+                # Create a minimal LexicalItem with just the lemma
+                slot_fillers[slot_name] = LexicalItem(
+                    lemma=value,
+                    pos="UNKNOWN",
+                    language_code=self.language_code or "eng",
+                )
+
+        # Render text by replacing slot placeholders
+        rendered_text = self.template_string
+        for slot_name, value in slot_values.items():
+            rendered_text = rendered_text.replace(f"{{{slot_name}}}", value)
+
+        # Create template_slots mapping (slot_name -> is_required)
+        template_slots = {name: slot.required for name, slot in self.slots.items()}
+
+        return FilledTemplate(
+            template_id=str(self.id),
+            template_name=self.name,
+            slot_fillers=slot_fillers,
+            rendered_text=rendered_text,
+            strategy_name=strategy_name,
+            template_slots=template_slots,
+        )
+
 
 def _empty_template_list() -> list[Template]:
     """Create an empty template list."""
