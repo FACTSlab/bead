@@ -10,3 +10,4 @@ gallery/**/.cache
 gallery/**/templates/*.jsonl
 gallery/**/items/*.jsonl
 gallery/**/lists/*.jsonl
+gallery/**/deployment/

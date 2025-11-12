@@ -139,10 +139,11 @@ The pipeline consists of 10 main scripts organized into 4 stages:
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                  │
 │  8. generate_deployment.py                                     │
-│     ├─ Generate jsPsych experiments for each list             │
-│     ├─ Create JATOS .jzip packages                            │
-│     └─ Material Design UI with randomization                  │
-│     → Output: deployment/list_*/                               │
+│     ├─ Generate jsPsych experiments (local + JATOS versions)  │
+│     ├─ Local: Standalone for testing (no server required)     │
+│     ├─ JATOS: Production deployment with Prolific support     │
+│     └─ Create JATOS .jzip packages                            │
+│     → Output: deployment/local/* + deployment/jatos/*          │
 │                                                                  │
 │  9. simulate_pipeline.py (testing/validation)                  │
 │     ├─ Simulate human judgments (LM-based annotator)          │
@@ -602,38 +603,107 @@ python generate_deployment.py --n-lists 2 --no-jatos
 ```
 
 **Input:** `lists/experiment_lists.jsonl` + `items/2afc_pairs.jsonl`
-**Output:** `deployment/list_*/` directories + `.jzip` files
+**Output:** Dual deployment versions (local + JATOS) + `.jzip` files
 
 **How it works:**
 1. **Load experiment lists:** Read lists and randomly select subset
 2. **Load 2AFC pairs:** Index all items by UUID for lookup
 3. **Create ItemTemplate:** Minimal template for 2AFC forced choice
-4. **Generate jsPsych experiments:**
-   - One experiment per list
-   - Material Design UI components
-   - Randomization of trial and choice order
-   - Progress bar and instructions
-5. **Export to JATOS:** Create `.jzip` packages for upload
+4. **Generate TWO versions of jsPsych experiments:**
+   - **Local version** (`deployment/local/`) - Standalone for testing
+   - **JATOS version** (`deployment/jatos/`) - Production deployment
+5. **Export to JATOS:** Create `.jzip` packages from JATOS version
 6. **Save output:** HTML/CSS/JS files in deployment/ directory
 
 **Output structure:**
 ```
 deployment/
-├── list_01/
-│   ├── index.html          # jsPsych experiment
-│   ├── css/experiment.css  # Material Design styles
-│   ├── js/experiment.js    # Trial configuration
-│   └── data/config.json    # Experiment metadata
-├── list_02/
-│   └── ...
-├── list_01.jzip           # JATOS package
-└── list_02.jzip           # JATOS package
+├── local/                      # Standalone version (open directly in browser)
+│   ├── list_01/
+│   │   ├── index.html          # jsPsych experiment (no JATOS dependencies)
+│   │   ├── css/experiment.css  # Minimal custom styles
+│   │   ├── js/experiment.js    # Standalone experiment logic
+│   │   └── data/config.json    # Experiment metadata
+│   ├── list_02/
+│   │   └── ...
+│
+├── jatos/                      # JATOS-integrated version
+│   ├── list_01/
+│   │   ├── index.html          # jsPsych experiment (with JATOS integration)
+│   │   ├── css/experiment.css  # Minimal custom styles
+│   │   ├── js/experiment.js    # JATOS-aware experiment logic
+│   │   └── data/config.json    # Experiment metadata
+│   ├── list_02/
+│   │   └── ...
+│   ├── list_01.jzip           # JATOS package for list 1
+│   └── list_02.jzip           # JATOS package for list 2
 ```
 
-**Deployment:**
-1. Upload `.jzip` files to your JATOS server
-2. Distribute experiment URLs to participants
-3. Collect results from JATOS data export
+**Key Features:**
+
+**Local Version:**
+- Runs directly in browser without server
+- No JATOS dependencies
+- Useful for testing and debugging
+- Data stored in browser console (jsPsych.data.get())
+- Trial randomization with simple shuffle
+
+**JATOS Version:**
+- Full JATOS integration for production deployment
+- Automatic participant ID capture from URL parameters
+- Prolific integration support (PROLIFIC_PID, STUDY_ID, SESSION_ID)
+- Data submission to JATOS server with error handling
+- Abort button on each trial (via `jatos.addAbortButton`)
+- Worker and study result ID tracking
+- Configurable Prolific completion redirect
+- Trial randomization with constraint satisfaction
+
+**Deployment Options:**
+
+**Option 1: Testing Locally**
+```bash
+# Open local version in browser
+open deployment/local/list_01/index.html
+
+# No server required, no JATOS errors
+```
+
+**Option 2: Production via JATOS**
+```bash
+# Upload JATOS packages to your JATOS server
+# 1. Go to your JATOS server admin panel
+# 2. Click "Import Study"
+# 3. Upload deployment/jatos/*.jzip files
+# 4. Configure Prolific integration (optional)
+# 5. Distribute experiment URLs to participants
+```
+
+**Prolific Integration:**
+
+To deploy via JATOS on Prolific, configure your completion code in `config.yaml`:
+
+```yaml
+deployment:
+  jspsych:
+    prolific_completion_code: "YOUR_CODE_HERE"  # e.g., "C1A2B3C4"
+```
+
+This automatically generates the redirect URL: `https://app.prolific.co/submissions/complete?cc=YOUR_CODE_HERE`
+
+Participant metadata captured:
+- `PROLIFIC_PID`: Prolific participant ID
+- `STUDY_ID`: Prolific study ID
+- `SESSION_ID`: Prolific session ID
+- `jatos_worker_id`: JATOS worker ID
+- `jatos_study_result_id`: JATOS study result ID
+- `jatos_component_result_id`: JATOS component result ID
+
+**Data Collection:**
+
+1. **JATOS deployment:** Results automatically submitted to JATOS server
+2. **Export data:** Use JATOS admin panel to export results as JSON
+3. **Format:** Results include all metadata + participant responses
+4. **Analysis:** Load exported JSON into pipeline for active learning iteration
 
 ### 9. Simulate Pipeline (Testing)
 
@@ -1156,16 +1226,26 @@ gallery/eng/argument_structure/
 ├── lists/                          # Experimental list partitions
 │   └── experiment_lists.jsonl      # Balanced lists with constraints
 │
-├── deployment/                     # jsPsych/JATOS deployment
-│   ├── list_01/                    # Experiment for list 1
-│   │   ├── index.html              # jsPsych experiment
-│   │   ├── css/experiment.css      # Material Design styles
-│   │   ├── js/experiment.js        # Trial configuration
-│   │   └── data/config.json        # Metadata
-│   ├── list_02/                    # Experiment for list 2
-│   │   └── ...
-│   ├── list_01.jzip                # JATOS package for list 1
-│   └── list_02.jzip                # JATOS package for list 2
+├── deployment/                     # jsPsych/JATOS deployment (gitignored)
+│   ├── local/                      # Standalone version for testing
+│   │   ├── list_01/                # Experiment for list 1
+│   │   │   ├── index.html          # jsPsych experiment (no JATOS)
+│   │   │   ├── css/experiment.css  # Minimal custom styles
+│   │   │   ├── js/experiment.js    # Standalone experiment logic
+│   │   │   └── data/config.json    # Metadata
+│   │   ├── list_02/                # Experiment for list 2
+│   │   │   └── ...
+│   │
+│   └── jatos/                      # JATOS-integrated version
+│       ├── list_01/                # Experiment for list 1
+│       │   ├── index.html          # jsPsych experiment (with JATOS)
+│       │   ├── css/experiment.css  # Minimal custom styles
+│       │   ├── js/experiment.js    # JATOS-aware experiment logic
+│       │   └── data/config.json    # Metadata
+│       ├── list_02/                # Experiment for list 2
+│       │   └── ...
+│       ├── list_01.jzip            # JATOS package for list 1
+│       └── list_02.jzip            # JATOS package for list 2
 │
 ├── simulation_output/              # Simulation results
 │   └── simulation_results.json     # Convergence metrics
@@ -1180,73 +1260,3 @@ gallery/eng/argument_structure/
     └── ...                         # Cached LM scores
 ```
 
-## Dependencies
-
-The pipeline requires Python ≥3.13 and the bead framework. Core bead modules include adapters for external resources (`bead.resources.adapters.glazing` for VerbNet, `bead.resources.adapters.unimorph` for morphology), data models for lexicons, templates, slots, and items, and functionality for template filling, list partitioning with constraints, and deployment (jsPsych experiments and JATOS export).
-
-For active learning, we use modules in `bead.evaluation.convergence` to detect convergence, `bead.active_learning.loop` for orchestration, and `bead.simulation.annotators` for testing with simulated judgments. Language model scoring uses `bead.items.adapters.huggingface`.
-
-Additional core dependencies include transformers (Hugging Face), torch (PyTorch), pydantic for data validation, pyyaml for configuration, and rich for CLI output.
-
-Optional dependencies for alternative LM backends include anthropic, google-generativeai, and openai. For model training and monitoring, pytorch-lightning and tensorboard are available but not required.
-
-Development requires pytest, ruff, and pyright.
-
-## Citation
-
-If you use this pipeline or dataset in your research, please cite:
-
-```bibtex
-@misc{argument_structure_active_learning,
-  title={Argument Structure Active Learning with Convergence Detection},
-  author={White, Aaron Steven},
-  year={2025},
-  url={https://github.com/aaronstevenwhite/bead/gallery/eng/argument_structure}
-}
-```
-
-**Related work:**
-
-- **VerbNet:** Kipper, K., Korhonen, A., Ryant, N., & Palmer, M. (2008). A large-scale classification of English verbs. *Language Resources and Evaluation*, 42(1), 21-40.
-
-- **Glazing:** White, A. S., & Rawlins, K. (2024). Glazing: A unified interface for lexical resources. *GitHub repository*.
-
-- **Active Learning:** Settles, B. (2009). Active learning literature survey. *Computer Sciences Technical Report 1648*, University of Wisconsin-Madison.
-
-- **Convergence Detection:** Krippendorff, K. (2004). Reliability in content analysis: Some common misconceptions and recommendations. *Human Communication Research*, 30(3), 411-433.
-
-- **MegaAttitude:** White, A. S., & Rawlins, K. (2018). The role of veridicality and factivity in clause selection. *Proceedings of SALT*, 28, 573-593.
-
-## License
-
-This project is part of the SASH (Structured Acceptability Study Helper) framework.
-
-[Add appropriate license information]
-
-## Contact
-
-For questions, issues, or contributions:
-
-- GitHub Issues: [repository URL]
-- Email: aswhite@rochester.edu
-- Documentation: [docs URL]
-
-## Acknowledgments
-
-This project builds on:
-
-- **VerbNet** lexical resource (Kipper et al., 2008)
-- **Glazing** unified lexical resource interface (White & Rawlins, 2024)
-- **UniMorph** morphological paradigms (Kirov et al., 2018)
-- **MegaAttitude** clause-embedding frame inventory (White & Rawlins, 2018)
-- **SASH** framework for acceptability studies
-- **Hugging Face Transformers** for language models
-- **PyTorch** for deep learning
-
----
-
-**Status:** ✅ Ready for production deployment
-
-**Last Updated:** November 12, 2025
-
-**Current Data:** 21,453 verb-specific templates, 26 generic frames, 19,160 verb forms. The workflow requires running fill_templates.py before create_2afc_pairs.py to generate filled templates.

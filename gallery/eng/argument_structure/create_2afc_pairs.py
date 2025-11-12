@@ -63,10 +63,14 @@ def convert_filled_templates_to_items(
         if "verb" in ft.slot_fillers:
             verb_lemma = ft.slot_fillers["verb"].lemma
 
-        # Create Item with filled text in rendered_elements
+        # Create Item with filled text in rendered_elements (sentence-cased)
+        text = ft.rendered_text
+        if text:
+            text = text[0].upper() + text[1:] if len(text) > 1 else text.upper()
+
         item = Item(
             item_template_id=ft.template_id,
-            rendered_elements={"text": ft.rendered_text},
+            rendered_elements={"text": text},
             item_metadata={
                 "filled_template_id": str(ft.id),
                 "template_id": ft.template_id,
@@ -132,6 +136,9 @@ def create_forced_choice_pairs(
     for item in items:
         item.item_metadata["lm_score"] = lm_scores.get(str(item.id), float("-inf"))
 
+    # Create lookup dict to avoid O(n) scans for each pair
+    item_lookup = {str(item.id): item for item in items}
+
     # Helper to extract text from items
     def extract_text(item: Item) -> str:
         return item.rendered_elements.get("text", "")
@@ -151,8 +158,9 @@ def create_forced_choice_pairs(
         item1_id = fc_item.item_metadata.get("source_item_0_id")
         item2_id = fc_item.item_metadata.get("source_item_1_id")
 
-        source_items = [i for i in items if str(i.id) in [item1_id, item2_id]]
-        if len(source_items) == 2:
+        # Use lookup dict instead of list comprehension
+        source_items = [item_lookup.get(item1_id), item_lookup.get(item2_id)]
+        if all(source_items) and len(source_items) == 2:
             fc_item.item_metadata.update(
                 {
                     "pair_type": "same_verb",
@@ -189,8 +197,9 @@ def create_forced_choice_pairs(
         item1_id = fc_item.item_metadata.get("source_item_0_id")
         item2_id = fc_item.item_metadata.get("source_item_1_id")
 
-        source_items = [i for i in items if str(i.id) in [item1_id, item2_id]]
-        if len(source_items) == 2:
+        # Use lookup dict instead of list comprehension
+        source_items = [item_lookup.get(item1_id), item_lookup.get(item2_id)]
+        if all(source_items) and len(source_items) == 2:
             fc_item.item_metadata.update(
                 {
                     "pair_type": "different_verb",

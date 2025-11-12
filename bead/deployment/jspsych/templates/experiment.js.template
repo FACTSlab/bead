@@ -8,25 +8,110 @@
 
 // Initialize jsPsych
 const jsPsych = initJsPsych({
+    {% if use_jatos %}
+    on_trial_start: jatos.addAbortButton,  // Add JATOS abort button
+    {% endif %}
     on_finish: function() {
+        {% if use_jatos %}
+        // JATOS mode: Submit data and redirect
+        const resultData = jsPsych.data.get().json();
         {% if on_finish_url %}
-        // Redirect to completion URL
-        window.location.href = "{{ on_finish_url }}";
+        // Redirect to Prolific or other completion URL
+        jatos.submitResultData(resultData)
+            .then(() => jatos.endStudyAndRedirect("{{ on_finish_url }}"))
+            .catch((error) => {
+                console.error("Failed to submit data:", error);
+                // Try redirect anyway
+                jatos.endStudyAndRedirect("{{ on_finish_url }}");
+            });
         {% else %}
-        // Display data (for testing)
-        jsPsych.data.displayData();
+        // No redirect URL: just submit data and end study
+        jatos.submitResultData(resultData)
+            .then(() => jatos.endStudy(true))
+            .catch((error) => {
+                console.error("Failed to submit data:", error);
+                jatos.endStudy(false);
+            });
+        {% endif %}
+        {% else %}
+        // Standalone mode: Simple redirect or finish
+        {% if on_finish_url %}
+        window.location.href = "{{ on_finish_url }}";
+        {% endif %}
+        // Data is saved automatically by jsPsych
+        // Access via jsPsych.data.get() if needed
         {% endif %}
     },
     show_progress_bar: {{ 'true' if show_progress_bar else 'false' }},
-    auto_update_progress_bar: false,
+    auto_update_progress_bar: {{ 'true' if show_progress_bar else 'false' }}
 });
 
-// Add experiment metadata to all trials
+{% if use_jatos %}
+// JATOS: Populate participant IDs from URL parameters
+function initializeJATOSParticipantData() {
+    PARTICIPANT_ID = jatos.urlQueryParameters.PROLIFIC_PID ||
+                     jatos.urlQueryParameters.participant_id ||
+                     jatos.workerId ||
+                     'p' + Date.now();
+    PROLIFIC_PID = jatos.urlQueryParameters.PROLIFIC_PID || null;
+    STUDY_ID = jatos.urlQueryParameters.STUDY_ID || null;
+    SESSION_ID = jatos.urlQueryParameters.SESSION_ID || null;
+
+    // Add Prolific and JATOS metadata to all trials
+    jsPsych.data.addProperties({
+        experiment_title: "{{ title }}",
+        participant_id: PARTICIPANT_ID,
+        prolific_pid: PROLIFIC_PID,
+        prolific_study_id: STUDY_ID,
+        prolific_session_id: SESSION_ID,
+        jatos_worker_id: jatos.workerId,
+        jatos_study_result_id: jatos.studyResultId,
+        jatos_component_result_id: jatos.componentResultId,
+        experiment_start_time: new Date().toISOString(),
+    });
+}
+{% else %}
+// Standalone: Add experiment metadata to all trials
 jsPsych.data.addProperties({
     experiment_title: "{{ title }}",
     participant_id: PARTICIPANT_ID,
+    prolific_pid: PROLIFIC_PID,
+    prolific_study_id: STUDY_ID,
+    prolific_session_id: SESSION_ID,
     experiment_start_time: new Date().toISOString(),
 });
+{% endif %}
+
+// Plugin type mapping for jsPsych 8.x (string to object reference)
+const pluginTypeMap = {
+    'html-keyboard-response': jsPsychHtmlKeyboardResponse,
+    'html-button-response': jsPsychHtmlButtonResponse,
+    'html-slider-response': jsPsychHtmlSliderResponse,
+};
+
+/**
+ * Convert trial objects from JSON format (string types) to jsPsych 8.x format (object references)
+ */
+function convertTrialTypes(trials) {
+    return trials.map(trial => {
+        const converted = { ...trial };
+
+        // Convert plugin type from string to object reference
+        if (typeof trial.type === 'string' && pluginTypeMap[trial.type]) {
+            converted.type = pluginTypeMap[trial.type];
+        }
+
+        // Convert button_html from string template to function (for jsPsych 8.x)
+        if (typeof trial.button_html === 'string') {
+            const buttonTemplate = trial.button_html;
+            converted.button_html = function(choice) {
+                return buttonTemplate.replace(/%choice%/g, choice);
+            };
+        }
+
+        return converted;
+    });
+}
 
 // Build timeline
 const timeline = [];
@@ -49,16 +134,23 @@ timeline.push({
 {% endif %}
 
 // Randomizer function definition (must come before usage)
-{% if randomize_trial_order %}
+{% if randomizer_code %}
 {{ randomizer_code }}
 {% endif %}
 
 // Main experiment trials
-const experimentTrials = TIMELINE_DATA.trials || [];
+const experimentTrials = convertTrialTypes(TIMELINE_DATA.trials || []);
 
-{% if randomize_trial_order %}
+{% if randomizer_code %}
 // Randomize trials with constraint satisfaction
 const randomizedTrials = randomizeTrials(experimentTrials, PARTICIPANT_ID);
+timeline.push(...randomizedTrials);
+{% elif randomize_trial_order %}
+// Simple randomization (no constraints)
+const randomizedTrials = experimentTrials
+    .map(trial => ({ trial, sort: Math.random() }))
+    .sort((a, b) => a.sort - b.sort)
+    .map(({ trial }) => trial);
 timeline.push(...randomizedTrials);
 {% else %}
 // Use trials in original order
@@ -70,33 +162,33 @@ timeline.push({
     type: jsPsychHtmlKeyboardResponse,
     stimulus: `
         <div class="completion">
-            <h2>Complete</h2>
+            <h2>✓ Complete</h2>
             <p>Thank you for participating!</p>
+            <p>Your responses have been recorded.</p>
             {% if on_finish_url %}
             <p><em>You will be redirected shortly...</em></p>
             {% else %}
-            <p><em>Press any key to view your data</em></p>
+            <p><em>You may close this window.</em></p>
             {% endif %}
         </div>
     `,
-    choices: {% if on_finish_url %}"NO_KEYS"{% else %}"ALL_KEYS"{% endif %},
+    choices: "NO_KEYS",
     trial_duration: {% if on_finish_url %}2000{% else %}null{% endif %},
     data: {
         trial_type: 'completion'
     }
 });
 
-// Manual progress bar updates
-let currentTrial = 0;
-const totalTrials = experimentTrials.length;
+{% if use_jatos %}
+// JATOS mode: Wait for JATOS to load, then run experiment
+jatos.onLoad(() => {
+    // Initialize participant data from JATOS URL parameters
+    initializeJATOSParticipantData();
 
-jsPsych.opts.on_trial_start = function() {
-    if (currentTrial <= totalTrials) {
-        const progress = currentTrial / totalTrials;
-        jsPsych.setProgressBar(progress);
-        currentTrial++;
-    }
-};
-
-// Run the experiment
+    // Run the experiment
+    jsPsych.run(timeline);
+});
+{% else %}
+// Standalone mode: Run the experiment immediately
 jsPsych.run(timeline);
+{% endif %}

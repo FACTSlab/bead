@@ -400,9 +400,10 @@ def _create_forced_choice_trial(
     dict[str, Any]
         A jsPsych html-button-response trial object.
     """
-    # For forced choice, we expect the item to have a primary stimulus
-    # and multiple choice options in rendered_elements
-    stimulus_html = _generate_stimulus_html(item, include_all=False)
+    # For forced choice, use the prompt from the template as the stimulus
+    # (not the choices themselves)
+    prompt = template.task_spec.prompt if template.task_spec else "Which option do you choose?"
+    stimulus_html = f'<div class="stimulus-container"><p class="prompt">{prompt}</p></div>'
 
     # Extract choices from rendered elements (excluding the main stimulus)
     # This assumes element names like "choice_0", "choice_1", etc.

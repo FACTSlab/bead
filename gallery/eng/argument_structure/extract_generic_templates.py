@@ -21,6 +21,7 @@ from bead.resources.template import Slot, Template
 
 from utils.constraint_builder import (
     build_be_participle_constraint,
+    build_be_subject_agreement_constraint,
     build_subject_verb_agreement_constraint,
 )
 
@@ -107,11 +108,11 @@ def create_progressive_variant(base_template: Template, tense: str) -> Template:
     be_participle_constraint = build_be_participle_constraint("be", "verb")
     progressive_constraints.append(be_participle_constraint)
 
-    # Add subject-verb agreement for {be} with {noun_subj} if needed
+    # Add subject-be agreement for {be} with {noun_subj} if needed
     if has_subject_verb_agreement and "noun_subj" in new_slots:
         det_subj = "det_subj" if "det_subj" in new_slots else None
         if det_subj:
-            be_agreement_constraint = build_subject_verb_agreement_constraint(
+            be_agreement_constraint = build_be_subject_agreement_constraint(
                 det_subj, "noun_subj", "be"
             )
             progressive_constraints.append(be_agreement_constraint)

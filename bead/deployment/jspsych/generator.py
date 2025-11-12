@@ -296,6 +296,7 @@ class JsPsychExperimentGenerator:
         html_content = template.render(
             title=self.config.title,
             ui_theme=self.config.ui_theme,
+            use_jatos=self.config.use_jatos,
             config_json=json.dumps(self.config.model_dump()),
             timeline_json=json.dumps(timeline_data),
         )
@@ -327,13 +328,22 @@ class JsPsychExperimentGenerator:
         """
         template = self.jinja_env.get_template("experiment.js.template")
 
+        # Auto-generate Prolific redirect URL if completion code is provided
+        on_finish_url = self.config.on_finish_url
+        if self.config.prolific_completion_code:
+            on_finish_url = (
+                f"https://app.prolific.co/submissions/complete?"
+                f"cc={self.config.prolific_completion_code}"
+            )
+
         js_content = template.render(
             title=self.config.title,
             description=self.config.description,
             instructions=self.config.instructions,
             show_progress_bar=self.config.show_progress_bar,
             randomize_trial_order=self.config.randomize_trial_order,
-            on_finish_url=self.config.on_finish_url,
+            use_jatos=self.config.use_jatos,
+            on_finish_url=on_finish_url,
             randomizer_code=randomizer_code,
         )
 

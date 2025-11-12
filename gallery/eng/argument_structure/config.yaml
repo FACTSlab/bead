@@ -137,10 +137,11 @@ template:
 
     # ========================================================================
     # BE FORMS - EXHAUSTIVE (no MLM)
+    # Constraints enforce subject-verb agreement
     # ========================================================================
     be:
       strategy: "exhaustive"
-      description: "All forms of 'be' (am, is, are, was, were, been, being)"
+      description: "All forms of 'be' (am, is, are, was, were, been, being) with constraint-based agreement"
 
     # ========================================================================
     # MAIN VERB - EXHAUSTIVE (no MLM)
@@ -316,10 +317,10 @@ lists:
   strategy: "quantile_balanced_minimal_pairs"
 
   # Number of experimental lists to create
-  n_lists: 8
+  n_lists: 16
 
   # Items per list
-  items_per_list: 100
+  items_per_list: 50
 
   # Quantile settings for difficulty stratification
   quantile_bins: 10
@@ -335,10 +336,10 @@ lists:
         different_verb: 50
       description: "Equal numbers of same-verb and different-verb pairs"
 
-    # Ensure verb uniqueness within lists (check both verb1 and verb2)
+    # Ensure verb uniqueness within lists (use verb for same-verb pairs, verb1 for different-verb pairs)
     - type: "uniqueness"
-      property_expression: "item.metadata.verb1"
-      description: "No verb1 appears multiple times in same list"
+      property_expression: "item.metadata.get('verb1', item.metadata.get('verb'))"
+      description: "No verb appears multiple times in same list"
 
     # Stratify by LM score difference (grouped by pair type)
     - type: "grouped_quantile"
@@ -380,7 +381,7 @@ lists:
 
     # Ensure no verb appears in more than 4 lists
     - type: "diversity"
-      property_expression: "item['verb1']"
+      property_expression: "item.get('verb1', item.get('verb'))"
       max_lists_per_value: 4
       description: "Spread verbs across participants (max 4/8 lists per verb)"
 
@@ -531,7 +532,19 @@ deployment:
 
   # jsPsych configuration
   jspsych:
-    version: "7.3.0"
+    version: "8.0.0"  # Using jsPsych 8.x
+
+    # JATOS integration (recommended for Prolific)
+    use_jatos: true  # Enable JATOS integration (default: true)
+
+    # Prolific integration (optional)
+    # When deploying on Prolific via JATOS:
+    # 1. Set prolific_completion_code to the code from your Prolific study
+    # 2. The system will automatically generate the redirect URL
+    # 3. Prolific participant IDs (PROLIFIC_PID, STUDY_ID, SESSION_ID) will be captured
+    prolific_completion_code: null  # Set to your Prolific completion code when deploying
+    # Example: prolific_completion_code: "C1A2B3C4"
+    # This will auto-generate: https://app.prolific.co/submissions/complete?cc=C1A2B3C4
 
     # Trial settings
     trial:

@@ -163,59 +163,76 @@ def main() -> None:
     for item in items_dict.values():
         item.item_template_id = template.id
 
-    # Create ExperimentConfig for jsPsych
+    # Create ExperimentConfig for jsPsych (base configuration)
     console.rule("[5/6] Generating jsPsych Experiments")
 
-    experiment_config = ExperimentConfig(
-        experiment_type="forced_choice",
-        title=experiment_config_dict.get("title", "Sentence Acceptability Judgments"),
-        description=experiment_config_dict.get(
+    base_config_dict = {
+        "experiment_type": "forced_choice",
+        "title": experiment_config_dict.get("title", "Sentence Acceptability Judgments"),
+        "description": experiment_config_dict.get(
             "description", "Rate which sentence sounds more natural"
         ),
-        instructions=experiment_config_dict.get(
+        "instructions": experiment_config_dict.get(
             "instructions",
             "You will see pairs of sentences. Please select the sentence that sounds more natural to you.",
         ),
-        randomize_trial_order=jspsych_config.get("randomize_order", True),
-        show_progress_bar=True,
-    )
+        "randomize_trial_order": jspsych_config.get("randomize_order", True),
+        "show_progress_bar": True,
+    }
 
     choice_config = ChoiceConfig(
         randomize_choice_order=jspsych_config.get("randomize_choices", True),
         required=True,
     )
 
-    # Generate jsPsych experiment for each list
-    output_dir = base_dir / args.output_dir
-    output_dir.mkdir(parents=True, exist_ok=True)
+    # Generate TWO versions: local (standalone) and jatos (deployment)
+    versions = [
+        ("local", False),   # Standalone version for local testing
+        ("jatos", True),    # JATOS version for deployment
+    ]
 
-    for i, exp_list in track(
-        enumerate(selected_lists),
-        description="Generating experiments",
-        total=len(selected_lists),
-    ):
-        list_output_dir = output_dir / f"list_{i + 1:02d}"
+    for version_name, use_jatos in versions:
+        console.print(f"\n[bold]Generating {version_name} version (use_jatos={use_jatos})[/bold]")
 
-        generator = JsPsychExperimentGenerator(
-            config=experiment_config,
-            output_dir=list_output_dir,
-            choice_config=choice_config,
+        # Create version-specific config
+        experiment_config = ExperimentConfig(
+            **base_config_dict,
+            use_jatos=use_jatos,
         )
 
-        try:
-            generator.generate(
-                lists=[exp_list],
-                items=items_dict,
-                templates=templates_dict,
+        # Create version-specific output directory
+        output_dir = base_dir / args.output_dir / version_name
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        for i, exp_list in track(
+            enumerate(selected_lists),
+            description=f"Generating {version_name} experiments",
+            total=len(selected_lists),
+        ):
+            list_output_dir = output_dir / f"list_{i + 1:02d}"
+
+            generator = JsPsychExperimentGenerator(
+                config=experiment_config,
+                output_dir=list_output_dir,
+                choice_config=choice_config,
             )
-        except Exception as e:
-            console.print(f"[red]✗[/red] Error generating list {i + 1}: {e}")
-            import traceback
 
-            traceback.print_exc()
-            sys.exit(1)
+            try:
+                generator.generate(
+                    lists=[exp_list],
+                    items=items_dict,
+                    templates=templates_dict,
+                )
+            except Exception as e:
+                console.print(f"[red]✗[/red] Error generating {version_name} list {i + 1}: {e}")
+                import traceback
 
-    console.print(f"[green]✓[/green] Generated {n_lists} jsPsych experiments\n")
+                traceback.print_exc()
+                sys.exit(1)
+
+        console.print(f"[green]✓[/green] Generated {n_lists} {version_name} experiments")
+
+    console.print()
 
     # Export to JATOS if requested
     if not args.no_jatos:
@@ -228,13 +245,15 @@ def main() -> None:
             ),
         )
 
+        jatos_dir = base_dir / args.output_dir / "jatos"
+
         for i, _ in track(
             enumerate(selected_lists),
             description="Exporting to JATOS",
             total=len(selected_lists),
         ):
-            list_dir = output_dir / f"list_{i + 1:02d}"
-            jzip_path = output_dir / f"list_{i + 1:02d}.jzip"
+            list_dir = jatos_dir / f"list_{i + 1:02d}"
+            jzip_path = jatos_dir / f"list_{i + 1:02d}.jzip"
 
             try:
                 exporter.export(
@@ -257,7 +276,8 @@ def main() -> None:
     console.rule("[bold]Deployment Summary[/bold]")
     table = Table(show_header=False, box=None, padding=(0, 2))
     table.add_row("Lists generated:", f"[cyan]{n_lists}[/cyan]")
-    table.add_row("Output directory:", f"[cyan]{output_dir}[/cyan]")
+    table.add_row("Versions:", f"[cyan]local (standalone) + jatos (deployment)[/cyan]")
+    table.add_row("Output directory:", f"[cyan]{base_dir / args.output_dir}[/cyan]")
     table.add_row(
         "Total items deployed:",
         f"[cyan]{sum(len(lst.item_refs) for lst in selected_lists)}[/cyan]",
@@ -269,13 +289,16 @@ def main() -> None:
 
     if not args.no_jatos:
         table.add_row("", "")
-        table.add_row("JATOS packages:", f"[cyan]{output_dir}/*.jzip[/cyan]")
+        table.add_row("JATOS packages:", f"[cyan]{base_dir / args.output_dir / 'jatos'}/*.jzip[/cyan]")
 
     console.print(table)
 
+    console.print(
+        "\n[dim]Local version: Open deployment/local/list_XX/index.html in browser[/dim]"
+    )
     if not args.no_jatos:
         console.print(
-            "\n[dim]Upload .jzip files to your JATOS server to deploy the experiment.[/dim]"
+            "[dim]JATOS version: Upload .jzip files to your JATOS server[/dim]"
         )
 
 

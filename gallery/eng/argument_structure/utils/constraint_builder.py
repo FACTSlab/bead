@@ -374,6 +374,58 @@ def build_subject_verb_agreement_constraint(
     )
 
 
+def build_be_subject_agreement_constraint(
+    det_slot: str, noun_slot: str, be_slot: str
+) -> Constraint:
+    """Build subject-be number agreement constraint for English auxiliary 'be'.
+
+    Rules (noun subjects are always 3rd person):
+    - Singular noun → be must be 3rd person singular (is/was)
+    - Plural noun → be must be plural (are/were)
+
+    This is stricter than build_subject_verb_agreement_constraint because
+    'be' has full person/number paradigm, not just 3SG vs non-3SG.
+
+    Parameters
+    ----------
+    det_slot : str
+        Name of the subject determiner slot
+    noun_slot : str
+        Name of the subject noun slot
+    be_slot : str
+        Name of the be slot
+
+    Returns
+    -------
+    Constraint
+        DSL constraint enforcing subject-be agreement
+
+    Examples
+    --------
+    >>> constraint = build_be_subject_agreement_constraint("det_subj", "noun_subj", "be")
+    >>> "singular" in constraint.expression
+    True
+    """
+    # Strict agreement for auxiliary be with noun subjects (3rd person):
+    # - Singular noun → be must be 3SG (is/was)
+    # - Plural noun → be must be PL (are/were)
+    expression = (
+        f"("
+        f"  ({noun_slot}.features.get('number') == 'singular' and "
+        f"   {be_slot}.features.get('person') == '3' and "
+        f"   {be_slot}.features.get('number') == 'SG')"
+        f") or ("
+        f"  ({noun_slot}.features.get('number') == 'plural' and "
+        f"   {be_slot}.features.get('number') == 'PL')"
+        f")"
+    )
+
+    return Constraint(
+        expression=expression,
+        description=f"Subject-verb number agreement between {noun_slot} and {be_slot}",
+    )
+
+
 def build_be_participle_constraint(be_slot: str, verb_slot: str) -> Constraint:
     """Build be + participle agreement constraint for progressive aspect.
 

@@ -46,12 +46,19 @@ class ExperimentConfig(BaseModel):
         UI theme for the experiment (light, dark, auto; default: light)
     on_finish_url : str | None
         URL to redirect to after experiment completion (default: None)
+        If prolific_completion_code is set, this will be auto-generated
     allow_backwards : bool
         Whether participants can go back to previous trials (default: False)
     show_click_target : bool
         Whether to show click target for accuracy tracking (default: False)
     minimum_duration_ms : int
         Minimum trial duration in milliseconds (default: 0)
+    use_jatos : bool
+        Whether to enable JATOS integration (default: True)
+    prolific_completion_code : str | None
+        Prolific completion code for automatic redirect URL generation (default: None)
+        When set, on_finish_url will be auto-generated as:
+        https://app.prolific.co/submissions/complete?cc=<code>
 
     Examples
     --------
@@ -84,6 +91,8 @@ class ExperimentConfig(BaseModel):
     allow_backwards: bool = Field(default=False)
     show_click_target: bool = Field(default=False)
     minimum_duration_ms: int = Field(default=0, ge=0)
+    use_jatos: bool = Field(default=True)
+    prolific_completion_code: str | None = Field(default=None)
 
 
 class RatingScaleConfig(BaseModel):
