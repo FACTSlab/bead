@@ -48,6 +48,11 @@ timeline.push({
 });
 {% endif %}
 
+// Randomizer function definition (must come before usage)
+{% if randomize_trial_order %}
+{{ randomizer_code }}
+{% endif %}
+
 // Main experiment trials
 const experimentTrials = TIMELINE_DATA.trials || [];
 
@@ -95,7 +100,3 @@ jsPsych.opts.on_trial_start = function() {
 
 // Run the experiment
 jsPsych.run(timeline);
-
-{% if randomize_trial_order %}
-{{ randomizer_code }}
-{% endif %}
