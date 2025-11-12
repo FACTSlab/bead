@@ -5,8 +5,8 @@ from __future__ import annotations
 import pytest
 
 from bead.resources.constraints import Constraint
-from bead.resources.lexicon import Lexicon
 from bead.resources.lexical_item import LexicalItem
+from bead.resources.lexicon import Lexicon
 from bead.resources.template import Slot, Template
 from bead.templates.filler import FilledTemplate
 from bead.templates.streaming import StreamingFiller
@@ -18,14 +18,18 @@ def sample_lexicon() -> Lexicon:
     lexicon = Lexicon(name="test_lexicon")
 
     # Add nouns
-    lexicon.add(LexicalItem(lemma="cat", pos="NOUN", language_code="en"))
-    lexicon.add(LexicalItem(lemma="dog", pos="NOUN", language_code="en"))
-    lexicon.add(LexicalItem(lemma="bird", pos="NOUN", language_code="en"))
+    lexicon.add(LexicalItem(lemma="cat", language_code="en", features={"pos": "NOUN"}))
+    lexicon.add(LexicalItem(lemma="dog", language_code="en", features={"pos": "NOUN"}))
+    lexicon.add(LexicalItem(lemma="bird", language_code="en", features={"pos": "NOUN"}))
 
     # Add verbs
-    lexicon.add(LexicalItem(lemma="broke", pos="VERB", language_code="en"))
-    lexicon.add(LexicalItem(lemma="ate", pos="VERB", language_code="en"))
-    lexicon.add(LexicalItem(lemma="found", pos="VERB", language_code="en"))
+    lexicon.add(
+        LexicalItem(lemma="broke", language_code="en", features={"pos": "VERB"})
+    )
+    lexicon.add(LexicalItem(lemma="ate", language_code="en", features={"pos": "VERB"}))
+    lexicon.add(
+        LexicalItem(lemma="found", language_code="en", features={"pos": "VERB"})
+    )
 
     return lexicon
 
@@ -39,11 +43,15 @@ def simple_template() -> Template:
         slots={
             "subject": Slot(
                 name="subject",
-                constraints=[Constraint(expression="self.pos == 'NOUN'")],
+                constraints=[
+                    Constraint(expression="self.features.get('pos') == 'NOUN'")
+                ],
             ),
             "verb": Slot(
                 name="verb",
-                constraints=[Constraint(expression="self.pos == 'VERB'")],
+                constraints=[
+                    Constraint(expression="self.features.get('pos') == 'VERB'")
+                ],
             ),
         },
     )
@@ -106,8 +114,12 @@ def test_streaming_early_termination(
 def test_streaming_language_filtering(sample_lexicon: Lexicon) -> None:
     """Test language code filtering in streaming."""
     # Add Spanish items
-    sample_lexicon.add(LexicalItem(lemma="gato", pos="NOUN", language_code="es"))
-    sample_lexicon.add(LexicalItem(lemma="perro", pos="NOUN", language_code="es"))
+    sample_lexicon.add(
+        LexicalItem(lemma="gato", language_code="es", features={"pos": "NOUN"})
+    )
+    sample_lexicon.add(
+        LexicalItem(lemma="perro", language_code="es", features={"pos": "NOUN"})
+    )
 
     template = Template(
         name="simple",
@@ -115,7 +127,9 @@ def test_streaming_language_filtering(sample_lexicon: Lexicon) -> None:
         slots={
             "noun": Slot(
                 name="noun",
-                constraints=[Constraint(expression="self.pos == 'NOUN'")],
+                constraints=[
+                    Constraint(expression="self.features.get('pos') == 'NOUN'")
+                ],
             ),
         },
     )
@@ -141,7 +155,9 @@ def test_streaming_empty_slot_error(sample_lexicon: Lexicon) -> None:
         slots={
             "adverb": Slot(
                 name="adverb",
-                constraints=[Constraint(expression="self.pos == 'ADV'")],
+                constraints=[
+                    Constraint(expression="self.features.get('pos') == 'ADV'")
+                ],
             ),
         },
     )
@@ -160,7 +176,9 @@ def test_streaming_single_slot(sample_lexicon: Lexicon) -> None:
         slots={
             "noun": Slot(
                 name="noun",
-                constraints=[Constraint(expression="self.pos == 'NOUN'")],
+                constraints=[
+                    Constraint(expression="self.features.get('pos') == 'NOUN'")
+                ],
             ),
         },
     )
@@ -204,8 +222,12 @@ def test_streaming_rendered_text(
 def test_streaming_complex_template(sample_lexicon: Lexicon) -> None:
     """Test streaming with complex multi-slot template."""
     # Add adjectives for more complexity
-    sample_lexicon.add(LexicalItem(lemma="quick", pos="ADJ", language_code="en"))
-    sample_lexicon.add(LexicalItem(lemma="lazy", pos="ADJ", language_code="en"))
+    sample_lexicon.add(
+        LexicalItem(lemma="quick", language_code="en", features={"pos": "ADJ"})
+    )
+    sample_lexicon.add(
+        LexicalItem(lemma="lazy", language_code="en", features={"pos": "ADJ"})
+    )
 
     template = Template(
         name="complex",
@@ -213,15 +235,21 @@ def test_streaming_complex_template(sample_lexicon: Lexicon) -> None:
         slots={
             "adj": Slot(
                 name="adj",
-                constraints=[Constraint(expression="self.pos == 'ADJ'")],
+                constraints=[
+                    Constraint(expression="self.features.get('pos') == 'ADJ'")
+                ],
             ),
             "noun": Slot(
                 name="noun",
-                constraints=[Constraint(expression="self.pos == 'NOUN'")],
+                constraints=[
+                    Constraint(expression="self.features.get('pos') == 'NOUN'")
+                ],
             ),
             "verb": Slot(
                 name="verb",
-                constraints=[Constraint(expression="self.pos == 'VERB'")],
+                constraints=[
+                    Constraint(expression="self.features.get('pos') == 'VERB'")
+                ],
             ),
         },
     )
@@ -279,7 +307,9 @@ def test_streaming_empty_lexicon() -> None:
         slots={
             "word": Slot(
                 name="word",
-                constraints=[Constraint(expression="self.pos == 'NOUN'")],
+                constraints=[
+                    Constraint(expression="self.features.get('pos') == 'NOUN'")
+                ],
             ),
         },
     )

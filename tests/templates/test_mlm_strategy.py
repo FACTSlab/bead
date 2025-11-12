@@ -7,8 +7,8 @@ from unittest.mock import MagicMock
 import pytest
 
 from bead.resources.constraints import Constraint
-from bead.resources.lexicon import Lexicon
 from bead.resources.lexical_item import LexicalItem
+from bead.resources.lexicon import Lexicon
 from bead.resources.template import Slot, Template
 from bead.templates.resolver import ConstraintResolver
 from bead.templates.strategies import MLMFillingStrategy
@@ -33,6 +33,12 @@ def mock_model_adapter() -> MagicMock:
         ("walk", -2.0),
         ("jump", -3.0),
     ]
+
+    # Mock predict_masked_token_batch to return the right number of predictions
+    def batch_predict(texts, **kwargs):
+        return [[("run", -1.0), ("walk", -2.0), ("jump", -3.0)] for _ in texts]
+
+    adapter.predict_masked_token_batch.side_effect = batch_predict
     return adapter
 
 
@@ -41,10 +47,10 @@ def sample_lexicon() -> Lexicon:
     """Create sample lexicon with motion verbs."""
     lexicon = Lexicon(name="test_verbs")
     items = [
-        LexicalItem(lemma="run", pos="VERB", language_code="en"),
-        LexicalItem(lemma="walk", pos="VERB", language_code="en"),
-        LexicalItem(lemma="jump", pos="VERB", language_code="en"),
-        LexicalItem(lemma="sit", pos="VERB", language_code="en"),
+        LexicalItem(lemma="run", language_code="en", features={"pos": "VERB"}),
+        LexicalItem(lemma="walk", language_code="en", features={"pos": "VERB"}),
+        LexicalItem(lemma="jump", language_code="en", features={"pos": "VERB"}),
+        LexicalItem(lemma="sit", language_code="en", features={"pos": "VERB"}),
     ]
     for item in items:
         lexicon.add(item)
@@ -55,7 +61,7 @@ def sample_lexicon() -> Lexicon:
 def constrained_template() -> Template:
     """Create template with DSL constraint."""
     # Constraint: verb must be VERB pos
-    constraint = Constraint(expression="self.pos == 'VERB'")
+    constraint = Constraint(expression="self.features.get('pos') == 'VERB'")
 
     slot = Slot(name="verb", constraints=[constraint])
 
@@ -95,7 +101,7 @@ def test_mlm_strategy_constraint_checking(
     assert len(candidates) > 0
     # All candidates should be verbs
     for item, _log_prob in candidates:
-        assert item.pos == "VERB"
+        assert item.features.get("pos") == "VERB"
     # Should have found matching items
     lemmas = {item.lemma for item, _ in candidates}
     assert "run" in lemmas or "walk" in lemmas or "jump" in lemmas
@@ -187,7 +193,7 @@ def test_mlm_strategy_max_fills(
     sample_lexicon: Lexicon,
 ) -> None:
     """Test MLMFillingStrategy with max_fills limiting candidates."""
-    constraint = Constraint(expression="self.pos == 'VERB'")
+    constraint = Constraint(expression="self.features.get('pos') == 'VERB'")
     slot = Slot(name="verb", constraints=[constraint])
     template = Template(
         name="test",
@@ -223,7 +229,7 @@ def test_mlm_strategy_enforce_unique(
     sample_lexicon: Lexicon,
 ) -> None:
     """Test MLMFillingStrategy with uniqueness enforcement."""
-    constraint = Constraint(expression="self.pos == 'VERB'")
+    constraint = Constraint(expression="self.features.get('pos') == 'VERB'")
     slot = Slot(name="verb", constraints=[constraint])
     template = Template(
         name="test",
@@ -264,7 +270,7 @@ def test_mlm_strategy_max_fills_with_enforce_unique(
     sample_lexicon: Lexicon,
 ) -> None:
     """Test MLMFillingStrategy with both max_fills and enforce_unique."""
-    constraint = Constraint(expression="self.pos == 'VERB'")
+    constraint = Constraint(expression="self.features.get('pos') == 'VERB'")
     slot = Slot(name="verb", constraints=[constraint])
     template = Template(
         name="test",
@@ -307,7 +313,7 @@ def test_mlm_strategy_per_slot_config(
     sample_lexicon: Lexicon,
 ) -> None:
     """Test MLMFillingStrategy with per-slot max_fills and enforce_unique."""
-    constraint = Constraint(expression="self.pos == 'VERB'")
+    constraint = Constraint(expression="self.features.get('pos') == 'VERB'")
     slot = Slot(name="verb", constraints=[constraint])
     template = Template(
         name="test",
@@ -324,11 +330,13 @@ def test_mlm_strategy_per_slot_config(
     )
 
     # Generate from template
-    results = list(strategy.generate_from_template(
-        template=template,
-        lexicons=[sample_lexicon],
-        language_code="en",
-    ))
+    results = list(
+        strategy.generate_from_template(
+            template=template,
+            lexicons=[sample_lexicon],
+            language_code="en",
+        )
+    )
 
     # Should generate results
     assert len(results) > 0

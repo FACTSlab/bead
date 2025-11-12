@@ -176,15 +176,15 @@ def mock_lexicon_file(tmp_path: Path) -> Path:
     lexicon.add(
         LexicalItem(
             lemma="run",
-            pos="VERB",
             language_code="eng",
+            features={"pos": "VERB"},
         )
     )
     lexicon.add(
         LexicalItem(
             lemma="walk",
-            pos="VERB",
             language_code="eng",
+            features={"pos": "VERB"},
         )
     )
 
@@ -246,9 +246,9 @@ def mock_filled_templates_file(tmp_path: Path) -> Path:
         Path to mock filled templates file.
     """
     # Create lexical items for slot fillers
-    subject = LexicalItem(lemma="dog", pos="NOUN")
-    verb = LexicalItem(lemma="ran", pos="VERB")
-    obj = LexicalItem(lemma="ball", pos="NOUN")
+    subject = LexicalItem(lemma="dog", language_code="eng", features={"pos": "NOUN"})
+    verb = LexicalItem(lemma="ran", language_code="eng", features={"pos": "VERB"})
+    obj = LexicalItem(lemma="ball", language_code="eng", features={"pos": "NOUN"})
 
     filled_template = FilledTemplate(
         template_id=str(uuid4()),

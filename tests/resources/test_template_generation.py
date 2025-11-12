@@ -110,8 +110,8 @@ class TestFrameToTemplateMapper:
         assert metadata["verb_lemma"] == "think"
         assert metadata["language"] == "eng"
 
-    def test_create_template_metadata_non_dict_frame(self) -> None:
-        """Test create_template_metadata() with non-dict frame data."""
+    def test_create_template_metadata_empty_frame(self) -> None:
+        """Test create_template_metadata() with empty frame data."""
 
         class ConcreteMapper(FrameToTemplateMapper):
             def generate_from_frame(self, *args, **kwargs):
@@ -124,12 +124,12 @@ class TestFrameToTemplateMapper:
                 return []
 
         mapper = ConcreteMapper()
-        frame_data = "some_frame_string"
+        frame_data: dict[str, Any] = {}
         metadata = mapper.create_template_metadata(frame_data, extra_key="value")
 
         # Should just contain additional metadata
         assert metadata["extra_key"] == "value"
-        assert "some_frame_string" not in metadata
+        assert len(metadata) == 1
 
 
 class TestMultiFrameMapper:
@@ -168,7 +168,7 @@ class TestMultiFrameMapper:
                 return {
                     "subject": Slot(name="subject"),
                     "verb": Slot(name="verb"),
-                    "complement": Slot(name="complement")
+                    "complement": Slot(name="complement"),
                 }
 
             def generate_constraints(self, frame_data, slots):

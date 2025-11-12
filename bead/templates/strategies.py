@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import logging
 import random
+import time
 from abc import ABC, abstractmethod
 from collections.abc import Iterator
 from typing import Literal, cast
@@ -19,6 +21,8 @@ from bead.templates.adapters import HuggingFaceMLMAdapter, ModelOutputCache
 from bead.templates.combinatorics import cartesian_product
 from bead.templates.filler import FilledTemplate, TemplateFiller
 from bead.templates.resolver import ConstraintResolver
+
+logger = logging.getLogger(__name__)
 
 # Type aliases for strategy configuration
 ConfigValue = (
@@ -520,12 +524,23 @@ class MLMFillingStrategy(FillingStrategy):
         dict[str, LexicalItem]
             Slot-to-item mappings
         """
+        logger.info(
+            f"[MLMFillingStrategy] Starting beam search for template: {template.name}"
+        )
+
         # Get slot names and order
         slot_names = list(template.slots.keys())
         if not slot_names:
             return
 
         fill_order = self._get_fill_order(len(slot_names))
+        logger.info(
+            f"[MLMFillingStrategy] Slots to fill ({len(slot_names)}): {slot_names}"
+        )
+        logger.info(
+            f"[MLMFillingStrategy] Fill order: {[slot_names[i] for i in fill_order]}"
+        )
+        logger.info(f"[MLMFillingStrategy] Beam size: {self.beam_size}")
 
         # Initialize beam with empty hypothesis
         # Each beam item: (filled_slots_dict, cumulative_log_prob)
@@ -537,45 +552,83 @@ class MLMFillingStrategy(FillingStrategy):
         }
 
         # Fill slots in order
-        for slot_idx in fill_order:
+        beam_start = time.time()
+        for step_num, slot_idx in enumerate(fill_order, 1):
+            step_start = time.time()
             slot_name = slot_names[slot_idx]
             slot = template.slots[slot_name]
+            logger.info(
+                f"[MLMFillingStrategy] Step {step_num}/{len(fill_order)}: Filling slot '{slot_name}', current beam size: {len(beam)}"  # noqa: E501
+            )
 
             new_beam: list[tuple[dict[str, LexicalItem], float]] = []
 
             # Check if uniqueness is enforced for this slot
             enforce_unique = self.per_slot_enforce_unique.get(slot_name, False)
             max_fills = self.per_slot_max_fills.get(slot_name, None)
+            logger.info(
+                f"[MLMFillingStrategy]   enforce_unique={enforce_unique}, max_fills={max_fills}"  # noqa: E501
+            )
 
-            # Expand each hypothesis in current beam
-            for filled_slots, cum_log_prob in beam:
-                # Get MLM candidates for this slot
-                candidates = self._get_mlm_candidates(
-                    template,
-                    slot_names,
-                    slot_idx,
-                    filled_slots,
-                    slot,
-                    lexicons,
-                    language_code,
-                    seen_items=seen_items_per_slot[slot_name]
-                    if enforce_unique
-                    else None,
-                    max_fills=max_fills,
+            # BATCHED: Get MLM predictions for all beam hypotheses at once
+            if beam:
+                # Collect masked texts for all hypotheses
+                masked_start = time.time()
+                masked_texts = []
+                for filled_slots, _ in beam:
+                    masked_text = self._create_masked_text(
+                        template, slot_names, filled_slots, slot_idx
+                    )
+                    masked_texts.append(masked_text)
+                masked_elapsed = time.time() - masked_start
+
+                # Batch predict - single model call for entire beam
+                logger.info(
+                    f"[MLMFillingStrategy]   Batch predicting for {len(masked_texts)} hypotheses..."  # noqa: E501
+                )
+                batch_start = time.time()
+                predictions_batch = self._get_mlm_predictions_batch(masked_texts)
+                batch_elapsed = time.time() - batch_start
+                logger.info(
+                    f"[MLMFillingStrategy]   Batch prediction took {batch_elapsed:.2f}s (masking took {masked_elapsed:.3f}s)"  # noqa: E501
                 )
 
-                # Add each candidate to beam
-                for item, log_prob in candidates:
-                    new_filled = filled_slots.copy()
-                    new_filled[slot_name] = item
-                    new_log_prob = cum_log_prob + log_prob
-                    new_beam.append((new_filled, new_log_prob))
+                # Expand each hypothesis with its predictions
+                expand_start = time.time()
+                total_candidates = 0
+                for (filled_slots, cum_log_prob), predictions in zip(
+                    beam, predictions_batch, strict=True
+                ):
+                    # Filter predictions to get candidates
+                    candidates = self._filter_mlm_predictions(
+                        predictions,
+                        slot,
+                        lexicons,
+                        language_code,
+                        seen_items=seen_items_per_slot[slot_name]
+                        if enforce_unique
+                        else None,
+                        max_fills=max_fills,
+                    )
+                    total_candidates += len(candidates)
 
-                    # Track seen items if uniqueness is enforced
-                    if enforce_unique:
-                        seen_items_per_slot[slot_name].add(item.id)
+                    # Add each candidate to beam
+                    for item, log_prob in candidates:
+                        new_filled = filled_slots.copy()
+                        new_filled[slot_name] = item
+                        new_log_prob = cum_log_prob + log_prob
+                        new_beam.append((new_filled, new_log_prob))
+
+                        # Track seen items if uniqueness is enforced
+                        if enforce_unique:
+                            seen_items_per_slot[slot_name].add(item.id)
+                expand_elapsed = time.time() - expand_start
+                logger.info(
+                    f"[MLMFillingStrategy]   Expanded beam with {total_candidates} total candidates in {expand_elapsed:.3f}s"  # noqa: E501
+                )
 
             # Prune beam to top-K by score (length-normalized)
+            prune_start = time.time()
             if new_beam:
                 # Length-normalize scores
                 num_filled = len(new_beam[0][0])
@@ -590,10 +643,27 @@ class MLMFillingStrategy(FillingStrategy):
                     (filled, cum_log_prob)
                     for filled, _, cum_log_prob in scored_beam[: self.beam_size]
                 ]
+                prune_elapsed = time.time() - prune_start
+                logger.info(
+                    f"[MLMFillingStrategy]   Pruned {len(new_beam)} hypotheses to {len(beam)} in {prune_elapsed:.3f}s"  # noqa: E501
+                )
             else:
                 # No valid candidates - empty beam
+                logger.warning(
+                    "[MLMFillingStrategy]   No valid candidates found! Beam is empty."
+                )
                 beam = []
                 break
+
+            step_elapsed = time.time() - step_start
+            logger.info(
+                f"[MLMFillingStrategy]   Step {step_num} completed in {step_elapsed:.2f}s\n"  # noqa: E501
+            )
+
+        beam_elapsed = time.time() - beam_start
+        logger.info(
+            f"[MLMFillingStrategy] Beam search complete in {beam_elapsed:.2f}s, yielding {len(beam)} hypotheses"  # noqa: E501
+        )
 
         # Yield final hypotheses
         count = 0
@@ -725,6 +795,156 @@ class MLMFillingStrategy(FillingStrategy):
                     self.top_k,
                     predictions,
                 )
+
+        # Filter by constraints and find matching lexical items
+        candidates: list[tuple[LexicalItem, float]] = []
+        for token, log_prob in predictions:
+            # Find matching items in lexicons
+            for lexicon in lexicons:
+                for item in lexicon.items.values():
+                    # Skip if already seen (uniqueness enforcement)
+                    if seen_items is not None and item.id in seen_items:
+                        continue
+
+                    # Match lemma and language
+                    if item.lemma.lower() == token.lower():
+                        if language_code is None or item.language_code == language_code:
+                            # Check slot constraints
+                            if slot.constraints:
+                                # Evaluate constraints using resolver
+                                if self.resolver.evaluate_slot_constraints(
+                                    item, slot.constraints
+                                ):
+                                    candidates.append((item, log_prob))
+                            else:
+                                candidates.append((item, log_prob))
+
+        # Apply max_fills limit (take top-N by log probability)
+        if max_fills is not None and len(candidates) > max_fills:
+            # Already sorted by log_prob (descending) from MLM predictions
+            # But need to ensure we take highest scoring ones
+            candidates.sort(key=lambda x: x[1], reverse=True)
+            candidates = candidates[:max_fills]
+
+        return candidates
+
+    def _get_mlm_predictions_batch(
+        self, masked_texts: list[str]
+    ) -> list[list[tuple[str, float]]]:
+        """Get MLM predictions for a batch of masked texts.
+
+        Parameters
+        ----------
+        masked_texts : list[str]
+            List of texts with mask tokens
+
+        Returns
+        -------
+        list[list[tuple[str, float]]]
+            Predictions for each text: list of (token, log_prob) tuples
+        """
+        cache_start = time.time()
+
+        # Check cache for each text first
+        predictions_batch: list[list[tuple[str, float]] | None] = []
+        texts_to_predict: list[int] = []  # Indices needing prediction
+
+        for i, masked_text in enumerate(masked_texts):
+            if self.cache:
+                predictions = self.cache.get(
+                    self.model_adapter.model_name,
+                    masked_text,
+                    0,  # First mask position
+                    self.top_k,
+                )
+            else:
+                predictions = None
+
+            predictions_batch.append(predictions)
+            if predictions is None:
+                texts_to_predict.append(i)
+
+        cache_elapsed = time.time() - cache_start
+        cache_hits = len(masked_texts) - len(texts_to_predict)
+        logger.info(
+            f"[MLMFillingStrategy]     Cache: {cache_hits}/"
+            f"{len(masked_texts)} hits in {cache_elapsed:.3f}s"
+        )
+
+        # Batch predict uncached texts
+        if texts_to_predict:
+            logger.info(
+                f"[MLMFillingStrategy]     Calling model for "
+                f"{len(texts_to_predict)} uncached texts..."
+            )
+            model_start = time.time()
+            uncached_texts = [masked_texts[i] for i in texts_to_predict]
+            new_predictions = self.model_adapter.predict_masked_token_batch(
+                uncached_texts,
+                mask_position=0,
+                top_k=self.top_k,
+            )
+            model_elapsed = time.time() - model_start
+            per_text = model_elapsed / len(texts_to_predict)
+            logger.info(
+                f"[MLMFillingStrategy]     Model inference took "
+                f"{model_elapsed:.2f}s ({per_text:.3f}s per text)"
+            )
+
+            # Fill in predictions and cache them
+            cache_write_start = time.time()
+            for idx, predictions in zip(texts_to_predict, new_predictions, strict=True):
+                predictions_batch[idx] = predictions
+                if self.cache:
+                    self.cache.set(
+                        self.model_adapter.model_name,
+                        masked_texts[idx],
+                        0,
+                        self.top_k,
+                        predictions,
+                    )
+            cache_write_elapsed = time.time() - cache_write_start
+            logger.info(
+                f"[MLMFillingStrategy]     Cache writes took {cache_write_elapsed:.3f}s"
+            )
+
+        # Convert None to empty list (shouldn't happen but for type safety)
+        return [p if p is not None else [] for p in predictions_batch]
+
+    def _filter_mlm_predictions(
+        self,
+        predictions: list[tuple[str, float]],
+        slot: Slot,
+        lexicons: list[Lexicon],
+        language_code: LanguageCode | None,
+        seen_items: set[UUID] | None = None,
+        max_fills: int | None = None,
+    ) -> list[tuple[LexicalItem, float]]:
+        """Filter MLM predictions to valid lexical items.
+
+        Parameters
+        ----------
+        predictions : list[tuple[str, float]]
+            Raw (token, log_prob) predictions from MLM
+        slot : Slot
+            Slot object with constraints
+        lexicons : list[Lexicon]
+            Lexicons for lookup
+        language_code : LanguageCode | None
+            Language filter
+        seen_items : set[UUID] | None
+            Set of item IDs already used (for uniqueness enforcement)
+        max_fills : int | None
+            Maximum number of candidates to return
+
+        Returns
+        -------
+        list[tuple[LexicalItem, float]]
+            Filtered (item, log_prob) pairs
+        """
+        # Normalize language code
+        if language_code is not None:
+            language_code = validate_iso639_code(language_code)
 
         # Filter by constraints and find matching lexical items
         candidates: list[tuple[LexicalItem, float]] = []
@@ -1193,7 +1413,12 @@ class MixedFillingStrategy(FillingStrategy):
         dict[str, LexicalItem]
             Complete slot-to-item mappings
         """
+        logger.info(f"[MixedFillingStrategy] Starting template: {template.name}")
+        logger.info(f"[MixedFillingStrategy] Phase 1 slots: {self.phase1_slots}")
+        logger.info(f"[MixedFillingStrategy] Phase 2 (MLM) slots: {self.phase2_slots}")
+
         # Phase 1: Fill non-MLM slots
+        phase1_start = time.time()
         if not self.phase1_slots:
             # No phase 1 slots - just use MLM for all phase 2 slots
             phase1_combinations: list[dict[str, LexicalItem]] = [{}]
@@ -1201,17 +1426,63 @@ class MixedFillingStrategy(FillingStrategy):
             phase1_combinations = self._generate_phase1_combinations(
                 template, lexicons, language_code
             )
+        phase1_elapsed = time.time() - phase1_start
+        logger.info(
+            f"[MixedFillingStrategy] Phase 1 generated "
+            f"{len(phase1_combinations)} combinations in {phase1_elapsed:.2f}s"
+        )
 
         # Phase 2: Fill MLM slots for each phase 1 combination
         if not self.phase2_slots:
             # No phase 2 slots - just yield phase 1 combinations
+            logger.info(
+                "[MixedFillingStrategy] No phase 2 slots, yielding phase 1 combinations"
+            )
             yield from phase1_combinations
         else:
-            for partial_combo in phase1_combinations:
-                # Fill remaining slots with MLM
-                yield from self._fill_mlm_slots(
-                    template, partial_combo, lexicons, language_code
+            logger.info(
+                f"[MixedFillingStrategy] Starting phase 2 for "
+                f"{len(phase1_combinations)} combinations..."
+            )
+            phase2_start = time.time()
+            total_yielded = 0
+            for i, partial_combo in enumerate(phase1_combinations):
+                combo_start = time.time()
+                if i == 0:
+                    # Debug first combo to see what's in it
+                    combo_slots = list(partial_combo.keys())
+                    combo_values = {k: v.lemma for k, v in partial_combo.items()}
+                    logger.info(
+                        f"[MixedFillingStrategy] First phase 1 combo has "
+                        f"slots: {combo_slots}"
+                    )
+                    logger.info(
+                        f"[MixedFillingStrategy] First phase 1 combo "
+                        f"values: {combo_values}"
+                    )
+                logger.info(
+                    f"[MixedFillingStrategy] Processing phase 1 combo "
+                    f"{i + 1}/{len(phase1_combinations)}"
                 )
+                # Fill remaining slots with MLM
+                n_yielded_for_combo = 0
+                for filled in self._fill_mlm_slots(
+                    template, partial_combo, lexicons, language_code
+                ):
+                    n_yielded_for_combo += 1
+                    total_yielded += 1
+                    yield filled
+                combo_elapsed = time.time() - combo_start
+                logger.info(
+                    f"[MixedFillingStrategy] Combo {i + 1} yielded "
+                    f"{n_yielded_for_combo} complete fillings in "
+                    f"{combo_elapsed:.2f}s"
+                )
+            phase2_elapsed = time.time() - phase2_start
+            logger.info(
+                f"[MixedFillingStrategy] Phase 2 complete: {total_yielded} "
+                f"total fillings in {phase2_elapsed:.2f}s"
+            )
 
     def _generate_phase1_combinations(
         self,

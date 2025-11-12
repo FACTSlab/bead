@@ -9,7 +9,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Any
 
-from bead.resources.constraints import Constraint
+from bead.resources.constraints import Constraint, ContextValue
 
 
 class ConstraintBuilder(ABC):
@@ -317,7 +317,7 @@ class SetMembershipConstraintBuilder(ConstraintBuilder):
             )
 
         expression: str
-        context: dict[str, set[str]]
+        context: dict[str, ContextValue]
 
         if allowed_values is not None:
             expression = f"{slot_name}.{property_path} in allowed_values"

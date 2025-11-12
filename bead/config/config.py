@@ -20,7 +20,7 @@ class BeadConfig(BaseModel):
     """Main configuration for the bead package.
 
     Reflects the actual bead/ module structure:
-    - active_learning: Active learning infrastructure (models, trainers, loop, selection)
+    - active_learning: Active learning (models, trainers, loop, selection)
     - data_collection: Human data collection (JATOS, Prolific)
     - deployment: Experiment deployment (jsPsych, JATOS)
     - evaluation: Model evaluation and metrics
@@ -181,9 +181,8 @@ class BeadConfig(BaseModel):
             not self.active_learning.trainer.logging_dir.exists()
             and self.active_learning.trainer.logging_dir.is_absolute()
         ):
-            errors.append(
-                f"logging_dir does not exist: {self.active_learning.trainer.logging_dir}"
-            )
+            log_dir = self.active_learning.trainer.logging_dir
+            errors.append(f"logging_dir does not exist: {log_dir}")
 
         # Check logging file
         if self.logging.file is not None and not self.logging.file.parent.exists():

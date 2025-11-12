@@ -257,9 +257,11 @@ def test_list_filled_with_pattern(cli_runner: CliRunner, tmp_path: Path) -> None
     # Create multiple filled template files
     for i in range(3):
         file_path = tmp_path / f"filled_{i}.jsonl"
-        subject = LexicalItem(lemma="cat", pos="NOUN")
-        verb = LexicalItem(lemma="ran", pos="VERB")
-        obj = LexicalItem(lemma="fast", pos="ADV")
+        subject = LexicalItem(
+            lemma="cat", language_code="eng", features={"pos": "NOUN"}
+        )
+        verb = LexicalItem(lemma="ran", language_code="eng", features={"pos": "VERB"})
+        obj = LexicalItem(lemma="fast", language_code="eng", features={"pos": "ADV"})
 
         filled = FilledTemplate(
             template_id="test_id",
@@ -330,9 +332,15 @@ def test_show_stats(cli_runner: CliRunner, tmp_path: Path) -> None:
 
     # Create multiple filled templates
     for i in range(10):
-        subject = LexicalItem(lemma=f"noun{i}", pos="NOUN")
-        verb = LexicalItem(lemma=f"verb{i}", pos="VERB")
-        obj = LexicalItem(lemma=f"obj{i}", pos="NOUN")
+        subject = LexicalItem(
+            lemma=f"noun{i}", language_code="eng", features={"pos": "NOUN"}
+        )
+        verb = LexicalItem(
+            lemma=f"verb{i}", language_code="eng", features={"pos": "VERB"}
+        )
+        obj = LexicalItem(
+            lemma=f"obj{i}", language_code="eng", features={"pos": "NOUN"}
+        )
 
         filled = FilledTemplate(
             template_id=f"template_{i % 3}",
@@ -380,9 +388,11 @@ def test_show_stats_with_varied_lengths(cli_runner: CliRunner, tmp_path: Path) -
     texts = ["short", "medium length text", "very long text that goes on and on"]
 
     for _i, text in enumerate(texts):
-        subject = LexicalItem(lemma="cat", pos="NOUN")
-        verb = LexicalItem(lemma="ran", pos="VERB")
-        obj = LexicalItem(lemma="fast", pos="ADV")
+        subject = LexicalItem(
+            lemma="cat", language_code="eng", features={"pos": "NOUN"}
+        )
+        verb = LexicalItem(lemma="ran", language_code="eng", features={"pos": "VERB"})
+        obj = LexicalItem(lemma="fast", language_code="eng", features={"pos": "ADV"})
 
         filled = FilledTemplate(
             template_id="test",

@@ -18,8 +18,8 @@ from utils.morphology import MorphologyExtractor
 from utils.verbnet_parser import VerbNetExtractor
 
 from bead.resources.adapters.cache import AdapterCache
-from bead.resources.lexicon import Lexicon
 from bead.resources.lexical_item import LexicalItem
+from bead.resources.lexicon import Lexicon
 from bead.resources.loaders import from_csv  # NEW: Use bead loader utilities
 
 
@@ -66,12 +66,11 @@ def main(verb_limit: int | None = None):
 
         # Add VerbNet metadata to each form
         for form_item in forms:
-            # Merge attributes from base verb and morphology
-            form_item.attributes.update(
+            form_item.features.update(
                 {
-                    "verbnet_class": base_verb.attributes.get("verbnet_class", ""),
-                    "themroles": base_verb.attributes.get("themroles", []),
-                    "frame_count": base_verb.attributes.get("frame_count", 0),
+                    "verbnet_class": base_verb.features.get("verbnet_class", ""),
+                    "themroles": base_verb.features.get("themroles", []),
+                    "frame_count": base_verb.features.get("frame_count", 0),
                 }
             )
 
@@ -98,15 +97,14 @@ def main(verb_limit: int | None = None):
 
     csv_path = resources_dir / "bleached_nouns.csv"
 
-    # REFACTORED: Use bead/resources/loaders.py
     noun_lexicon = from_csv(
         path=csv_path,
         name="bleached_nouns",
-        column_mapping={"word": "lemma"},  # CSV "word" → LexicalItem "lemma"
-        feature_columns=["number", "countability"],
-        attribute_columns=["semantic_class"],
+        column_mapping={"word": "lemma"},
+        feature_columns=["number", "countability", "semantic_class"],
         language_code="eng",
         description="Controlled noun inventory for templates",
+        pos="NOUN",
     )
 
     print(f"Loaded {len(noun_lexicon.items)} bleached nouns from {csv_path}")
@@ -122,15 +120,14 @@ def main(verb_limit: int | None = None):
 
     csv_path = resources_dir / "bleached_verbs.csv"
 
-    # REFACTORED: Use bead/resources/loaders.py
     bleached_verb_lexicon = from_csv(
         path=csv_path,
         name="bleached_verbs",
         column_mapping={"word": "lemma"},
-        feature_columns=["tense"],
-        attribute_columns=["semantic_class"],
+        feature_columns=["tense", "semantic_class"],
         language_code="eng",
         description="Controlled verb inventory for templates",
+        pos="VERB",
     )
 
     print(f"Loaded {len(bleached_verb_lexicon.items)} bleached verbs from {csv_path}")
@@ -146,14 +143,14 @@ def main(verb_limit: int | None = None):
 
     csv_path = resources_dir / "bleached_adjectives.csv"
 
-    # REFACTORED: Use bead/resources/loaders.py
     adj_lexicon = from_csv(
         path=csv_path,
         name="bleached_adjectives",
         column_mapping={"word": "lemma"},
-        attribute_columns=["semantic_class"],
+        feature_columns=["semantic_class"],
         language_code="eng",
         description="Controlled adjective inventory for templates",
+        pos="ADJ",
     )
 
     print(f"Loaded {len(adj_lexicon.items)} bleached adjectives from {csv_path}")
@@ -228,7 +225,10 @@ def main(verb_limit: int | None = None):
 
     for prep in prepositions:
         item = LexicalItem(
-            lemma=prep, pos="ADP", language_code="eng", features={}, attributes={}
+            lemma=prep,
+            language_code="eng",
+            features={"pos": "ADP"},
+            source="manual",
         )
         prep_items[str(item.id)] = item
 
@@ -255,7 +255,10 @@ def main(verb_limit: int | None = None):
 
     for det in determiners:
         item = LexicalItem(
-            lemma=det, pos="DET", language_code="eng", features={}, attributes={}
+            lemma=det,
+            language_code="eng",
+            features={"pos": "DET"},
+            source="manual",
         )
         det_items[str(item.id)] = item
 
@@ -302,17 +305,15 @@ def main(verb_limit: int | None = None):
     be_items: dict[str, LexicalItem] = {}
     for be_data in be_forms_data:
         form = be_data.pop("form")
+        features = {"pos": "VERB", **be_data}
         item = LexicalItem(
             lemma="be",
             form=form,
-            pos="V",
             language_code="eng",
-            features={"pos": "V", **be_data},
-            attributes={},
+            features=features,
+            source="manual",
         )
-        # Use unique key combining form and features for deduplication
-        key = str(item.id)
-        be_items[key] = item
+        be_items[str(item.id)] = item
 
     print(f"Created {len(be_items)} forms of 'be'")
 

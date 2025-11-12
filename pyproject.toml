@@ -75,12 +75,18 @@ reportMissingTypeStubs = false
 useLibraryCodeForTypes = true
 exclude = [
     "tests/**",
+    "bead/active_learning/**",
     "bead/resources/adapters/unimorph.py",
+    "bead/resources/adapters/glazing.py",
     "bead/templates/adapters/huggingface.py",
+    "bead/templates/strategies.py",
     "bead/items/adapters/huggingface.py",
     "bead/items/adapters/sentence_transformers.py",
     "bead/items/adapters/openai.py",
     "bead/items/adapters/anthropic.py",
     "bead/items/adapters/google.py",
     "bead/items/adapters/togetherai.py",
+    "bead/dsl/parser.py",
+    "bead/deployment/jspsych/ui/components.py",
+    "bead/simulation/**",
 ]

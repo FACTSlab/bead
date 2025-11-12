@@ -15,12 +15,12 @@ def test_exhaustive_strategy_two_slots() -> None:
     strategy = ExhaustiveStrategy()
     slot_items = {
         "a": [
-            LexicalItem(lemma="x", pos="A", language_code="en"),
-            LexicalItem(lemma="y", pos="A", language_code="en"),
+            LexicalItem(lemma="x", language_code="en", features={"pos": "A"}),
+            LexicalItem(lemma="y", language_code="en", features={"pos": "A"}),
         ],
         "b": [
-            LexicalItem(lemma="1", pos="B", language_code="en"),
-            LexicalItem(lemma="2", pos="B", language_code="en"),
+            LexicalItem(lemma="1", language_code="en", features={"pos": "B"}),
+            LexicalItem(lemma="2", language_code="en", features={"pos": "B"}),
         ],
     }
 
@@ -35,14 +35,14 @@ def test_exhaustive_strategy_three_slots() -> None:
     """Test exhaustive strategy with three slots."""
     strategy = ExhaustiveStrategy()
     slot_items = {
-        "a": [LexicalItem(lemma="x", pos="A", language_code="en")],
+        "a": [LexicalItem(lemma="x", language_code="en", features={"pos": "A"})],
         "b": [
-            LexicalItem(lemma="1", pos="B", language_code="en"),
-            LexicalItem(lemma="2", pos="B", language_code="en"),
+            LexicalItem(lemma="1", language_code="en", features={"pos": "B"}),
+            LexicalItem(lemma="2", language_code="en", features={"pos": "B"}),
         ],
         "c": [
-            LexicalItem(lemma="α", pos="C", language_code="en"),
-            LexicalItem(lemma="β", pos="C", language_code="en"),
+            LexicalItem(lemma="α", language_code="en", features={"pos": "C"}),
+            LexicalItem(lemma="β", language_code="en", features={"pos": "C"}),
         ],
     }
 
@@ -62,7 +62,7 @@ def test_exhaustive_strategy_empty_slot() -> None:
     """Test exhaustive strategy with empty slot."""
     strategy = ExhaustiveStrategy()
     slot_items = {
-        "a": [LexicalItem(lemma="x", pos="A", language_code="en")],
+        "a": [LexicalItem(lemma="x", language_code="en", features={"pos": "A"})],
         "b": [],
     }
 
@@ -86,9 +86,9 @@ def test_exhaustive_strategy_single_slot() -> None:
     strategy = ExhaustiveStrategy()
     slot_items = {
         "a": [
-            LexicalItem(lemma="x", pos="A", language_code="en"),
-            LexicalItem(lemma="y", pos="A", language_code="en"),
-            LexicalItem(lemma="z", pos="A", language_code="en"),
+            LexicalItem(lemma="x", language_code="en", features={"pos": "A"}),
+            LexicalItem(lemma="y", language_code="en", features={"pos": "A"}),
+            LexicalItem(lemma="z", language_code="en", features={"pos": "A"}),
         ],
     }
 
@@ -103,10 +103,12 @@ def test_random_strategy_sample_size() -> None:
     strategy = RandomStrategy(n_samples=5, seed=42)
     slot_items = {
         "a": [
-            LexicalItem(lemma=str(i), pos="A", language_code="en") for i in range(10)
+            LexicalItem(lemma=str(i), language_code="en", features={"pos": "A"})
+            for i in range(10)
         ],
         "b": [
-            LexicalItem(lemma=str(i), pos="B", language_code="en") for i in range(10)
+            LexicalItem(lemma=str(i), language_code="en", features={"pos": "B"})
+            for i in range(10)
         ],
     }
 
@@ -120,8 +122,14 @@ def test_random_strategy_deterministic() -> None:
     strategy1 = RandomStrategy(n_samples=10, seed=42)
     strategy2 = RandomStrategy(n_samples=10, seed=42)
     slot_items = {
-        "a": [LexicalItem(lemma=str(i), pos="A", language_code="en") for i in range(5)],
-        "b": [LexicalItem(lemma=str(i), pos="B", language_code="en") for i in range(5)],
+        "a": [
+            LexicalItem(lemma=str(i), language_code="en", features={"pos": "A"})
+            for i in range(5)
+        ],
+        "b": [
+            LexicalItem(lemma=str(i), language_code="en", features={"pos": "B"})
+            for i in range(5)
+        ],
     }
 
     combinations1 = strategy1.generate_combinations(slot_items)
@@ -156,7 +164,8 @@ def test_random_strategy_single_slot() -> None:
     strategy = RandomStrategy(n_samples=3, seed=42)
     slot_items = {
         "a": [
-            LexicalItem(lemma=str(i), pos="A", language_code="en") for i in range(10)
+            LexicalItem(lemma=str(i), language_code="en", features={"pos": "A"})
+            for i in range(10)
         ],
     }
 
@@ -176,10 +185,12 @@ def test_stratified_strategy_balanced() -> None:
 
     # Create items with different POS values
     verbs = [
-        LexicalItem(lemma=f"v{i}", pos="VERB", language_code="en") for i in range(10)
+        LexicalItem(lemma=f"v{i}", language_code="en", features={"pos": "VERB"})
+        for i in range(10)
     ]
     nouns = [
-        LexicalItem(lemma=f"n{i}", pos="NOUN", language_code="en") for i in range(10)
+        LexicalItem(lemma=f"n{i}", language_code="en", features={"pos": "NOUN"})
+        for i in range(10)
     ]
 
     slot_items = {
@@ -208,10 +219,12 @@ def test_stratified_strategy_deterministic() -> None:
     strategy2 = StratifiedStrategy(n_samples=10, grouping_property="pos", seed=42)
 
     verbs = [
-        LexicalItem(lemma=f"v{i}", pos="VERB", language_code="en") for i in range(5)
+        LexicalItem(lemma=f"v{i}", language_code="en", features={"pos": "VERB"})
+        for i in range(5)
     ]
     nouns = [
-        LexicalItem(lemma=f"n{i}", pos="NOUN", language_code="en") for i in range(5)
+        LexicalItem(lemma=f"n{i}", language_code="en", features={"pos": "NOUN"})
+        for i in range(5)
     ]
 
     slot_items = {"slot": verbs + nouns}
@@ -240,12 +253,12 @@ def test_stratified_strategy_multiple_slots() -> None:
 
     slot_items = {
         "a": [
-            LexicalItem(lemma="v1", pos="VERB", language_code="en"),
-            LexicalItem(lemma="n1", pos="NOUN", language_code="en"),
+            LexicalItem(lemma="v1", language_code="en", features={"pos": "VERB"}),
+            LexicalItem(lemma="n1", language_code="en", features={"pos": "NOUN"}),
         ],
         "b": [
-            LexicalItem(lemma="v2", pos="VERB", language_code="en"),
-            LexicalItem(lemma="n2", pos="NOUN", language_code="en"),
+            LexicalItem(lemma="v2", language_code="en", features={"pos": "VERB"}),
+            LexicalItem(lemma="n2", language_code="en", features={"pos": "NOUN"}),
         ],
     }
 

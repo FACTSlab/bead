@@ -97,7 +97,7 @@ class FreeTextStrategy(SimulationStrategy):
         if hasattr(item, "rendered_elements") and item.rendered_elements:
             # Get first text element as fallback
             for value in item.rendered_elements.values():
-                if isinstance(value, str) and len(value) > 0:
+                if len(value) > 0:
                     # Return first non-empty string
                     return value
 

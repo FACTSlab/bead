@@ -5,9 +5,9 @@ from pathlib import Path
 import pytest
 import yaml
 
+from bead.config.config import BeadConfig
 from bead.config.defaults import get_default_config
 from bead.config.loader import load_config
-from bead.config.config import BeadConfig
 from bead.config.serialization import config_to_dict, save_yaml, to_yaml
 
 

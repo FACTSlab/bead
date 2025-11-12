@@ -264,9 +264,13 @@ class TemplateGenerator:
             constraints = []
 
             if slot_type == "noun":
-                constraints = [Constraint(expression="self.pos == 'NOUN'")]
+                constraints = [
+                    Constraint(expression="self.features.get('pos') == 'NOUN'")
+                ]
             elif slot_type.startswith("verb"):
-                constraints = [Constraint(expression="self.pos == 'VERB'")]
+                constraints = [
+                    Constraint(expression="self.features.get('pos') == 'VERB'")
+                ]
                 # Add form constraints for specific verb forms
                 if slot_type == "verb_past":
                     constraints.append(
@@ -435,7 +439,9 @@ class TemplateGenerator:
                 slots[det_slot_name] = Slot(
                     name=det_slot_name,
                     description=det_description,
-                    constraints=[Constraint(expression="self.pos == 'DET'")],
+                    constraints=[
+                        Constraint(expression="self.features.get('pos') == 'DET'")
+                    ],
                     required=True,
                 )
 
@@ -443,7 +449,9 @@ class TemplateGenerator:
                 slots[noun_slot_name] = Slot(
                     name=noun_slot_name,
                     description=noun_description,
-                    constraints=[Constraint(expression="self.pos == 'NOUN'")],
+                    constraints=[
+                        Constraint(expression="self.features.get('pos') == 'NOUN'")
+                    ],
                     required=True,
                 )
 
@@ -458,7 +466,9 @@ class TemplateGenerator:
                 slots[slot_name] = Slot(
                     name=slot_name,
                     description="Main verb",
-                    constraints=[Constraint(expression="self.pos == 'VERB'")],
+                    constraints=[
+                        Constraint(expression="self.features.get('pos') == 'VERB'")
+                    ],
                     required=True,
                 )
                 template_parts.append(f"{{{slot_name}}}")
@@ -474,7 +484,9 @@ class TemplateGenerator:
                 slots[prep_slot] = Slot(
                     name=prep_slot,
                     description="Preposition",
-                    constraints=[Constraint(expression="self.pos == 'ADP'")],
+                    constraints=[
+                        Constraint(expression="self.features.get('pos') == 'ADP'")
+                    ],
                     required=True,
                 )
 
@@ -482,7 +494,9 @@ class TemplateGenerator:
                 slots[det_slot] = Slot(
                     name=det_slot,
                     description="Prepositional phrase object determiner",
-                    constraints=[Constraint(expression="self.pos == 'DET'")],
+                    constraints=[
+                        Constraint(expression="self.features.get('pos') == 'DET'")
+                    ],
                     required=True,
                 )
 
@@ -490,7 +504,9 @@ class TemplateGenerator:
                 slots[obj_slot] = Slot(
                     name=obj_slot,
                     description="Prepositional phrase object noun",
-                    constraints=[Constraint(expression="self.pos == 'NOUN'")],
+                    constraints=[
+                        Constraint(expression="self.features.get('pos') == 'NOUN'")
+                    ],
                     required=True,
                 )
 
@@ -644,12 +660,12 @@ def generate_templates_for_verb(
     """
     generator = TemplateGenerator()
 
-    if not include_frames or "frames" not in verb_item.attributes:
+    if not include_frames or "frames" not in verb_item.features:
         return []
 
     templates = []
-    frames = verb_item.attributes["frames"]
-    verbnet_class = verb_item.attributes.get("verbnet_class", "unknown")
+    frames = verb_item.features["frames"]
+    verbnet_class = verb_item.features.get("verbnet_class", "unknown")
 
     for frame in frames:
         frame_templates = generator.generate_from_frame(

@@ -12,7 +12,17 @@ import logging
 from typing import Any
 
 import numpy as np
+import psutil
 import torch
+from rich.progress import (
+    BarColumn,
+    Progress,
+    SpinnerColumn,
+    TaskProgressColumn,
+    TextColumn,
+    TimeElapsedColumn,
+    TimeRemainingColumn,
+)
 from transformers import (
     AutoConfig,
     AutoModelForCausalLM,
@@ -161,8 +171,6 @@ class HuggingFaceLanguageModel(HuggingFaceAdapterMixin, ModelAdapter):
         int
             Recommended batch size.
         """
-        import psutil
-
         # Estimate model size
         model_params = sum(
             p.numel() * p.element_size() for p in self.model.parameters()
@@ -183,9 +191,11 @@ class HuggingFaceLanguageModel(HuggingFaceAdapterMixin, ModelAdapter):
                 # Clamp between reasonable bounds
                 batch_size = max(8, min(batch_size, 256))
 
+                free_gb = free_memory / 1e9
+                model_gb = model_params / 1e9
                 logger.info(
                     f"Inferred batch size {batch_size} for CUDA "
-                    f"(free: {free_memory / 1e9:.1f}GB, model: {model_params / 1e9:.2f}GB)"
+                    f"(free: {free_gb:.1f}GB, model: {model_gb:.2f}GB)"
                 )
                 return batch_size
 
@@ -212,9 +222,11 @@ class HuggingFaceLanguageModel(HuggingFaceAdapterMixin, ModelAdapter):
                 # Clamp between reasonable bounds
                 batch_size = max(8, min(batch_size, 256))
 
+                avail_gb = available_memory / 1e9
+                model_gb = model_params / 1e9
                 logger.info(
                     f"Inferred batch size {batch_size} for MPS "
-                    f"(available: {available_memory / 1e9:.1f}GB, model: {model_params / 1e9:.2f}GB)"
+                    f"(available: {avail_gb:.1f}GB, model: {model_gb:.2f}GB)"
                 )
                 return batch_size
 
@@ -238,9 +250,11 @@ class HuggingFaceLanguageModel(HuggingFaceAdapterMixin, ModelAdapter):
                 # Clamp between reasonable bounds
                 batch_size = max(4, min(batch_size, 128))
 
+                avail_gb = available_memory / 1e9
+                model_gb = model_params / 1e9
                 logger.info(
                     f"Inferred batch size {batch_size} for CPU "
-                    f"(available: {available_memory / 1e9:.1f}GB, model: {model_params / 1e9:.2f}GB)"
+                    f"(available: {avail_gb:.1f}GB, model: {model_gb:.2f}GB)"
                 )
                 return batch_size
 
@@ -309,16 +323,6 @@ class HuggingFaceLanguageModel(HuggingFaceAdapterMixin, ModelAdapter):
         )
 
         # Process uncached texts in batches with progress tracking
-        from rich.progress import (
-            BarColumn,
-            Progress,
-            SpinnerColumn,
-            TaskProgressColumn,
-            TextColumn,
-            TimeElapsedColumn,
-            TimeRemainingColumn,
-        )
-
         uncached_scores: list[float] = []
 
         with Progress(
@@ -409,7 +413,7 @@ class HuggingFaceLanguageModel(HuggingFaceAdapterMixin, ModelAdapter):
             sequence_log_probs = masked_log_probs.sum(dim=1)
 
         # Convert to list and cache
-        for text, log_prob_tensor in zip(batch_texts, sequence_log_probs):
+        for text, log_prob_tensor in zip(batch_texts, sequence_log_probs, strict=True):
             log_prob = log_prob_tensor.item()
             batch_scores.append(log_prob)
 

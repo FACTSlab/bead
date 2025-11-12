@@ -5,8 +5,8 @@ from __future__ import annotations
 import pytest
 
 from bead.resources.constraints import Constraint
-from bead.resources.lexicon import Lexicon
 from bead.resources.lexical_item import LexicalItem
+from bead.resources.lexicon import Lexicon
 from bead.resources.template import Slot, Template
 from bead.templates.resolver import ConstraintResolver
 from bead.templates.strategies import (
@@ -27,14 +27,14 @@ def simple_lexicon() -> Lexicon:
     """
     items = [
         # Nouns
-        LexicalItem(lemma="cat", pos="NOUN", language_code="eng"),
-        LexicalItem(lemma="dog", pos="NOUN", language_code="eng"),
+        LexicalItem(lemma="cat", language_code="eng", features={"pos": "NOUN"}),
+        LexicalItem(lemma="dog", language_code="eng", features={"pos": "NOUN"}),
         # Verbs
-        LexicalItem(lemma="runs", pos="VERB", language_code="eng"),
-        LexicalItem(lemma="jumps", pos="VERB", language_code="eng"),
+        LexicalItem(lemma="runs", language_code="eng", features={"pos": "VERB"}),
+        LexicalItem(lemma="jumps", language_code="eng", features={"pos": "VERB"}),
         # Adjectives
-        LexicalItem(lemma="big", pos="ADJ", language_code="eng"),
-        LexicalItem(lemma="small", pos="ADJ", language_code="eng"),
+        LexicalItem(lemma="big", language_code="eng", features={"pos": "ADJ"}),
+        LexicalItem(lemma="small", language_code="eng", features={"pos": "ADJ"}),
     ]
     return Lexicon(name="test", items={str(item.id): item for item in items})
 
@@ -65,7 +65,7 @@ def simple_template() -> Template:
                 name="noun",
                 constraints=[
                     Constraint(
-                        expression="self.pos == 'NOUN'",
+                        expression="self.features.get('pos') == 'NOUN'",
                         context={},
                     )
                 ],
@@ -74,7 +74,7 @@ def simple_template() -> Template:
                 name="verb",
                 constraints=[
                     Constraint(
-                        expression="self.pos == 'VERB'",
+                        expression="self.features.get('pos') == 'VERB'",
                         context={},
                     )
                 ],
@@ -83,7 +83,7 @@ def simple_template() -> Template:
                 name="adjective",
                 constraints=[
                     Constraint(
-                        expression="self.pos == 'ADJ'",
+                        expression="self.features.get('pos') == 'ADJ'",
                         context={},
                     )
                 ],
@@ -141,12 +141,12 @@ def test_mixed_strategy_only_exhaustive(simple_lexicon: Lexicon):
     # Create simple slot items
     slot_items = {
         "noun": [
-            LexicalItem(lemma="cat", pos="NOUN", language_code="eng"),
-            LexicalItem(lemma="dog", pos="NOUN", language_code="eng"),
+            LexicalItem(lemma="cat", language_code="eng", features={"pos": "NOUN"}),
+            LexicalItem(lemma="dog", language_code="eng", features={"pos": "NOUN"}),
         ],
         "verb": [
-            LexicalItem(lemma="runs", pos="VERB", language_code="eng"),
-            LexicalItem(lemma="jumps", pos="VERB", language_code="eng"),
+            LexicalItem(lemma="runs", language_code="eng", features={"pos": "VERB"}),
+            LexicalItem(lemma="jumps", language_code="eng", features={"pos": "VERB"}),
         ],
     }
 
@@ -168,13 +168,13 @@ def test_mixed_strategy_random_sampling():
 
     slot_items = {
         "noun": [
-            LexicalItem(lemma="cat", pos="NOUN", language_code="eng"),
-            LexicalItem(lemma="dog", pos="NOUN", language_code="eng"),
-            LexicalItem(lemma="bird", pos="NOUN", language_code="eng"),
+            LexicalItem(lemma="cat", language_code="eng", features={"pos": "NOUN"}),
+            LexicalItem(lemma="dog", language_code="eng", features={"pos": "NOUN"}),
+            LexicalItem(lemma="bird", language_code="eng", features={"pos": "NOUN"}),
         ],
         "verb": [
-            LexicalItem(lemma="runs", pos="VERB", language_code="eng"),
-            LexicalItem(lemma="jumps", pos="VERB", language_code="eng"),
+            LexicalItem(lemma="runs", language_code="eng", features={"pos": "VERB"}),
+            LexicalItem(lemma="jumps", language_code="eng", features={"pos": "VERB"}),
         ],
     }
 
@@ -202,8 +202,12 @@ def test_mixed_strategy_raises_with_mlm():
     )
 
     slot_items = {
-        "noun": [LexicalItem(lemma="cat", pos="NOUN", language_code="eng")],
-        "adjective": [LexicalItem(lemma="big", pos="ADJ", language_code="eng")],
+        "noun": [
+            LexicalItem(lemma="cat", language_code="eng", features={"pos": "NOUN"})
+        ],
+        "adjective": [
+            LexicalItem(lemma="big", language_code="eng", features={"pos": "ADJ"})
+        ],
     }
 
     # Should raise because MLM requires template context
@@ -249,13 +253,13 @@ def test_mixed_strategy_default_strategy():
     # noun has explicit strategy, verb uses default
     slot_items = {
         "noun": [
-            LexicalItem(lemma="cat", pos="NOUN", language_code="eng"),
-            LexicalItem(lemma="dog", pos="NOUN", language_code="eng"),
+            LexicalItem(lemma="cat", language_code="eng", features={"pos": "NOUN"}),
+            LexicalItem(lemma="dog", language_code="eng", features={"pos": "NOUN"}),
         ],
         "verb": [
-            LexicalItem(lemma="runs", pos="VERB", language_code="eng"),
-            LexicalItem(lemma="jumps", pos="VERB", language_code="eng"),
-            LexicalItem(lemma="walks", pos="VERB", language_code="eng"),
+            LexicalItem(lemma="runs", language_code="eng", features={"pos": "VERB"}),
+            LexicalItem(lemma="jumps", language_code="eng", features={"pos": "VERB"}),
+            LexicalItem(lemma="walks", language_code="eng", features={"pos": "VERB"}),
         ],
     }
 
@@ -278,7 +282,9 @@ def test_mixed_strategy_empty_slots():
 
     slot_items: dict[str, list[LexicalItem]] = {
         "noun": [],
-        "verb": [LexicalItem(lemma="runs", pos="VERB", language_code="eng")],
+        "verb": [
+            LexicalItem(lemma="runs", language_code="eng", features={"pos": "VERB"})
+        ],
     }
 
     combinations = strategy.generate_combinations(slot_items)
@@ -297,8 +303,8 @@ def test_mixed_strategy_single_slot():
 
     slot_items = {
         "noun": [
-            LexicalItem(lemma="cat", pos="NOUN", language_code="eng"),
-            LexicalItem(lemma="dog", pos="NOUN", language_code="eng"),
+            LexicalItem(lemma="cat", language_code="eng", features={"pos": "NOUN"}),
+            LexicalItem(lemma="dog", language_code="eng", features={"pos": "NOUN"}),
         ],
     }
 

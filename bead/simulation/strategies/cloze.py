@@ -158,8 +158,6 @@ class ClozeStrategy(SimulationStrategy):
                 continue
 
             inputs = model_output.inputs
-            if not isinstance(inputs, dict):
-                continue
 
             # Check if this output is for our slot
             if inputs.get("slot_name") != slot_name:

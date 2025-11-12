@@ -14,8 +14,8 @@ from bead.deployment.jspsych.config import (
 )
 from bead.items.item import Item
 from bead.items.item_template import ItemTemplate, PresentationSpec, TaskSpec
-from bead.lists.constraints import OrderingConstraint
 from bead.lists import ExperimentList
+from bead.lists.constraints import OrderingConstraint
 
 
 @pytest.fixture

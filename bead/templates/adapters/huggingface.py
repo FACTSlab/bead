@@ -201,6 +201,103 @@ class HuggingFaceMLMAdapter(HuggingFaceAdapterMixin, TemplateFillingModelAdapter
 
         return predictions
 
+    def predict_masked_token_batch(
+        self,
+        texts: list[str],
+        mask_position: int = 0,
+        top_k: int = 10,
+    ) -> list[list[tuple[str, float]]]:
+        """Predict masked tokens for multiple texts in a single batch.
+
+        Parameters
+        ----------
+        texts : list[str]
+            List of texts with mask tokens
+        mask_position : int
+            Token position of mask (0-indexed, relative to mask tokens found)
+        top_k : int
+            Number of top predictions to return per text
+
+        Returns
+        -------
+        list[list[tuple[str, float]]]
+            List of predictions for each text. Each element is a list of
+            (token, log_probability) tuples.
+
+        Raises
+        ------
+        RuntimeError
+            If model is not loaded
+        ValueError
+            If any text has no mask token
+        """
+        if not self._model_loaded:
+            raise RuntimeError("Model not loaded. Call load_model() first.")
+
+        if not texts:
+            return []
+
+        # Tokenize all texts with padding
+        inputs = self.tokenizer(
+            texts,
+            return_tensors="pt",
+            padding=True,
+            truncation=True,
+        )
+        inputs = {k: v.to(self.device) for k, v in inputs.items()}
+
+        # Find mask token ID
+        mask_token_id = self.tokenizer.mask_token_id
+        if mask_token_id is None:
+            raise ValueError(f"Model {self.model_name} does not have a mask token")
+
+        # Forward pass for entire batch
+        with torch.no_grad():
+            outputs = self.model(**inputs)
+            logits = outputs.logits  # Shape: (batch_size, seq_len, vocab_size)
+
+        # Process each text in batch
+        results: list[list[tuple[str, float]]] = []
+        for i, text in enumerate(texts):
+            # Find mask position in this text
+            input_ids = inputs["input_ids"][i]
+            mask_positions = (input_ids == mask_token_id).nonzero(as_tuple=True)[0]
+
+            if len(mask_positions) == 0:
+                raise ValueError(f"No mask token found in text: {text}")
+
+            if mask_position >= len(mask_positions):
+                raise ValueError(
+                    f"mask_position {mask_position} out of range. "
+                    f"Found {len(mask_positions)} mask tokens in text."
+                )
+
+            # Get actual token index
+            mask_idx = mask_positions[mask_position].item()
+
+            # Get predictions for this mask position
+            mask_logits = logits[i, mask_idx]
+
+            # Convert to log probabilities
+            log_probs = torch.log_softmax(mask_logits, dim=0)
+
+            # Get top-k predictions
+            top_log_probs, top_indices = torch.topk(
+                log_probs, k=min(top_k, len(log_probs))
+            )
+
+            # Convert to tokens
+            predictions: list[tuple[str, float]] = []
+            for log_prob, idx in zip(
+                top_log_probs.cpu(), top_indices.cpu(), strict=True
+            ):
+                token = self.tokenizer.decode([idx], skip_special_tokens=True).strip()
+                predictions.append((token, float(log_prob)))
+
+            results.append(predictions)
+
+        return results
+
     def get_mask_token(self) -> str:
         """Get the mask token for this model.
 

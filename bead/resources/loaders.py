@@ -6,10 +6,12 @@ various data formats (CSV, TSV) with flexible column mapping.
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
 import pandas as pd
+from pandas import DataFrame, Series
 
 from bead.data.language_codes import LanguageCode
 from bead.resources.lexical_item import LexicalItem
@@ -20,10 +22,10 @@ def from_csv(
     path: str | Path,
     name: str,
     *,
+    language_code: LanguageCode,
     column_mapping: dict[str, str] | None = None,
     feature_columns: list[str] | None = None,
-    attribute_columns: list[str] | None = None,
-    language_code: LanguageCode | None = None,
+    pos: str | None = None,
     description: str | None = None,
     **csv_kwargs: Any,
 ) -> Lexicon:
@@ -35,21 +37,17 @@ def from_csv(
         Path to the CSV file.
     name : str
         Name for the lexicon.
+    language_code : LanguageCode
+        ISO 639-3 language code for all items.
     column_mapping : dict[str, str] | None
-        Mapping from CSV column names to LexicalItem field names.
-        Supported fields: "lemma", "pos", "form", "source".
-        If None, assumes CSV columns match field names exactly.
-        Example: {"word": "lemma", "part_of_speech": "pos"}
+        Mapping from CSV column names to feature names.
+        Example: {"word": "lemma"}
     feature_columns : list[str] | None
-        CSV column names to map to LexicalItem.features.
-        Values are stored as feature key-value pairs.
-        Example: ["number", "tense", "countability"]
-    attribute_columns : list[str] | None
-        CSV column names to map to LexicalItem.attributes.
-        Values are stored as attribute key-value pairs.
-        Example: ["semantic_class", "frequency"]
-    language_code : LanguageCode | None
-        ISO 639-1 or ISO 639-3 language code for the lexicon.
+        CSV column names to include in features dict.
+        Example: ["number", "tense", "countability", "semantic_class"]
+    pos : str | None
+        Part-of-speech tag to assign to all items (e.g., "NOUN", "VERB").
+        Will be added to features dict as "pos".
     description : str | None
         Optional description of the lexicon.
     **csv_kwargs : Any
@@ -69,22 +67,13 @@ def from_csv(
 
     Examples
     --------
-    Basic usage with column mapping:
     >>> lexicon = from_csv(
     ...     "bleached_nouns.csv",
     ...     "nouns",
+    ...     language_code="eng",
     ...     column_mapping={"word": "lemma"},
-    ...     feature_columns=["number", "countability"],
-    ...     attribute_columns=["semantic_class"],
-    ...     language_code="eng"
-    ... )  # doctest: +SKIP
-
-    With default column names:
-    >>> lexicon = from_csv(
-    ...     "verbs.csv",
-    ...     "verbs",
-    ...     feature_columns=["tense"],
-    ...     language_code="eng"
+    ...     feature_columns=["number", "countability", "semantic_class"],
+    ...     pos="NOUN"
     ... )  # doctest: +SKIP
     """
     file_path = Path(path)
@@ -92,7 +81,7 @@ def from_csv(
         raise FileNotFoundError(f"CSV file not found: {file_path}")
 
     # Read CSV
-    df = pd.read_csv(file_path, **csv_kwargs)
+    df: DataFrame = pd.read_csv(file_path, **csv_kwargs)
 
     # Set up column mapping
     mapping = column_mapping or {}
@@ -100,10 +89,11 @@ def from_csv(
 
     # Check for required lemma column
     lemma_col = reverse_mapping.get("lemma", "lemma")
-    if lemma_col not in df.columns:
+    columns_list = list(df.columns)
+    if lemma_col not in columns_list:
         raise ValueError(
             f"CSV must have a 'lemma' column or provide column_mapping. "
-            f"Available columns: {list(df.columns)}"
+            f"Available columns: {columns_list}"
         )
 
     # Create lexicon
@@ -114,44 +104,44 @@ def from_csv(
     )
 
     # Process each row
-    for _, row in df.iterrows():
-        # Extract base fields
-        item_data: dict[str, Any] = {}
+    row_iter: Iterator[tuple[int | str, Series[Any]]] = df.iterrows()
+    for _, row_data in row_iter:
+        row: Series[Any] = row_data
 
-        # Map standard fields
-        for target_field, source_col in [
-            ("lemma", reverse_mapping.get("lemma", "lemma")),
-            ("pos", reverse_mapping.get("pos", "pos")),
-            ("form", reverse_mapping.get("form", "form")),
-            ("source", reverse_mapping.get("source", "source")),
-        ]:
-            if source_col in df.columns and pd.notna(row[source_col]):
-                item_data[target_field] = row[source_col]
+        # Get lemma
+        lemma_col = reverse_mapping.get("lemma", "lemma")
+        lemma = str(row[lemma_col])
 
-        # Extract features
+        # Build features dict
+        features: dict[str, Any] = {}
+
+        # Add POS if provided
+        if pos:
+            features["pos"] = pos
+
+        # Handle mapped "pos" column
+        pos_col = reverse_mapping.get("pos")
+        if pos_col and pos_col in columns_list and pd.notna(row[pos_col]):
+            features["pos"] = str(row[pos_col])
+
+        # Add feature columns
         if feature_columns:
-            features = {}
             for col in feature_columns:
-                if col in df.columns and pd.notna(row[col]):
-                    features[col] = row[col]
-            if features:
-                item_data["features"] = features
-
-        # Extract attributes
-        if attribute_columns:
-            attributes = {}
-            for col in attribute_columns:
-                if col in df.columns and pd.notna(row[col]):
-                    attributes[col] = row[col]
-            if attributes:
-                item_data["attributes"] = attributes
-
-        # Add language code if provided
-        if language_code:
-            item_data["language_code"] = language_code
+                if col in columns_list and pd.notna(row[col]):
+                    # Store feature value, converting to string if needed
+                    val = row[col]
+                    if not isinstance(val, (str, int, float, bool)):
+                        features[col] = str(val)
+                    else:
+                        features[col] = val
 
         # Create and add item
-        item = LexicalItem(**item_data)
+        item = LexicalItem(
+            lemma=lemma,
+            language_code=language_code,
+            features=features if features else {},
+            source=None,
+        )
         lexicon.add(item)
 
     return lexicon
@@ -161,10 +151,10 @@ def from_tsv(
     path: str | Path,
     name: str,
     *,
+    language_code: LanguageCode,
     column_mapping: dict[str, str] | None = None,
     feature_columns: list[str] | None = None,
-    attribute_columns: list[str] | None = None,
-    language_code: LanguageCode | None = None,
+    pos: str | None = None,
     description: str | None = None,
     **tsv_kwargs: Any,
 ) -> Lexicon:
@@ -178,14 +168,14 @@ def from_tsv(
         Path to the TSV file.
     name : str
         Name for the lexicon.
+    language_code : LanguageCode
+        ISO 639-3 language code for all items.
     column_mapping : dict[str, str] | None
-        Mapping from TSV column names to LexicalItem field names.
+        Mapping from TSV column names to feature names.
     feature_columns : list[str] | None
-        TSV column names to map to LexicalItem.features.
-    attribute_columns : list[str] | None
-        TSV column names to map to LexicalItem.attributes.
-    language_code : LanguageCode | None
-        ISO 639-1 or ISO 639-3 language code for the lexicon.
+        TSV column names to include in features dict.
+    pos : str | None
+        Part-of-speech tag to assign to all items.
     description : str | None
         Optional description of the lexicon.
     **tsv_kwargs : Any
@@ -201,17 +191,18 @@ def from_tsv(
     >>> lexicon = from_tsv(
     ...     "verbs.tsv",
     ...     "verbs",
+    ...     language_code="eng",
     ...     feature_columns=["tense", "aspect"],
-    ...     language_code="eng"
+    ...     pos="VERB"
     ... )  # doctest: +SKIP
     """
     return from_csv(
         path=path,
         name=name,
+        language_code=language_code,
         column_mapping=column_mapping,
         feature_columns=feature_columns,
-        attribute_columns=attribute_columns,
-        language_code=language_code,
+        pos=pos,
         description=description,
         sep="\t",
         **tsv_kwargs,

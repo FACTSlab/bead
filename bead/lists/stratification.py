@@ -145,22 +145,24 @@ def _assign_quantiles_single_group(
         return {}
 
     # Extract scores
-    scores = np.array([property_getter(item) for item in items])
+    scores: np.ndarray[Any, np.dtype[np.floating[Any]]] = np.array(
+        [property_getter(item) for item in items]
+    )
 
     # Compute quantile edges
     # linspace(0, 1, n+1) gives [0, 1/n, 2/n, ..., 1]
-    quantile_edges: np.ndarray[Any, Any] = np.quantile(
+    quantile_edges: np.ndarray[Any, np.dtype[np.floating[Any]]] = np.quantile(
         scores, np.linspace(0, 1, n_quantiles + 1)
     )
 
     # Assign each item to a quantile bin
     result: dict[T, int] = {}
-    for item, score in zip(items, scores, strict=True):
+    for item, score in zip(items, scores.tolist(), strict=True):
         # searchsorted finds the index where score would be inserted
         # We use quantile_edges[1:] to exclude the 0th edge
         # This maps scores to bins [0, n_quantiles-1]
-        quantile: int = int(np.searchsorted(quantile_edges[1:], score))
-        result[item] = quantile
+        quantile_idx = int(np.searchsorted(quantile_edges[1:], float(score)))
+        result[item] = quantile_idx
 
     return result
 
@@ -233,14 +235,18 @@ def assign_quantiles_by_uuid(
         return float(value)
 
     # Create stratification getter if needed
-    stratify_func: Callable[[UUID], Any] | None = None
+    stratify_func: Callable[[UUID], int | float | str | bool] | None
     if stratify_by_key:
         if any(stratify_by_key not in item_metadata[uid] for uid in item_ids):
             raise ValueError(
                 f"Stratification key '{stratify_by_key}' not found in all items"
             )
 
-        def stratify_func(uid: UUID) -> Any:
-            return item_metadata[uid][stratify_by_key]
+        def stratify_getter(uid: UUID) -> int | float | str | bool:
+            return item_metadata[uid][stratify_by_key]  # type: ignore[return-value]
+
+        stratify_func = stratify_getter
+    else:
+        stratify_func = None
 
     return assign_quantiles(item_ids, property_getter, n_quantiles, stratify_func)

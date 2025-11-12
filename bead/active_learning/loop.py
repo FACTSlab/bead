@@ -7,7 +7,8 @@ next items. It manages convergence detection and coordinates all components.
 
 from __future__ import annotations
 
-from datetime import UTC
+from datetime import UTC, datetime
+from pathlib import Path
 from typing import TYPE_CHECKING, TypedDict
 
 import numpy as np
@@ -16,6 +17,7 @@ from bead.active_learning.selection import ItemSelector
 from bead.active_learning.trainers.base import ModelMetadata
 from bead.config.active_learning import ActiveLearningLoopConfig
 from bead.evaluation.convergence import ConvergenceDetector
+from bead.evaluation.model_metrics import ModelMetrics
 from bead.items.item import Item
 from bead.items.item_template import ItemTemplate
 
@@ -225,15 +227,10 @@ class ActiveLearningLoop:
             pred_labels = [p.predicted_class for p in predictions]
 
             # Compute accuracy
-            from bead.evaluation.model_metrics import ModelMetrics
-
             metrics_calculator = ModelMetrics()
             accuracy = metrics_calculator.accuracy(labels, pred_labels)
 
             # Create metadata
-            from datetime import datetime
-            from pathlib import Path
-
             training_config_dict = {
                 "iteration": iteration,
                 "max_iterations": self.config.max_iterations,

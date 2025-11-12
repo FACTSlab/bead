@@ -77,7 +77,7 @@ def test_create_lexicon_from_csv_with_features(
     lexicon = Lexicon.from_jsonl(str(output_file), "verbs")
     items = list(lexicon)
     assert items[0].features.get("tense") == "present"
-    assert items[0].attributes.get("frequency") == "1000"
+    assert items[0].features.get("frequency") == "1000"
 
 
 def test_create_lexicon_from_json(cli_runner: CliRunner, tmp_path: Path) -> None:
@@ -368,7 +368,9 @@ def test_list_lexicons_with_pattern(cli_runner: CliRunner, tmp_path: Path) -> No
     # Create multiple lexicons
     for name in ["verbs", "nouns", "adjectives"]:
         lexicon = Lexicon(name=name, language_code="eng")
-        lexicon.add(LexicalItem(lemma="test", pos="VERB"))
+        lexicon.add(
+            LexicalItem(lemma="test", language_code="eng", features={"pos": "VERB"})
+        )
         output = tmp_path / f"{name}.jsonl"
         lexicon.to_jsonl(str(output))
 

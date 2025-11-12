@@ -10,7 +10,7 @@ import csv
 import json
 import re
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import click
 from pydantic import ValidationError
@@ -22,6 +22,11 @@ from bead.resources.lexical_item import LexicalItem
 from bead.resources.lexicon import Lexicon
 from bead.resources.template import Slot, Template
 from bead.resources.template_collection import TemplateCollection
+
+# Type alias for JSON values (Python 3.13+)
+type JsonValue = (
+    dict[str, JsonValue] | list[JsonValue] | str | int | float | bool | None
+)
 
 console = Console()
 
@@ -120,6 +125,9 @@ def create_lexicon(
             description=description,
         )
 
+        # Determine language code for items (default to "eng" if not specified)
+        item_language_code = language_code or "eng"
+
         # Load from source
         if csv_file:
             print_info(f"Loading lexical items from CSV: {csv_file}")
@@ -130,29 +138,35 @@ def create_lexicon(
                         print_error("CSV must have 'lemma' column")
                         ctx.exit(1)
 
-                    item_data: dict[str, Any] = {"lemma": row["lemma"]}
-                    if "pos" in row and row["pos"]:
-                        item_data["pos"] = row["pos"]
+                    item_data: dict[str, Any] = {
+                        "lemma": row["lemma"],
+                        "language_code": item_language_code,
+                    }
+
                     if "form" in row and row["form"]:
                         item_data["form"] = row["form"]
                     if "source" in row and row["source"]:
                         item_data["source"] = row["source"]
 
-                    # Extract features (columns with feature_ prefix)
+                    # Build features dict from pos, feature_ columns, and attr_ columns
                     features: dict[str, Any] = {}
+
+                    # Add pos to features if present
+                    if "pos" in row and row["pos"]:
+                        features["pos"] = row["pos"]
+
+                    # Extract features (columns with feature_ prefix)
                     for key, value in row.items():
                         if key.startswith("feature_") and value:
                             features[key[8:]] = value
-                    if features:
-                        item_data["features"] = features
 
-                    # Extract attributes (columns with attr_ prefix)
-                    attributes: dict[str, Any] = {}
+                    # Extract attributes (columns with attr_ prefix) into features
                     for key, value in row.items():
                         if key.startswith("attr_") and value:
-                            attributes[key[5:]] = value
-                    if attributes:
-                        item_data["attributes"] = attributes
+                            features[key[5:]] = value
+
+                    if features:
+                        item_data["features"] = features
 
                     item = LexicalItem(**item_data)
                     lexicon.add(item)
@@ -160,16 +174,86 @@ def create_lexicon(
         elif json_file:
             print_info(f"Loading lexical items from JSON: {json_file}")
             with open(json_file, encoding="utf-8") as f:
-                data = json.load(f)
+                raw_data = json.load(f)
 
-            if not isinstance(data, list):
+            if not isinstance(raw_data, list):
                 print_error("JSON file must contain an array of lexical items")
                 ctx.exit(1)
 
-            for item_data in data:  # type: ignore[var-annotated]
-                if not isinstance(item_data, dict):
+            data = cast(list[dict[str, JsonValue]], raw_data)
+
+            for raw_item_untyped in data:
+                # Extract required lemma field
+                if "lemma" not in raw_item_untyped or not isinstance(
+                    raw_item_untyped["lemma"], str
+                ):
                     continue
-                item = LexicalItem(**item_data)  # type: ignore[arg-type]
+                lemma: str = raw_item_untyped["lemma"]
+
+                # Extract optional form field
+                form: str | None = None
+                if "form" in raw_item_untyped and isinstance(
+                    raw_item_untyped["form"], str
+                ):
+                    form = raw_item_untyped["form"]
+
+                # Extract language_code
+                lang_code: str = item_language_code
+                if "language_code" in raw_item_untyped and isinstance(
+                    raw_item_untyped["language_code"], str
+                ):
+                    lang_code = raw_item_untyped["language_code"]
+
+                # Extract optional source field
+                source: str | None = None
+                if "source" in raw_item_untyped and isinstance(
+                    raw_item_untyped["source"], str
+                ):
+                    source = raw_item_untyped["source"]
+
+                # Handle features dict - copy all key-value pairs
+                json_features: dict[str, str | int | float | bool | None] = {}
+                if "features" in raw_item_untyped:
+                    features_value = raw_item_untyped["features"]
+                    if isinstance(features_value, dict):
+                        for k, v in features_value.items():
+                            if isinstance(v, (str, int, float, bool)) or v is None:
+                                json_features[k] = v
+
+                # Move pos to features if present at top level
+                if "pos" in raw_item_untyped and isinstance(
+                    raw_item_untyped["pos"], str
+                ):
+                    json_features["pos"] = raw_item_untyped["pos"]
+
+                # Build LexicalItem
+                if form is None and source is None:
+                    item = LexicalItem(
+                        lemma=lemma, language_code=lang_code, features=json_features
+                    )  # type: ignore[arg-type]
+                elif form is None:
+                    item = LexicalItem(
+                        lemma=lemma,
+                        language_code=lang_code,
+                        features=json_features,
+                        source=source,
+                    )  # type: ignore[arg-type]
+                elif source is None:
+                    item = LexicalItem(
+                        lemma=lemma,
+                        form=form,
+                        language_code=lang_code,
+                        features=json_features,
+                    )  # type: ignore[arg-type]
+                else:
+                    item = LexicalItem(
+                        lemma=lemma,
+                        form=form,
+                        language_code=lang_code,
+                        features=json_features,
+                        source=source,
+                    )  # type: ignore[arg-type]
+
                 lexicon.add(item)
 
         # Save lexicon

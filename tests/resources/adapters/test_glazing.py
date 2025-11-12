@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 from bead.resources.adapters.cache import AdapterCache
 from bead.resources.adapters.glazing import GlazingAdapter
 
@@ -33,7 +31,7 @@ def test_glazing_adapter_fetch_items(glazing_adapter: GlazingAdapter) -> None:
     assert all(item.lemma == "break" for item in items)
     assert all(item.language_code == "eng" for item in items)
     # Check VerbNet-specific attributes
-    assert all("verbnet_class" in item.attributes for item in items)
+    assert all("verbnet_class" in item.features for item in items)
 
 
 def test_glazing_adapter_fetch_all_verbnet() -> None:
@@ -42,8 +40,8 @@ def test_glazing_adapter_fetch_all_verbnet() -> None:
     items = adapter.fetch_items(query=None, language_code="en")
     # VerbNet has 3000+ verb-class pairs
     assert len(items) > 3000
-    assert all(item.pos == "VERB" for item in items)
-    assert all("verbnet_class" in item.attributes for item in items)
+    assert all(item.features.get("pos") == "VERB" for item in items)
+    assert all("verbnet_class" in item.features for item in items)
 
 
 def test_glazing_adapter_caching(
@@ -78,10 +76,10 @@ def test_glazing_adapter_verbnet_attributes(glazing_adapter: GlazingAdapter) -> 
 
     # Check first item has VerbNet attributes
     item = items[0]
-    assert "verbnet_class" in item.attributes
-    assert "themroles" in item.attributes
-    assert "frame_count" in item.attributes
-    assert item.pos == "VERB"
+    assert "verbnet_class" in item.features
+    assert "themroles" in item.features
+    assert "frame_count" in item.features
+    assert item.features.get("pos") == "VERB"
 
 
 def test_glazing_adapter_propbank() -> None:
@@ -96,8 +94,8 @@ def test_glazing_adapter_propbank() -> None:
         item = items[0]
         assert item.lemma == "break"
         assert item.language_code == "eng"
-        assert "propbank_roleset_id" in item.attributes
-        assert "roleset_name" in item.attributes
+        assert "propbank_roleset_id" in item.features
+        assert "roleset_name" in item.features
 
 
 def test_glazing_adapter_framenet() -> None:
@@ -114,10 +112,10 @@ def test_glazing_adapter_framenet() -> None:
     item = items[0]
     assert item.lemma == "break"
     assert item.language_code == "eng"
-    assert "framenet_frame" in item.attributes
-    assert "framenet_frame_id" in item.attributes
-    assert "lexical_unit_name" in item.attributes
-    assert "lexical_unit_id" in item.attributes
+    assert "framenet_frame" in item.features
+    assert "framenet_frame_id" in item.features
+    assert "lexical_unit_name" in item.features
+    assert "lexical_unit_id" in item.features
 
 
 def test_glazing_adapter_include_frames_verbnet(
@@ -131,12 +129,12 @@ def test_glazing_adapter_include_frames_verbnet(
 
     # Check that frames are included
     item = items[0]
-    assert "frames" in item.attributes
-    assert isinstance(item.attributes["frames"], list)
-    assert len(item.attributes["frames"]) > 0
+    assert "frames" in item.features
+    assert isinstance(item.features["frames"], list)
+    assert len(item.features["frames"]) > 0
 
     # Check frame structure
-    frame = item.attributes["frames"][0]
+    frame = item.features["frames"][0]
     assert "primary" in frame
     assert "secondary" in frame
     assert "syntax" in frame
@@ -151,10 +149,10 @@ def test_glazing_adapter_include_frames_propbank() -> None:
     if len(items) > 0:
         item = items[0]
         # Should have detailed role information
-        if "roles" in item.attributes:
-            assert isinstance(item.attributes["roles"], list)
-            if len(item.attributes["roles"]) > 0:
-                role = item.attributes["roles"][0]
+        if "roles" in item.features:
+            assert isinstance(item.features["roles"], list)
+            if len(item.features["roles"]) > 0:
+                role = item.features["roles"][0]
                 assert "arg" in role
                 assert "description" in role
 
@@ -168,10 +166,10 @@ def test_glazing_adapter_include_frames_framenet() -> None:
 
     # Check for detailed frame information
     item = items[0]
-    assert "frame_definition" in item.attributes
-    assert "frame_elements" in item.attributes
+    assert "frame_definition" in item.features
+    assert "frame_elements" in item.features
     # Frame elements should be a list
-    assert isinstance(item.attributes["frame_elements"], list)
+    assert isinstance(item.features["frame_elements"], list)
 
 
 def test_glazing_adapter_fetch_all_propbank() -> None:
@@ -180,7 +178,7 @@ def test_glazing_adapter_fetch_all_propbank() -> None:
     items = adapter.fetch_items(query=None, language_code="en")
     # PropBank has many predicates
     assert len(items) > 100
-    assert all("propbank_roleset_id" in item.attributes for item in items)
+    assert all("propbank_roleset_id" in item.features for item in items)
 
 
 def test_glazing_adapter_fetch_all_framenet() -> None:
@@ -190,5 +188,5 @@ def test_glazing_adapter_fetch_all_framenet() -> None:
     items = adapter.fetch_items(query=None, language_code="en")
     # FrameNet has many lexical units across all frames
     assert len(items) > 1000
-    assert all("framenet_frame" in item.attributes for item in items)
-    assert all("lexical_unit_name" in item.attributes for item in items)
+    assert all("framenet_frame" in item.features for item in items)
+    assert all("lexical_unit_name" in item.features for item in items)

@@ -23,56 +23,60 @@ def _empty_constraint_list() -> list[Constraint]:
 
 
 class LexicalItem(BeadBaseModel):
-    """A lexical item with attributes and metadata.
+    """A lexical item with linguistic features.
 
-    LexicalItems represent words or phrases that can be inserted into
-    template slots. Each item has:
-    - A unique identifier (inherited from BeadBaseModel)
-    - Core lexical attributes (lemma, pos, etc.)
-    - Optional language code (ISO 639-1 or ISO 639-3)
-    - Optional linguistic features
-    - Optional custom attributes
-    - Metadata tracking (provenance, processing history)
+    Follows UniMorph structure: lemma, form, features bundle.
+    - lemma: base/citation form
+    - form: inflected surface form (None if same as lemma)
+    - features: feature bundle (pos, tense, person, number, etc.)
 
     Attributes
     ----------
     lemma : str
-        The base form of the lexical item (e.g., "walk").
-    pos : str | None
-        Part of speech tag (e.g., "VERB", "NOUN").
+        Base/citation form (e.g., "walk", "the").
     form : str | None
-        Inflected surface form if different from lemma.
-    language_code : LanguageCode | None
-        ISO 639-1 (2-letter) or ISO 639-3 (3-letter) language code.
-        Examples: "en", "eng", "ko", "kor", "zu", "zul".
-        Required for cross-linguistic classification via LexicalItemClass (Phase 20).
+        Inflected surface form if different from lemma (e.g., "walked", "walking").
+        None means form equals lemma.
+    language_code : LanguageCode
+        ISO 639-3 language code (e.g., "eng").
     features : dict[str, Any]
-        Linguistic features (e.g., {"tense": "past", "number": "plural"}).
-    attributes : dict[str, Any]
-        Custom attributes for constraint evaluation.
+        Feature bundle with grammatical/linguistic features:
+        - pos: str (e.g., "VERB", "DET", "NOUN", "ADJ", "ADP")
+        - Morphological: tense, person, number, case, gender, etc.
+        - unimorph_features: str (e.g., "V;PRS;3;SG")
+        - Lexical resource info: verbnet_class, themroles, frame_info, etc.
     source : str | None
-        Source of the lexical item (e.g., "verbnet", "manual").
+        Provenance (e.g., "VerbNet", "UniMorph", "manual").
 
     Examples
     --------
-    >>> item = LexicalItem(
+    >>> # Inflected verb
+    >>> verb = LexicalItem(
     ...     lemma="walk",
-    ...     pos="VERB",
-    ...     features={"tense": "present", "transitive": True},
-    ...     attributes={"frequency": 1000}
+    ...     form="walked",
+    ...     language_code="eng",
+    ...     features={"pos": "VERB", "tense": "PST"},
+    ...     source="UniMorph"
     ... )
-    >>> item.lemma
-    'walk'
-    >>> item.features["transitive"]
+    >>> verb.form
+    'walked'
+    >>>
+    >>> # Uninflected determiner
+    >>> det = LexicalItem(
+    ...     lemma="the",
+    ...     form=None,
+    ...     language_code="eng",
+    ...     features={"pos": "DET"},
+    ...     source="manual"
+    ... )
+    >>> det.form is None
     True
     """
 
     lemma: str
-    pos: str | None = None
     form: str | None = None
-    language_code: LanguageCode | None = None
+    language_code: LanguageCode
     features: dict[str, Any] = Field(default_factory=dict)
-    attributes: dict[str, Any] = Field(default_factory=dict)
     source: str | None = None
 
     @field_validator("lemma")
@@ -97,30 +101,6 @@ class LexicalItem(BeadBaseModel):
         """
         if not v or not v.strip():
             raise ValueError("lemma must be non-empty")
-        return v
-
-    @field_validator("pos")
-    @classmethod
-    def validate_pos(cls, v: str | None) -> str | None:
-        """Validate that pos is uppercase if provided.
-
-        Parameters
-        ----------
-        v : str | None
-            The POS tag to validate.
-
-        Returns
-        -------
-        str | None
-            The validated POS tag.
-
-        Raises
-        ------
-        ValueError
-            If POS tag is not uppercase.
-        """
-        if v is not None and v != v.upper():
-            raise ValueError("pos must be uppercase")
         return v
 
 

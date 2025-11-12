@@ -7,8 +7,8 @@ import pytest
 from bead.resources.adapters.glazing import GlazingAdapter
 from bead.resources.adapters.registry import AdapterRegistry
 from bead.resources.adapters.unimorph import UniMorphAdapter
-from bead.resources.lexicon import Lexicon
 from bead.resources.lexical_item import LexicalItem
+from bead.resources.lexicon import Lexicon
 from bead.templates.resolver import ConstraintResolver
 
 
@@ -25,50 +25,54 @@ def sample_lexicon() -> Lexicon:
     items_list = [
         LexicalItem(
             lemma="break",
-            pos="VERB",
             language_code="en",
-            features={"transitivity": "transitive", "causative": True},
-            attributes={"frequency": "high"},
+            features={
+                "pos": "VERB",
+                "transitivity": "transitive",
+                "causative": True,
+                "frequency": "high",
+            },
         ),
         LexicalItem(
             lemma="shatter",
-            pos="VERB",
             language_code="en",
-            features={"transitivity": "transitive", "causative": True},
-            attributes={"frequency": "medium"},
+            features={
+                "pos": "VERB",
+                "transitivity": "transitive",
+                "causative": True,
+                "frequency": "medium",
+            },
         ),
         LexicalItem(
             lemma="arrive",
-            pos="VERB",
             language_code="en",
-            features={"transitivity": "intransitive", "causative": False},
-            attributes={"frequency": "high"},
+            features={
+                "pos": "VERB",
+                "transitivity": "intransitive",
+                "causative": False,
+                "frequency": "high",
+            },
         ),
         LexicalItem(
             lemma="happiness",
-            pos="NOUN",
             language_code="en",
-            features={"number": "singular"},
-            attributes={"frequency": "high"},
+            features={"pos": "NOUN", "number": "singular", "frequency": "high"},
         ),
         LexicalItem(
             lemma="quickly",
-            pos="ADV",
             language_code="en",
-            attributes={"frequency": "high"},
+            features={"pos": "ADV", "frequency": "high"},
         ),
         # Add multilingual items
         LexicalItem(
             lemma="kkakta",
-            pos="VERB",
             language_code="ko",
-            features={"transitivity": "transitive", "causative": True},
+            features={"pos": "VERB", "transitivity": "transitive", "causative": True},
         ),
         LexicalItem(
             lemma="partir",
-            pos="VERB",
             language_code="fr",
-            features={"transitivity": "intransitive"},
+            features={"pos": "VERB", "transitivity": "intransitive"},
         ),
     ]
 

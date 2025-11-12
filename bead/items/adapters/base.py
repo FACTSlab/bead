@@ -103,7 +103,9 @@ class ModelAdapter(ABC):
         pass
 
     @abstractmethod
-    def get_embedding(self, text: str) -> np.ndarray:
+    def get_embedding(
+        self, text: str
+    ) -> np.ndarray[tuple[int, ...], np.dtype[np.float64]]:
         """Get embedding vector for text.
 
         Required for similarity computations and semantic clustering.

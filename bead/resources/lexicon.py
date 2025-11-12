@@ -10,7 +10,7 @@ from __future__ import annotations
 import json
 from collections.abc import Callable, Iterator
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, cast
 from uuid import UUID
 
 import pandas as pd
@@ -22,7 +22,7 @@ from bead.data.language_codes import LanguageCode
 from bead.resources.lexical_item import LexicalItem
 
 # Type alias for supported DataFrame types
-type DataFrame = pd.DataFrame | pl.DataFrame
+DataFrame = pd.DataFrame | pl.DataFrame
 
 
 def _empty_str_list() -> list[str]:
@@ -302,14 +302,21 @@ class Lexicon(BeadBaseModel):
 
         Examples
         --------
-        >>> lexicon = Lexicon(name="test")
-        >>> lexicon.add(LexicalItem(lemma="walk", pos="VERB"))
-        >>> lexicon.add(LexicalItem(lemma="dog", pos="NOUN"))
+        >>> lexicon = Lexicon(name="test", language_code="eng")
+        >>> lexicon.add(LexicalItem(
+        ...     lemma="walk", language_code="eng", features={"pos": "VERB"}
+        ... ))
+        >>> lexicon.add(LexicalItem(
+        ...     lemma="dog", language_code="eng", features={"pos": "NOUN"}
+        ... ))
         >>> verbs = lexicon.filter_by_pos("VERB")
         >>> len(verbs.items)
         1
         """
-        return self.filter(lambda item: item.pos is not None and item.pos == pos)
+        return self.filter(
+            lambda item: item.features.get("pos") is not None
+            and item.features.get("pos") == pos
+        )
 
     def filter_by_lemma(self, lemma: str) -> Lexicon:
         """Filter items by lemma (exact match).
@@ -382,15 +389,19 @@ class Lexicon(BeadBaseModel):
         Examples
         --------
         >>> lexicon = Lexicon(name="test")
-        >>> lexicon.add(LexicalItem(lemma="walk", attributes={"frequency": 1000}))
-        >>> lexicon.add(LexicalItem(lemma="saunter", attributes={"frequency": 10}))
+        >>> lexicon.add(LexicalItem(
+        ...     lemma="walk", language_code="eng", features={"frequency": 1000}
+        ... ))
+        >>> lexicon.add(LexicalItem(
+        ...     lemma="saunter", language_code="eng", features={"frequency": 10}
+        ... ))
         >>> high_freq = lexicon.filter_by_attribute("frequency", 1000)
         >>> len(high_freq.items)
         1
         """
         return self.filter(
-            lambda item: attr_name in item.attributes
-            and item.attributes[attr_name] == attr_value
+            lambda item: attr_name in item.features
+            and item.features[attr_name] == attr_value
         )
 
     def search(self, query: str, field: str = "lemma") -> Lexicon:
@@ -428,7 +439,8 @@ class Lexicon(BeadBaseModel):
             return self.filter(lambda item: query_lower in item.lemma.lower())
         elif field == "pos":
             return self.filter(
-                lambda item: item.pos is not None and query_lower in item.pos.lower()
+                lambda item: item.features.get("pos") is not None
+                and query_lower in str(item.features.get("pos")).lower()
             )
         elif field == "form":
             return self.filter(
@@ -547,15 +559,16 @@ class Lexicon(BeadBaseModel):
             if backend == "pandas":
                 return pd.DataFrame(columns=columns)
             else:
-                return pl.DataFrame(schema=dict.fromkeys(columns, pl.Utf8))
+                schema: dict[str, type[pl.Utf8]] = dict.fromkeys(columns, pl.Utf8)
+                return pl.DataFrame(schema=schema)
 
         rows = []
         for item in self.items.values():
             row = {
                 "id": str(item.id),
                 "lemma": item.lemma,
-                "pos": item.pos,
                 "form": item.form,
+                "language_code": item.language_code,
                 "source": item.source,
                 "created_at": item.created_at.isoformat(),
                 "modified_at": item.modified_at.isoformat(),
@@ -564,10 +577,6 @@ class Lexicon(BeadBaseModel):
             # Add features with "feature_" prefix
             for key, value in item.features.items():
                 row[f"feature_{key}"] = value
-
-            # Add attributes with "attr_" prefix
-            for key, value in item.attributes.items():
-                row[f"attr_{key}"] = value
 
             rows.append(row)  # type: ignore[arg-type]
 
@@ -608,19 +617,27 @@ class Lexicon(BeadBaseModel):
         # Check if it's a polars DataFrame
         is_polars = isinstance(df, pl.DataFrame)
 
-        # Get columns
-        columns = df.columns
+        # Get columns, handling both pandas and polars
+        if is_polars:
+            df_polars = cast(pl.DataFrame, df)
+            columns_list: list[str] = df_polars.columns
+        else:
+            df_pandas = cast(pd.DataFrame, df)
+            columns_list = list(df_pandas.columns)
 
-        if "lemma" not in columns:
+        if "lemma" not in columns_list:
             raise ValueError("DataFrame must have a 'lemma' column")
 
         lexicon = cls(name=name)
 
-        # Convert polars to dict format for iteration
+        # Convert to dict format for iteration
+        rows: list[dict[str, Any]]
         if is_polars:
-            rows = df.to_dicts()
+            df_polars = cast(pl.DataFrame, df)
+            rows = df_polars.to_dicts()
         else:
-            rows = df.to_dict("records")  # type: ignore[call-overload]
+            df_pandas = cast(pd.DataFrame, df)
+            rows = df_pandas.to_dict("records")  # type: ignore[assignment]
 
         for row in rows:
             # Extract base fields
@@ -633,30 +650,31 @@ class Lexicon(BeadBaseModel):
                 else:
                     return pd.notna(value)  # type: ignore[no-any-return]
 
-            if "pos" in row and is_not_null(row["pos"]):
-                item_data["pos"] = row["pos"]
+            # Handle language_code (required field)
+            if "language_code" in row and is_not_null(row["language_code"]):
+                item_data["language_code"] = row["language_code"]
+            else:
+                item_data["language_code"] = "eng"  # Default to English
+
             if "form" in row and is_not_null(row["form"]):
                 item_data["form"] = row["form"]
             if "source" in row and is_not_null(row["source"]):
                 item_data["source"] = row["source"]
 
-            # Extract features (columns with "feature_" prefix)
-            features = {}
-            for col in columns:
+            # Extract features (columns with "feature_" prefix, "pos", or "attr_" prefix)  # noqa: E501
+            features: dict[str, Any] = {}
+            if "pos" in row and is_not_null(row["pos"]):
+                features["pos"] = row["pos"]
+            for col in columns_list:
                 if col.startswith("feature_") and is_not_null(row[col]):
-                    feature_name = col[len("feature_") :]
+                    feature_name: str = col[len("feature_") :]
                     features[feature_name] = row[col]
+                elif col.startswith("attr_") and is_not_null(row[col]):
+                    attr_name: str = col[len("attr_") :]
+                    features[attr_name] = row[col]
+
             if features:
                 item_data["features"] = features
-
-            # Extract attributes (columns with "attr_" prefix)
-            attributes = {}
-            for col in columns:
-                if col.startswith("attr_") and is_not_null(row[col]):
-                    attr_name = col[len("attr_") :]
-                    attributes[attr_name] = row[col]
-            if attributes:
-                item_data["attributes"] = attributes
 
             item = LexicalItem(**item_data)
             lexicon.add(item)

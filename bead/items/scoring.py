@@ -187,7 +187,7 @@ class LanguageModelScorer(ItemScorer):
         """
         if self._model is None:
             # Import here to avoid circular dependency
-            from bead.items.adapters.huggingface import (
+            from bead.items.adapters.huggingface import (  # noqa: PLC0415
                 HuggingFaceLanguageModel,
             )
 

@@ -77,7 +77,9 @@ def main(
     total_combinations = len(verb_lemmas) * len(templates)
 
     if output_limit:
-        console.print(f"[yellow]⚠[/yellow]  Test mode: Limiting output to {output_limit:,} items")
+        console.print(
+            f"[yellow]⚠[/yellow]  Test mode: Limiting output to {output_limit:,} items"
+        )
         total_combinations = min(output_limit, total_combinations)
 
     items_generated = 0
@@ -117,7 +119,9 @@ def main(
             if output_limit and items_generated >= output_limit:
                 break
 
-    console.print(f"[green]✓[/green] Generated {items_generated:,} cross-product items\n")
+    console.print(
+        f"[green]✓[/green] Generated {items_generated:,} cross-product items\n"
+    )
 
     # Summary
     console.rule("[bold]Summary[/bold]")
@@ -128,7 +132,9 @@ def main(
     table.add_row("Output file:", f"[cyan]{output_path}[/cyan]")
     console.print(table)
 
-    console.print("\n[dim]Next: Run create_2afc_pairs.py to generate forced-choice pairs[/dim]")
+    console.print(
+        "\n[dim]Next: Run create_2afc_pairs.py to generate forced-choice pairs[/dim]"
+    )
 
 
 if __name__ == "__main__":

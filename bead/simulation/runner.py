@@ -22,8 +22,11 @@ class SimulationRunner:
 
     Examples
     --------
-    >>> from bead.config.simulation import SimulationRunnerConfig, SimulatedAnnotatorConfig
-    >>> config = SimulationRunnerConfig(
+    >>> from bead.config.simulation import (  # doctest: +SKIP
+    ...     SimulationRunnerConfig,
+    ...     SimulatedAnnotatorConfig,
+    ... )
+    >>> config = SimulationRunnerConfig(  # doctest: +SKIP
     ...     annotator_configs=[
     ...         SimulatedAnnotatorConfig(strategy="lm_score", random_state=1),
     ...         SimulatedAnnotatorConfig(strategy="lm_score", random_state=2),

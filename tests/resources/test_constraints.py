@@ -113,8 +113,13 @@ class TestConstraintCombine:
 
     def test_combine_merges_context(self) -> None:
         """Test that combine merges context from all constraints."""
-        c1 = Constraint(expression="self.pos in allowed_pos", context={"allowed_pos": {"VERB"}})
-        c2 = Constraint(expression="self.lemma in allowed_verbs", context={"allowed_verbs": {"break"}})
+        c1 = Constraint(
+            expression="self.pos in allowed_pos", context={"allowed_pos": {"VERB"}}
+        )
+        c2 = Constraint(
+            expression="self.lemma in allowed_verbs",
+            context={"allowed_verbs": {"break"}},
+        )
 
         combined = Constraint.combine(c1, c2, logic="and")
 

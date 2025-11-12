@@ -8,6 +8,7 @@ quantile computation and maintains stand-off annotation pattern (works with UUID
 from __future__ import annotations
 
 from collections.abc import Callable
+from typing import Any
 from uuid import UUID
 
 import numpy as np
@@ -183,14 +184,24 @@ class QuantileBalancer:
             return 0.0
 
         # Compute values
-        values = np.array([value_func(item_id) for item_id in item_ids])
+        values: np.ndarray[tuple[int, ...], np.dtype[np.floating[Any]]] = np.array(
+            [value_func(item_id) for item_id in item_ids]
+        )
 
         # Create expected quantile bins
-        expected_quantiles = np.linspace(0, 100, self.n_quantiles + 1)
-        expected_bins = np.percentile(values, expected_quantiles)
+        expected_quantiles: np.ndarray[tuple[int], np.dtype[np.floating[Any]]] = (
+            np.linspace(0, 100, self.n_quantiles + 1)
+        )
+        # percentile with array input returns array
+        expected_bins: np.ndarray[Any, np.dtype[np.floating[Any]]] = np.percentile(
+            values, expected_quantiles
+        )
 
         # Count items in each quantile
-        quantile_assignments = np.digitize(values, expected_bins) - 1
+        # digitize returns array of integers
+        quantile_assignments: np.ndarray[Any, np.dtype[np.intp]] = (
+            np.digitize(values, expected_bins) - 1
+        )
         quantile_assignments = np.clip(quantile_assignments, 0, self.n_quantiles - 1)
 
         quantile_counts = np.bincount(quantile_assignments, minlength=self.n_quantiles)
@@ -227,14 +238,22 @@ class QuantileBalancer:
         - Edge cases are handled by clipping to valid quantile range
         """
         # Extract values
-        values = np.array([value_func(item_id) for item_id in item_ids])
+        values: np.ndarray[tuple[int, ...], np.dtype[np.floating[Any]]] = np.array(
+            [value_func(item_id) for item_id in item_ids]
+        )
 
         # Compute quantile bins
-        quantiles = np.linspace(0, 100, self.n_quantiles + 1)
-        bins = np.percentile(values, quantiles)
+        quantiles: np.ndarray[tuple[int], np.dtype[np.floating[Any]]] = np.linspace(
+            0, 100, self.n_quantiles + 1
+        )
+        bins: np.ndarray[Any, np.dtype[np.floating[Any]]] = np.percentile(
+            values, quantiles
+        )
 
         # Assign items to quantiles
-        quantile_assignments = np.digitize(values, bins) - 1
+        quantile_assignments: np.ndarray[Any, np.dtype[np.intp]] = (
+            np.digitize(values, bins) - 1
+        )
         quantile_assignments = np.clip(quantile_assignments, 0, self.n_quantiles - 1)
 
         # Group items by quantile

@@ -13,7 +13,7 @@ def test_cache_initialization(adapter_cache: AdapterCache) -> None:
 
 def test_cache_set_and_get(adapter_cache: AdapterCache) -> None:
     """Test setting and getting cached items."""
-    items = [LexicalItem(lemma="walk", pos="VERB")]
+    items = [LexicalItem(lemma="walk", language_code="eng", features={"pos": "VERB"})]
     adapter_cache.set("key1", items)
     cached = adapter_cache.get("key1")
     assert cached == items

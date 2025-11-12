@@ -186,9 +186,9 @@ def _default_metadata_extractor(
         for key, value in lexical_item.features.items():
             metadata[f"lexical_feature_{key}"] = value
 
-    # Add lexical item attributes
-    if lexical_item.attributes:
-        for key, value in lexical_item.attributes.items():
+    # Add lexical item features as attributes
+    if lexical_item.features:
+        for key, value in lexical_item.features.items():
             metadata[f"lexical_attr_{key}"] = value
 
     return metadata

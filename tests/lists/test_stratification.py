@@ -188,7 +188,9 @@ class TestAssignQuantilesByUUID:
     def test_missing_uuid_raises_error(self) -> None:
         """Test that missing UUID raises KeyError."""
         uuids = [uuid4() for _ in range(5)]
-        metadata = {uid: {"score": float(i)} for i, uid in enumerate(uuids[:-1])}  # Missing last
+        metadata = {
+            uid: {"score": float(i)} for i, uid in enumerate(uuids[:-1])
+        }  # Missing last
 
         with pytest.raises(KeyError):
             assign_quantiles_by_uuid(

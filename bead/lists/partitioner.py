@@ -646,12 +646,20 @@ class ListPartitioner:
             for item_id in exp_list.item_refs
         ]
 
+        # percentile with list input returns array
+        percentiles: np.ndarray[Any, np.dtype[np.floating[Any]]] = np.percentile(
+            values, [25, 50, 75]
+        )
+        # min/max with array input returns scalar
+        min_val: np.floating[Any] = np.min(values)
+        max_val: np.floating[Any] = np.max(values)
+
         return {
             "mean": float(np.mean(values)),
             "std": float(np.std(values)),
-            "min": float(np.min(values)),
-            "max": float(np.max(values)),
-            "quantiles": [float(q) for q in np.percentile(values, [25, 50, 75])],
+            "min": float(min_val),
+            "max": float(max_val),
+            "quantiles": [float(q) for q in percentiles],
         }
 
     def _compute_category_distribution(
@@ -845,6 +853,7 @@ class ListPartitioner:
             if len(lists) < 2:
                 return False
 
+            # integers returns int or array depending on size parameter
             list_idx_a = int(self._rng.integers(0, len(lists)))
             list_idx_b = int(self._rng.integers(0, len(lists)))
 
@@ -919,10 +928,8 @@ class ListPartitioner:
             return self._compute_batch_balance_score(lists, constraint, metadata)
         elif isinstance(constraint, BatchDiversityConstraint):
             return self._compute_batch_diversity_score(lists, constraint, metadata)
-        elif isinstance(constraint, BatchMinOccurrenceConstraint):
+        else:  # BatchMinOccurrenceConstraint
             return self._compute_batch_min_occurrence_score(lists, constraint, metadata)
-        else:
-            return 1.0
 
     def _compute_batch_coverage_score(
         self,
@@ -947,7 +954,7 @@ class ListPartitioner:
             Coverage ratio (observed_values / target_values).
         """
         # Collect all observed values across all lists
-        observed_values = set()
+        observed_values: set[int | float | str | bool] = set()
         for exp_list in lists:
             for item_id in exp_list.item_refs:
                 try:
@@ -968,7 +975,7 @@ class ListPartitioner:
         if len(constraint.target_values) == 0:
             return 1.0
 
-        target_set = set(constraint.target_values)
+        target_set: set[int | float | str | bool] = set(constraint.target_values)
         coverage = len(observed_values & target_set) / len(target_set)
         return float(coverage)
 
@@ -995,7 +1002,7 @@ class ListPartitioner:
             Score in [0, 1] based on deviation from target distribution.
         """
         # Count occurrences across all lists
-        counts: Counter = Counter()
+        counts: Counter[str] = Counter()
         total = 0
 
         for exp_list in lists:
@@ -1105,7 +1112,7 @@ class ListPartitioner:
             Score in [0, 1] based on minimum count ratio.
         """
         # Count occurrences of each value
-        counts: Counter = Counter()
+        counts: Counter[str] = Counter()
 
         for exp_list in lists:
             for item_id in exp_list.item_refs:

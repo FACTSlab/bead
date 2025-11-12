@@ -5,8 +5,8 @@ from __future__ import annotations
 import pytest
 
 from bead.resources.constraints import Constraint
-from bead.resources.lexicon import Lexicon
 from bead.resources.lexical_item import LexicalItem
+from bead.resources.lexicon import Lexicon
 from bead.resources.template import Slot, Template
 from bead.templates.filler import (
     ConstraintUnsatisfiableError,
@@ -24,17 +24,15 @@ def sample_lexicon() -> Lexicon:
     lexicon.add(
         LexicalItem(
             lemma="cat",
-            pos="NOUN",
             language_code="en",
-            features={"number": "singular"},
+            features={"pos": "NOUN", "number": "singular"},
         )
     )
     lexicon.add(
         LexicalItem(
             lemma="dog",
-            pos="NOUN",
             language_code="en",
-            features={"number": "singular"},
+            features={"pos": "NOUN", "number": "singular"},
         )
     )
 
@@ -42,9 +40,8 @@ def sample_lexicon() -> Lexicon:
     lexicon.add(
         LexicalItem(
             lemma="cats",
-            pos="NOUN",
             language_code="en",
-            features={"number": "plural"},
+            features={"pos": "NOUN", "number": "plural"},
         )
     )
 
@@ -52,9 +49,8 @@ def sample_lexicon() -> Lexicon:
     lexicon.add(
         LexicalItem(
             lemma="runs",
-            pos="VERB",
             language_code="en",
-            features={"number": "singular"},
+            features={"pos": "VERB", "number": "singular"},
         )
     )
 
@@ -62,9 +58,8 @@ def sample_lexicon() -> Lexicon:
     lexicon.add(
         LexicalItem(
             lemma="run",
-            pos="VERB",
             language_code="en",
-            features={"number": "plural"},
+            features={"pos": "VERB", "number": "plural"},
         )
     )
 
@@ -87,10 +82,15 @@ def test_csp_filler_returns_iterator(sample_lexicon: Lexicon) -> None:
         slots={
             "subject": Slot(
                 name="subject",
-                constraints=[Constraint(expression="self.pos == 'NOUN'")],
+                constraints=[
+                    Constraint(expression="self.features.get('pos') == 'NOUN'")
+                ],
             ),
             "verb": Slot(
-                name="verb", constraints=[Constraint(expression="self.pos == 'VERB'")]
+                name="verb",
+                constraints=[
+                    Constraint(expression="self.features.get('pos') == 'VERB'")
+                ],
             ),
         },
     )
@@ -116,10 +116,15 @@ def test_csp_filler_multi_slot_agreement(sample_lexicon: Lexicon) -> None:
         slots={
             "subject": Slot(
                 name="subject",
-                constraints=[Constraint(expression="self.pos == 'NOUN'")],
+                constraints=[
+                    Constraint(expression="self.features.get('pos') == 'NOUN'")
+                ],
             ),
             "verb": Slot(
-                name="verb", constraints=[Constraint(expression="self.pos == 'VERB'")]
+                name="verb",
+                constraints=[
+                    Constraint(expression="self.features.get('pos') == 'VERB'")
+                ],
             ),
         },
         constraints=[
@@ -151,7 +156,10 @@ def test_csp_filler_count_parameter(sample_lexicon: Lexicon) -> None:
         template_string="{noun}",
         slots={
             "noun": Slot(
-                name="noun", constraints=[Constraint(expression="self.pos == 'NOUN'")]
+                name="noun",
+                constraints=[
+                    Constraint(expression="self.features.get('pos') == 'NOUN'")
+                ],
             ),
         },
     )
@@ -170,7 +178,10 @@ def test_csp_filler_unsatisfiable_constraint(sample_lexicon: Lexicon) -> None:
         template_string="{word}",
         slots={
             "word": Slot(
-                name="word", constraints=[Constraint(expression="self.pos == 'ADV'")]
+                name="word",
+                constraints=[
+                    Constraint(expression="self.features.get('pos') == 'ADV'")
+                ],
             ),
         },
     )
@@ -190,7 +201,10 @@ def test_csp_filler_metadata_preservation(sample_lexicon: Lexicon) -> None:
         template_string="{noun}",
         slots={
             "noun": Slot(
-                name="noun", constraints=[Constraint(expression="self.pos == 'NOUN'")]
+                name="noun",
+                constraints=[
+                    Constraint(expression="self.features.get('pos') == 'NOUN'")
+                ],
             ),
         },
     )
@@ -207,15 +221,22 @@ def test_csp_filler_metadata_preservation(sample_lexicon: Lexicon) -> None:
 def test_csp_filler_language_filtering(sample_lexicon: Lexicon) -> None:
     """Test language code filtering."""
     # Add Spanish items
-    sample_lexicon.add(LexicalItem(lemma="gato", pos="NOUN", language_code="es"))
-    sample_lexicon.add(LexicalItem(lemma="perro", pos="NOUN", language_code="es"))
+    sample_lexicon.add(
+        LexicalItem(lemma="gato", language_code="es", features={"pos": "NOUN"})
+    )
+    sample_lexicon.add(
+        LexicalItem(lemma="perro", language_code="es", features={"pos": "NOUN"})
+    )
 
     template = Template(
         name="simple",
         template_string="{noun}",
         slots={
             "noun": Slot(
-                name="noun", constraints=[Constraint(expression="self.pos == 'NOUN'")]
+                name="noun",
+                constraints=[
+                    Constraint(expression="self.features.get('pos') == 'NOUN'")
+                ],
             ),
         },
     )
@@ -241,10 +262,16 @@ def test_csp_filler_relational_constraint(sample_lexicon: Lexicon) -> None:
         template_string="{noun1} and {noun2}",
         slots={
             "noun1": Slot(
-                name="noun1", constraints=[Constraint(expression="self.pos == 'NOUN'")]
+                name="noun1",
+                constraints=[
+                    Constraint(expression="self.features.get('pos') == 'NOUN'")
+                ],
             ),
             "noun2": Slot(
-                name="noun2", constraints=[Constraint(expression="self.pos == 'NOUN'")]
+                name="noun2",
+                constraints=[
+                    Constraint(expression="self.features.get('pos') == 'NOUN'")
+                ],
             ),
         },
         constraints=[Constraint(expression="noun1.lemma != noun2.lemma")],

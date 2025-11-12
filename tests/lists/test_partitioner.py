@@ -7,13 +7,13 @@ from uuid import UUID, uuid4
 import pytest
 
 from bead.dsl.errors import EvaluationError
+from bead.lists import ExperimentList
 from bead.lists.constraints import (
     BalanceConstraint,
     QuantileConstraint,
     SizeConstraint,
     UniquenessConstraint,
 )
-from bead.lists import ExperimentList
 from bead.lists.partitioner import ListPartitioner
 
 type ItemMetadata = dict[str, str | float | int]

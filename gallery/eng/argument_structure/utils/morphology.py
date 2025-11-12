@@ -156,13 +156,11 @@ class MorphologyExtractor:
                 particle_forms[key] = LexicalItem(
                     lemma=lemma,  # Full particle verb
                     form=item.form,  # Inflected form from base
-                    pos=item.pos,
                     language_code=item.language_code,
-                    features=item.features,
-                    attributes={
+                    features={
+                        **item.features,
                         "base_verb": main_verb,
                         "is_particle_verb": True,
-                        **item.attributes,
                     },
                 )
 
@@ -195,39 +193,36 @@ class MorphologyExtractor:
         'is walking'
         """
         base_lemma = present_participle.lemma
-        participle_form = present_participle.form
+        participle_form = present_participle.form or base_lemma
 
         # Create progressive forms with auxiliaries
         present_prog = LexicalItem(
             lemma=base_lemma,
             form=f"is {participle_form}",
-            pos="VERB",
             language_code="eng",
             features={
+                "pos": "VERB",
                 "tense": "PRS",
                 "aspect": "PROG",
                 "person": "3",
                 "number": "SG",
-            },
-            attributes={
                 "construction": "progressive",
                 "auxiliary": "is",
                 "participle": participle_form,
             },
+            source="UniMorph",
         )
 
         past_prog = LexicalItem(
             lemma=base_lemma,
             form=f"was {participle_form}",
-            pos="VERB",
             language_code="eng",
             features={
+                "pos": "VERB",
                 "tense": "PST",
                 "aspect": "PROG",
                 "person": "3",
                 "number": "SG",
-            },
-            attributes={
                 "construction": "progressive",
                 "auxiliary": "was",
                 "participle": participle_form,

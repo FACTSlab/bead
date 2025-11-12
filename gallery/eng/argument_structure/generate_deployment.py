@@ -126,9 +126,11 @@ def main() -> None:
     jspsych_config = deployment_config.get("jspsych", {})
     experiment_config_dict = deployment_config.get("experiment", {})
 
-    console.print(f"[green]✓[/green] Configuration loaded")
-    console.print(f"  • Platform: [cyan]{deployment_config.get('platform', 'jatos')}[/cyan]")
-    console.print(f"  • Experiment type: [cyan]forced_choice (2AFC)[/cyan]\n")
+    console.print("[green]✓[/green] Configuration loaded")
+    console.print(
+        f"  • Platform: [cyan]{deployment_config.get('platform', 'jatos')}[/cyan]"
+    )
+    console.print("  • Experiment type: [cyan]forced_choice (2AFC)[/cyan]\n")
 
     # Load experiment lists
     console.rule("[2/6] Loading Experiment Lists")
@@ -137,10 +139,13 @@ def main() -> None:
 
     # Randomly select subset of lists
     import random
+
     random.seed(42)
     n_lists = min(args.n_lists, len(all_lists))
     selected_lists = random.sample(all_lists, n_lists)
-    console.print(f"[green]✓[/green] Randomly selected {n_lists} lists from {len(all_lists)} available\n")
+    console.print(
+        f"[green]✓[/green] Randomly selected {n_lists} lists from {len(all_lists)} available\n"
+    )
 
     # Load all 2AFC pairs
     console.rule("[3/6] Loading 2AFC Pairs")
@@ -152,7 +157,7 @@ def main() -> None:
     console.rule("[4/6] Creating Item Template")
     template = create_minimal_item_template()
     templates_dict = {template.id: template}
-    console.print(f"[green]✓[/green] Created minimal ItemTemplate for 2AFC items\n")
+    console.print("[green]✓[/green] Created minimal ItemTemplate for 2AFC items\n")
 
     # Update all items to reference this template
     for item in items_dict.values():
@@ -184,8 +189,12 @@ def main() -> None:
     output_dir = base_dir / args.output_dir
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    for i, exp_list in track(enumerate(selected_lists), description="Generating experiments", total=len(selected_lists)):
-        list_output_dir = output_dir / f"list_{i+1:02d}"
+    for i, exp_list in track(
+        enumerate(selected_lists),
+        description="Generating experiments",
+        total=len(selected_lists),
+    ):
+        list_output_dir = output_dir / f"list_{i + 1:02d}"
 
         generator = JsPsychExperimentGenerator(
             config=experiment_config,
@@ -200,8 +209,9 @@ def main() -> None:
                 templates=templates_dict,
             )
         except Exception as e:
-            console.print(f"[red]✗[/red] Error generating list {i+1}: {e}")
+            console.print(f"[red]✗[/red] Error generating list {i + 1}: {e}")
             import traceback
+
             traceback.print_exc()
             sys.exit(1)
 
@@ -218,19 +228,24 @@ def main() -> None:
             ),
         )
 
-        for i, _ in track(enumerate(selected_lists), description="Exporting to JATOS", total=len(selected_lists)):
-            list_dir = output_dir / f"list_{i+1:02d}"
-            jzip_path = output_dir / f"list_{i+1:02d}.jzip"
+        for i, _ in track(
+            enumerate(selected_lists),
+            description="Exporting to JATOS",
+            total=len(selected_lists),
+        ):
+            list_dir = output_dir / f"list_{i + 1:02d}"
+            jzip_path = output_dir / f"list_{i + 1:02d}.jzip"
 
             try:
                 exporter.export(
                     experiment_dir=list_dir,
                     output_path=jzip_path,
-                    component_title=f"List {i+1}",
+                    component_title=f"List {i + 1}",
                 )
             except Exception as e:
-                console.print(f"[red]✗[/red] Error exporting list {i+1}: {e}")
+                console.print(f"[red]✗[/red] Error exporting list {i + 1}: {e}")
                 import traceback
+
                 traceback.print_exc()
 
         console.print(f"[green]✓[/green] Exported {n_lists} JATOS packages\n")
@@ -243,8 +258,14 @@ def main() -> None:
     table = Table(show_header=False, box=None, padding=(0, 2))
     table.add_row("Lists generated:", f"[cyan]{n_lists}[/cyan]")
     table.add_row("Output directory:", f"[cyan]{output_dir}[/cyan]")
-    table.add_row("Total items deployed:", f"[cyan]{sum(len(lst.item_refs) for lst in selected_lists)}[/cyan]")
-    table.add_row("Items per list:", f"[cyan]{[len(lst.item_refs) for lst in selected_lists]}[/cyan]")
+    table.add_row(
+        "Total items deployed:",
+        f"[cyan]{sum(len(lst.item_refs) for lst in selected_lists)}[/cyan]",
+    )
+    table.add_row(
+        "Items per list:",
+        f"[cyan]{[len(lst.item_refs) for lst in selected_lists]}[/cyan]",
+    )
 
     if not args.no_jatos:
         table.add_row("", "")
@@ -253,7 +274,9 @@ def main() -> None:
     console.print(table)
 
     if not args.no_jatos:
-        console.print("\n[dim]Upload .jzip files to your JATOS server to deploy the experiment.[/dim]")
+        console.print(
+            "\n[dim]Upload .jzip files to your JATOS server to deploy the experiment.[/dim]"
+        )
 
 
 if __name__ == "__main__":
@@ -265,5 +288,6 @@ if __name__ == "__main__":
     except Exception as e:
         console.print(f"\n[red]✗ Unexpected error: {e}[/red]")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)

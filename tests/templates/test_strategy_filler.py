@@ -5,8 +5,8 @@ from __future__ import annotations
 import pytest
 
 from bead.resources.constraints import Constraint
-from bead.resources.lexicon import Lexicon
 from bead.resources.lexical_item import LexicalItem
+from bead.resources.lexicon import Lexicon
 from bead.resources.template import Slot, Template
 from bead.templates.filler import FilledTemplate
 from bead.templates.strategies import (
@@ -23,16 +23,18 @@ def sample_lexicon() -> Lexicon:
     lexicon = Lexicon(name="test_lexicon")
 
     # Add nouns
-    lexicon.add(LexicalItem(lemma="cat", pos="NOUN", language_code="en"))
-    lexicon.add(LexicalItem(lemma="dog", pos="NOUN", language_code="en"))
+    lexicon.add(LexicalItem(lemma="cat", language_code="en", features={"pos": "NOUN"}))
+    lexicon.add(LexicalItem(lemma="dog", language_code="en", features={"pos": "NOUN"}))
 
     # Add verbs
-    lexicon.add(LexicalItem(lemma="broke", pos="VERB", language_code="en"))
-    lexicon.add(LexicalItem(lemma="ate", pos="VERB", language_code="en"))
+    lexicon.add(
+        LexicalItem(lemma="broke", language_code="en", features={"pos": "VERB"})
+    )
+    lexicon.add(LexicalItem(lemma="ate", language_code="en", features={"pos": "VERB"}))
 
     # Add adjectives
-    lexicon.add(LexicalItem(lemma="quick", pos="ADJ", language_code="en"))
-    lexicon.add(LexicalItem(lemma="lazy", pos="ADJ", language_code="en"))
+    lexicon.add(LexicalItem(lemma="quick", language_code="en", features={"pos": "ADJ"}))
+    lexicon.add(LexicalItem(lemma="lazy", language_code="en", features={"pos": "ADJ"}))
 
     return lexicon
 
@@ -46,11 +48,15 @@ def simple_template() -> Template:
         slots={
             "subject": Slot(
                 name="subject",
-                constraints=[Constraint(expression="self.pos == 'NOUN'")],
+                constraints=[
+                    Constraint(expression="self.features.get('pos') == 'NOUN'")
+                ],
             ),
             "verb": Slot(
                 name="verb",
-                constraints=[Constraint(expression="self.pos == 'VERB'")],
+                constraints=[
+                    Constraint(expression="self.features.get('pos') == 'VERB'")
+                ],
             ),
         },
     )
@@ -58,8 +64,8 @@ def simple_template() -> Template:
 
 def test_filled_template_model() -> None:
     """Test FilledTemplate model creation."""
-    item1 = LexicalItem(lemma="cat", pos="NOUN", language_code="en")
-    item2 = LexicalItem(lemma="broke", pos="VERB", language_code="en")
+    item1 = LexicalItem(lemma="cat", language_code="en", features={"pos": "NOUN"})
+    item2 = LexicalItem(lemma="broke", language_code="en", features={"pos": "VERB"})
 
     filled = FilledTemplate(
         template_id="t1",
@@ -142,7 +148,9 @@ def test_filler_stratified_strategy(sample_lexicon: Lexicon) -> None:
         slots={
             "word": Slot(
                 name="word",
-                constraints=[Constraint(expression="self.pos in ['NOUN', 'ADJ']")],
+                constraints=[
+                    Constraint(expression="self.features.get('pos') in ['NOUN', 'ADJ']")
+                ],
             ),
         },
     )
@@ -158,8 +166,12 @@ def test_filler_stratified_strategy(sample_lexicon: Lexicon) -> None:
 def test_filler_language_filtering(sample_lexicon: Lexicon) -> None:
     """Test language code filtering."""
     # Add Spanish items
-    sample_lexicon.add(LexicalItem(lemma="gato", pos="NOUN", language_code="es"))
-    sample_lexicon.add(LexicalItem(lemma="perro", pos="NOUN", language_code="es"))
+    sample_lexicon.add(
+        LexicalItem(lemma="gato", language_code="es", features={"pos": "NOUN"})
+    )
+    sample_lexicon.add(
+        LexicalItem(lemma="perro", language_code="es", features={"pos": "NOUN"})
+    )
 
     template = Template(
         name="simple",
@@ -167,7 +179,9 @@ def test_filler_language_filtering(sample_lexicon: Lexicon) -> None:
         slots={
             "noun": Slot(
                 name="noun",
-                constraints=[Constraint(expression="self.pos == 'NOUN'")],
+                constraints=[
+                    Constraint(expression="self.features.get('pos') == 'NOUN'")
+                ],
             ),
         },
     )
@@ -193,7 +207,9 @@ def test_filler_empty_slot_error(sample_lexicon: Lexicon) -> None:
         slots={
             "adverb": Slot(
                 name="adverb",
-                constraints=[Constraint(expression="self.pos == 'ADV'")],
+                constraints=[
+                    Constraint(expression="self.features.get('pos') == 'ADV'")
+                ],
             ),
         },
     )
@@ -273,15 +289,21 @@ def test_filler_count_combinations_three_slots(sample_lexicon: Lexicon) -> None:
         slots={
             "adj": Slot(
                 name="adj",
-                constraints=[Constraint(expression="self.pos == 'ADJ'")],
+                constraints=[
+                    Constraint(expression="self.features.get('pos') == 'ADJ'")
+                ],
             ),
             "noun": Slot(
                 name="noun",
-                constraints=[Constraint(expression="self.pos == 'NOUN'")],
+                constraints=[
+                    Constraint(expression="self.features.get('pos') == 'NOUN'")
+                ],
             ),
             "verb": Slot(
                 name="verb",
-                constraints=[Constraint(expression="self.pos == 'VERB'")],
+                constraints=[
+                    Constraint(expression="self.features.get('pos') == 'VERB'")
+                ],
             ),
         },
     )
@@ -334,7 +356,9 @@ def test_filler_single_slot_template(sample_lexicon: Lexicon) -> None:
         slots={
             "noun": Slot(
                 name="noun",
-                constraints=[Constraint(expression="self.pos == 'NOUN'")],
+                constraints=[
+                    Constraint(expression="self.features.get('pos') == 'NOUN'")
+                ],
             ),
         },
     )
@@ -355,19 +379,27 @@ def test_filler_complex_template(sample_lexicon: Lexicon) -> None:
         slots={
             "adj1": Slot(
                 name="adj1",
-                constraints=[Constraint(expression="self.pos == 'ADJ'")],
+                constraints=[
+                    Constraint(expression="self.features.get('pos') == 'ADJ'")
+                ],
             ),
             "noun1": Slot(
                 name="noun1",
-                constraints=[Constraint(expression="self.pos == 'NOUN'")],
+                constraints=[
+                    Constraint(expression="self.features.get('pos') == 'NOUN'")
+                ],
             ),
             "adj2": Slot(
                 name="adj2",
-                constraints=[Constraint(expression="self.pos == 'ADJ'")],
+                constraints=[
+                    Constraint(expression="self.features.get('pos') == 'ADJ'")
+                ],
             ),
             "noun2": Slot(
                 name="noun2",
-                constraints=[Constraint(expression="self.pos == 'NOUN'")],
+                constraints=[
+                    Constraint(expression="self.features.get('pos') == 'NOUN'")
+                ],
             ),
         },
     )
@@ -391,7 +423,9 @@ def test_filler_empty_lexicon() -> None:
         slots={
             "word": Slot(
                 name="word",
-                constraints=[Constraint(expression="self.pos == 'NOUN'")],
+                constraints=[
+                    Constraint(expression="self.features.get('pos') == 'NOUN'")
+                ],
             ),
         },
     )

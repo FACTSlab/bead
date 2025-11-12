@@ -22,9 +22,13 @@ def sample_lexical_item() -> LexicalItem:
     """Provide a sample lexical item."""
     return LexicalItem(
         lemma="walk",
-        pos="VERB",
-        features={"tense": "present", "transitive": True},
-        attributes={"frequency": 1000},
+        language_code="eng",
+        features={
+            "pos": "VERB",
+            "tense": "present",
+            "transitive": True,
+            "frequency": 1000,
+        },
         source="manual",
     )
 
@@ -34,9 +38,13 @@ def sample_noun() -> LexicalItem:
     """Provide a sample noun."""
     return LexicalItem(
         lemma="dog",
-        pos="NOUN",
-        features={"number": "singular", "animacy": "animate"},
-        attributes={"frequency": 500},
+        language_code="eng",
+        features={
+            "pos": "NOUN",
+            "number": "singular",
+            "animacy": "animate",
+            "frequency": 500,
+        },
     )
 
 
@@ -54,7 +62,7 @@ def sample_extensional_constraint(
 def sample_intensional_constraint() -> Constraint:
     """Provide a sample intensional constraint."""
     return Constraint(
-        expression="self.pos == 'VERB'",
+        expression="self.features.get('pos') == 'VERB'",
     )
 
 
@@ -70,7 +78,7 @@ def sample_relational_constraint() -> Constraint:
 def sample_dsl_constraint() -> Constraint:
     """Provide a sample DSL constraint."""
     return Constraint(
-        expression="self.pos == 'VERB' and len(self.lemma) > 3",
+        expression="self.features.get('pos') == 'VERB' and len(self.lemma) > 3",
     )
 
 
@@ -106,9 +114,23 @@ def sample_template(sample_slot: Slot) -> Template:
 def sample_lexicon() -> Lexicon:
     """Provide a sample lexicon with multiple items."""
     lexicon = Lexicon(name="test_lexicon", language_code="en")
-    lexicon.add(LexicalItem(lemma="walk", pos="VERB", attributes={"frequency": 1000}))
-    lexicon.add(LexicalItem(lemma="run", pos="VERB", attributes={"frequency": 800}))
-    lexicon.add(LexicalItem(lemma="dog", pos="NOUN", attributes={"frequency": 500}))
+    lexicon.add(
+        LexicalItem(
+            lemma="walk",
+            language_code="eng",
+            features={"pos": "VERB", "frequency": 1000},
+        )
+    )
+    lexicon.add(
+        LexicalItem(
+            lemma="run", language_code="eng", features={"pos": "VERB", "frequency": 800}
+        )
+    )
+    lexicon.add(
+        LexicalItem(
+            lemma="dog", language_code="eng", features={"pos": "NOUN", "frequency": 500}
+        )
+    )
     return lexicon
 
 
@@ -136,13 +158,13 @@ def sample_template_collection(sample_template: Template) -> TemplateCollection:
 @pytest.fixture
 def english_item() -> LexicalItem:
     """Provide an English lexical item."""
-    return LexicalItem(lemma="walk", pos="VERB", language_code="en")
+    return LexicalItem(lemma="walk", language_code="en", features={"pos": "VERB"})
 
 
 @pytest.fixture
 def korean_item() -> LexicalItem:
     """Provide a Korean lexical item."""
-    return LexicalItem(lemma="먹다", pos="VERB", language_code="ko")
+    return LexicalItem(lemma="먹다", language_code="ko", features={"pos": "VERB"})
 
 
 @pytest.fixture
@@ -177,24 +199,33 @@ def english_causative_verbs() -> dict[UUID, LexicalItem]:
     """Sample English causative verbs for testing."""
     item1 = LexicalItem(
         lemma="break",
-        pos="VERB",
         language_code="en",
-        features={"causative": True, "transitive": True},
-        attributes={"frequency": 500},
+        features={
+            "pos": "VERB",
+            "causative": True,
+            "transitive": True,
+            "frequency": 500,
+        },
     )
     item2 = LexicalItem(
         lemma="open",
-        pos="VERB",
         language_code="en",
-        features={"causative": True, "transitive": True},
-        attributes={"frequency": 800},
+        features={
+            "pos": "VERB",
+            "causative": True,
+            "transitive": True,
+            "frequency": 800,
+        },
     )
     item3 = LexicalItem(
         lemma="close",
-        pos="VERB",
         language_code="en",
-        features={"causative": True, "transitive": True},
-        attributes={"frequency": 700},
+        features={
+            "pos": "VERB",
+            "causative": True,
+            "transitive": True,
+            "frequency": 700,
+        },
     )
     return {item1.id: item1, item2.id: item2, item3.id: item3}
 
@@ -204,17 +235,23 @@ def korean_causative_verbs() -> dict[UUID, LexicalItem]:
     """Sample Korean causative verbs for testing."""
     item1 = LexicalItem(
         lemma="kkakta",
-        pos="VERB",
         language_code="ko",
-        features={"causative": True, "transitive": True},
-        attributes={"frequency": 400},
+        features={
+            "pos": "VERB",
+            "causative": True,
+            "transitive": True,
+            "frequency": 400,
+        },
     )
     item2 = LexicalItem(
         lemma="yeolda",
-        pos="VERB",
         language_code="ko",
-        features={"causative": True, "transitive": True},
-        attributes={"frequency": 600},
+        features={
+            "pos": "VERB",
+            "causative": True,
+            "transitive": True,
+            "frequency": 600,
+        },
     )
     return {item1.id: item1, item2.id: item2}
 
@@ -224,10 +261,13 @@ def zulu_causative_verbs() -> dict[UUID, LexicalItem]:
     """Sample Zulu causative verbs for testing."""
     item1 = LexicalItem(
         lemma="phula",
-        pos="VERB",
         language_code="zu",
-        features={"causative": True, "transitive": True},
-        attributes={"frequency": 300},
+        features={
+            "pos": "VERB",
+            "causative": True,
+            "transitive": True,
+            "frequency": 300,
+        },
     )
     return {item1.id: item1}
 

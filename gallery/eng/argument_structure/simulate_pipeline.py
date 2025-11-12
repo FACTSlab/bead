@@ -36,7 +36,7 @@ from bead.evaluation.convergence import ConvergenceDetector
 from bead.evaluation.interannotator import InterAnnotatorMetrics
 from bead.evaluation.model_metrics import ModelMetrics
 from bead.items.item import Item
-from bead.items.item_template import ItemTemplate, PresentationSpec, TaskSpec, TaskType
+from bead.items.item_template import ItemTemplate, PresentationSpec, TaskSpec
 from bead.simulation.annotators.base import SimulatedAnnotator
 
 
@@ -194,7 +194,7 @@ def run_simulation(
     # Create annotator from configuration
     annotator = SimulatedAnnotator.from_config(annotator_config)
 
-    print(f"  Strategy: lm_score")
+    print("  Strategy: lm_score")
     print(f"  Temperature: {temperature}")
     print(f"  Random state: {random_state}")
     print()

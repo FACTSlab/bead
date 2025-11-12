@@ -6,13 +6,13 @@ from pathlib import Path
 
 import pytest
 
+from bead.config.active_learning import ActiveLearningConfig
+from bead.config.config import BeadConfig
 from bead.config.defaults import (
     DEFAULT_CONFIG,
     get_default_config,
     get_default_for_model,
 )
-from bead.config.active_learning import ActiveLearningConfig
-from bead.config.config import BeadConfig
 from bead.config.deployment import DeploymentConfig
 from bead.config.item import ItemConfig
 from bead.config.list import ListConfig

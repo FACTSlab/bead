@@ -8,13 +8,16 @@ sentence generation.
 from __future__ import annotations
 
 import re
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from pydantic import Field, field_validator, model_validator
 
 from bead.data.base import BeadBaseModel
 from bead.data.language_codes import LanguageCode
 from bead.resources.constraints import Constraint
+
+if TYPE_CHECKING:
+    from bead.templates.filler import FilledTemplate
 
 
 def _empty_constraint_list() -> list[Constraint]:
@@ -281,8 +284,8 @@ class Template(BeadBaseModel):
         >>> filled.rendered_text
         'cat runs.'
         """
-        from bead.resources.lexical_item import LexicalItem
-        from bead.templates.filler import FilledTemplate
+        from bead.resources.lexical_item import LexicalItem  # noqa: PLC0415
+        from bead.templates.filler import FilledTemplate  # noqa: PLC0415
 
         # Create LexicalItem objects for each value
         slot_fillers = {}
@@ -291,8 +294,8 @@ class Template(BeadBaseModel):
                 # Create a minimal LexicalItem with just the lemma
                 slot_fillers[slot_name] = LexicalItem(
                     lemma=value,
-                    pos="UNKNOWN",
                     language_code=self.language_code or "eng",
+                    features={"pos": "UNKNOWN"},
                 )
 
         # Render text by replacing slot placeholders

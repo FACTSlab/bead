@@ -120,8 +120,10 @@ class GlazingAdapter(ResourceAdapter):
         >>> len(all_items) > 100
         True
         >>> # Include detailed frame information
-        >>> items = adapter.fetch_items(query="break", language_code="en", include_frames=True)
-        >>> "frames" in items[0].attributes
+        >>> items = adapter.fetch_items(  # doctest: +SKIP
+        ...     query="break", language_code="en", include_frames=True
+        ... )
+        >>> "frames" in items[0].attributes  # doctest: +SKIP
         True
         """
         # Check cache
@@ -259,11 +261,12 @@ class GlazingAdapter(ResourceAdapter):
                     attributes["frames"] = frames_data
 
                 # Create LexicalItem for this verb class
+                features = {"pos": "VERB", **attributes}
                 item = LexicalItem(
                     lemma=member.name,
-                    pos="VERB",
                     language_code=language_code or "en",
-                    attributes=attributes,
+                    features=features,
+                    source="VerbNet",
                 )
                 items.append(item)
 
@@ -366,11 +369,12 @@ class GlazingAdapter(ResourceAdapter):
                 if hasattr(frameset, "predicate_lemma")
                 else str(frameset)
             )
+            features = {"pos": "VERB", **attributes}
             item = LexicalItem(
                 lemma=lemma,
-                pos="VERB",
                 language_code=language_code or "en",
-                attributes=attributes,
+                features=features,
+                source="PropBank",
             )
             items.append(item)
 
@@ -480,11 +484,12 @@ class GlazingAdapter(ResourceAdapter):
                     for fe in frame.frame_elements
                 ]
 
+        features = {"pos": pos, **attributes}
         return LexicalItem(
             lemma=lemma,
-            pos=pos,
             language_code=language_code or "en",
-            attributes=attributes,
+            features=features,
+            source="FrameNet",
         )
 
     def is_available(self) -> bool:

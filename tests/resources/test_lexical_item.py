@@ -17,60 +17,55 @@ class TestLexicalItemCreation:
         """Test creating a lexical item with all fields."""
         item = LexicalItem(
             lemma="walk",
-            pos="VERB",
             form="walked",
-            features={"tense": "past", "transitive": True},
-            attributes={"frequency": 1000, "rating": 4.5},
+            language_code="eng",
+            features={
+                "pos": "VERB",
+                "tense": "past",
+                "transitive": True,
+                "frequency": 1000,
+                "rating": 4.5,
+            },
             source="manual",
         )
         assert item.lemma == "walk"
-        assert item.pos == "VERB"
         assert item.form == "walked"
+        assert item.language_code == "eng"
+        assert item.features["pos"] == "VERB"
         assert item.features["tense"] == "past"
-        assert item.attributes["frequency"] == 1000
+        assert item.features["frequency"] == 1000
         assert item.source == "manual"
 
     def test_create_with_minimal_fields(self) -> None:
         """Test creating a lexical item with minimal fields."""
-        item = LexicalItem(lemma="run")
+        item = LexicalItem(lemma="run", language_code="eng")
         assert item.lemma == "run"
-        assert item.pos is None
         assert item.form is None
-        assert item.language_code is None
+        assert item.language_code == "eng"
         assert item.features == {}
-        assert item.attributes == {}
         assert item.source is None
 
     def test_create_with_empty_features_dict(self) -> None:
         """Test creating a lexical item with empty features dict."""
-        item = LexicalItem(lemma="jump", features={})
+        item = LexicalItem(lemma="jump", language_code="eng", features={})
         assert item.features == {}
-
-    def test_create_with_empty_attributes_dict(self) -> None:
-        """Test creating a lexical item with empty attributes dict."""
-        item = LexicalItem(lemma="swim", attributes={})
-        assert item.attributes == {}
-
-    def test_create_with_none_pos(self) -> None:
-        """Test creating a lexical item with None pos."""
-        item = LexicalItem(lemma="fly", pos=None)
-        assert item.pos is None
 
     def test_create_with_form_different_from_lemma(self) -> None:
         """Test creating a lexical item with form different from lemma."""
-        item = LexicalItem(lemma="go", form="went")
+        item = LexicalItem(lemma="go", form="went", language_code="eng")
         assert item.lemma == "go"
         assert item.form == "went"
 
     def test_create_with_special_characters_in_lemma(self) -> None:
         """Test creating a lexical item with special characters in lemma."""
-        item = LexicalItem(lemma="rock-and-roll")
+        item = LexicalItem(lemma="rock-and-roll", language_code="eng")
         assert item.lemma == "rock-and-roll"
 
     def test_create_with_nested_features(self) -> None:
         """Test creating a lexical item with nested features."""
         item = LexicalItem(
             lemma="test",
+            language_code="eng",
             features={"morphology": {"prefix": "re", "suffix": "ed"}},
         )
         assert item.features["morphology"]["prefix"] == "re"
@@ -82,26 +77,14 @@ class TestLexicalItemValidation:
     def test_empty_lemma_fails(self) -> None:
         """Test that empty lemma validation fails."""
         with pytest.raises(ValidationError) as exc_info:
-            LexicalItem(lemma="")
+            LexicalItem(lemma="", language_code="eng")
         assert "lemma must be non-empty" in str(exc_info.value)
 
     def test_whitespace_only_lemma_fails(self) -> None:
         """Test that whitespace-only lemma validation fails."""
         with pytest.raises(ValidationError) as exc_info:
-            LexicalItem(lemma="   ")
+            LexicalItem(lemma="   ", language_code="eng")
         assert "lemma must be non-empty" in str(exc_info.value)
-
-    def test_lowercase_pos_fails(self) -> None:
-        """Test that lowercase pos validation fails."""
-        with pytest.raises(ValidationError) as exc_info:
-            LexicalItem(lemma="test", pos="verb")
-        assert "pos must be uppercase" in str(exc_info.value)
-
-    def test_mixed_case_pos_fails(self) -> None:
-        """Test that mixed case pos validation fails."""
-        with pytest.raises(ValidationError) as exc_info:
-            LexicalItem(lemma="test", pos="Verb")
-        assert "pos must be uppercase" in str(exc_info.value)
 
 
 class TestLexicalItemMutability:
@@ -109,15 +92,9 @@ class TestLexicalItemMutability:
 
     def test_features_are_mutable(self) -> None:
         """Test that features dict is mutable."""
-        item = LexicalItem(lemma="test")
+        item = LexicalItem(lemma="test", language_code="eng")
         item.features["new_feature"] = "value"
         assert item.features["new_feature"] == "value"
-
-    def test_attributes_are_mutable(self) -> None:
-        """Test that attributes dict is mutable."""
-        item = LexicalItem(lemma="test")
-        item.attributes["new_attr"] = 42
-        assert item.attributes["new_attr"] == 42
 
 
 class TestLexicalItemInheritance:
@@ -125,12 +102,12 @@ class TestLexicalItemInheritance:
 
     def test_inherits_uuidv7_id(self) -> None:
         """Test that lexical item inherits UUID id from BeadBaseModel."""
-        item = LexicalItem(lemma="test")
+        item = LexicalItem(lemma="test", language_code="eng")
         assert isinstance(item.id, UUID)
 
     def test_inherits_timestamps(self) -> None:
         """Test that lexical item inherits timestamps from BeadBaseModel."""
-        item = LexicalItem(lemma="test")
+        item = LexicalItem(lemma="test", language_code="eng")
         assert hasattr(item, "created_at")
         assert hasattr(item, "modified_at")
         assert item.created_at is not None
@@ -138,7 +115,7 @@ class TestLexicalItemInheritance:
 
     def test_metadata_tracking(self) -> None:
         """Test that lexical item has metadata tracking."""
-        item = LexicalItem(lemma="test")
+        item = LexicalItem(lemma="test", language_code="eng")
         assert hasattr(item, "metadata")
 
 
@@ -149,70 +126,77 @@ class TestLexicalItemSerialization:
         """Test lexical item serialization with model_dump."""
         item = LexicalItem(
             lemma="walk",
-            pos="VERB",
-            features={"tense": "present"},
-            attributes={"frequency": 1000},
+            language_code="eng",
+            features={"pos": "VERB", "tense": "present", "frequency": 1000},
         )
         data = item.model_dump()
         assert data["lemma"] == "walk"
-        assert data["pos"] == "VERB"
+        assert data["language_code"] == "eng"
+        assert data["features"]["pos"] == "VERB"
         assert data["features"]["tense"] == "present"
-        assert data["attributes"]["frequency"] == 1000
+        assert data["features"]["frequency"] == 1000
 
     def test_deserialization(self) -> None:
         """Test lexical item deserialization with model_validate."""
         data = {
             "lemma": "run",
-            "pos": "VERB",
-            "features": {"tense": "past"},
-            "attributes": {"frequency": 500},
+            "language_code": "eng",
+            "features": {"pos": "VERB", "tense": "past", "frequency": 500},
         }
         item = LexicalItem.model_validate(data)
         assert item.lemma == "run"
-        assert item.pos == "VERB"
+        assert item.language_code == "eng"
+        assert item.features["pos"] == "VERB"
         assert item.features["tense"] == "past"
-        assert item.attributes["frequency"] == 500
+        assert item.features["frequency"] == 500
 
     def test_model_copy(self) -> None:
         """Test lexical item model_copy."""
         item = LexicalItem(
             lemma="walk",
-            pos="VERB",
-            features={"tense": "present"},
+            language_code="eng",
+            features={"pos": "VERB", "tense": "present"},
         )
         copy = item.model_copy()
         assert copy.lemma == item.lemma
-        assert copy.pos == item.pos
+        assert copy.language_code == item.language_code
+        assert copy.features["pos"] == item.features["pos"]
         assert copy.id == item.id  # Copies preserve ID
 
 
 class TestLexicalItemAttributeTypes:
-    """Test lexical item with various attribute types."""
+    """Test lexical item with various feature types."""
 
-    def test_string_attribute(self) -> None:
-        """Test lexical item with string attribute."""
-        item = LexicalItem(lemma="test", attributes={"category": "motion"})
-        assert item.attributes["category"] == "motion"
+    def test_string_feature(self) -> None:
+        """Test lexical item with string feature."""
+        item = LexicalItem(
+            lemma="test", language_code="eng", features={"category": "motion"}
+        )
+        assert item.features["category"] == "motion"
 
-    def test_int_attribute(self) -> None:
-        """Test lexical item with int attribute."""
-        item = LexicalItem(lemma="test", attributes={"count": 42})
-        assert item.attributes["count"] == 42
+    def test_int_feature(self) -> None:
+        """Test lexical item with int feature."""
+        item = LexicalItem(lemma="test", language_code="eng", features={"count": 42})
+        assert item.features["count"] == 42
 
-    def test_float_attribute(self) -> None:
-        """Test lexical item with float attribute."""
-        item = LexicalItem(lemma="test", attributes={"rating": 4.5})
-        assert item.attributes["rating"] == 4.5
+    def test_float_feature(self) -> None:
+        """Test lexical item with float feature."""
+        item = LexicalItem(lemma="test", language_code="eng", features={"rating": 4.5})
+        assert item.features["rating"] == 4.5
 
-    def test_bool_attribute(self) -> None:
-        """Test lexical item with bool attribute."""
-        item = LexicalItem(lemma="test", attributes={"is_common": True})
-        assert item.attributes["is_common"] is True
+    def test_bool_feature(self) -> None:
+        """Test lexical item with bool feature."""
+        item = LexicalItem(
+            lemma="test", language_code="eng", features={"is_common": True}
+        )
+        assert item.features["is_common"] is True
 
-    def test_list_attribute(self) -> None:
-        """Test lexical item with list attribute."""
-        item = LexicalItem(lemma="test", attributes={"synonyms": ["run", "jog"]})
-        assert item.attributes["synonyms"] == ["run", "jog"]
+    def test_list_feature(self) -> None:
+        """Test lexical item with list feature."""
+        item = LexicalItem(
+            lemma="test", language_code="eng", features={"synonyms": ["run", "jog"]}
+        )
+        assert item.features["synonyms"] == ["run", "jog"]
 
 
 class TestLexicalItemLanguageCode:
@@ -220,7 +204,7 @@ class TestLexicalItemLanguageCode:
 
     def test_create_with_language_code(self) -> None:
         """Test creating a lexical item with language code."""
-        item = LexicalItem(lemma="walk", pos="VERB", language_code="en")
+        item = LexicalItem(lemma="walk", features={"pos": "VERB"}, language_code="en")
         assert item.language_code == "eng"  # Normalized to ISO 639-3
 
     def test_language_code_normalization(self) -> None:
@@ -252,8 +236,3 @@ class TestLexicalItemLanguageCode:
         """Test ISO 639-3 (3-letter) language codes."""
         item = LexicalItem(lemma="test", language_code="eng")
         assert item.language_code == "eng"
-
-    def test_language_code_none(self) -> None:
-        """Test that None language code is valid (optional)."""
-        item = LexicalItem(lemma="test", language_code=None)
-        assert item.language_code is None

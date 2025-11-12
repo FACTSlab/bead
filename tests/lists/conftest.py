@@ -7,6 +7,7 @@ from uuid import UUID, uuid4
 
 import pytest
 
+from bead.lists import ExperimentList, ListCollection
 from bead.lists.constraints import (
     BalanceConstraint,
     OrderingConstraint,
@@ -14,7 +15,6 @@ from bead.lists.constraints import (
     SizeConstraint,
     UniquenessConstraint,
 )
-from bead.lists import ExperimentList, ListCollection
 from bead.lists.partitioner import ListPartitioner
 
 

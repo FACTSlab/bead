@@ -141,8 +141,9 @@ class UniMorphAdapter(ResourceAdapter):
                 item = LexicalItem(
                     lemma=str(row["lemma"]),
                     form=str(row["form"]),
-                    language_code=language_code,  # Use original language_code
+                    language_code=language_code,
                     features=features_dict,
+                    source="UniMorph",
                 )
                 items.append(item)
 

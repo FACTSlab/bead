@@ -115,8 +115,12 @@ class TestItemConstructor:
             template_id="t1",
             template_name="transitive",
             slot_fillers={
-                "subject": LexicalItem(lemma="cat", pos="NOUN", language_code="eng"),
-                "verb": LexicalItem(lemma="broke", pos="VERB", language_code="eng"),
+                "subject": LexicalItem(
+                    lemma="cat", language_code="eng", features={"pos": "NOUN"}
+                ),
+                "verb": LexicalItem(
+                    lemma="broke", language_code="eng", features={"pos": "VERB"}
+                ),
             },
             rendered_text="The cat broke the vase",
             strategy_name="exhaustive",

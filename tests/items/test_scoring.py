@@ -134,6 +134,7 @@ class TestLanguageModelScorer:
 
     def test_score_with_metadata_includes_model_name(self) -> None:
         """Test that score_with_metadata includes model name."""
+
         # Create a mock scorer that doesn't actually load the model
         class MockLMScorer(LanguageModelScorer):
             @property

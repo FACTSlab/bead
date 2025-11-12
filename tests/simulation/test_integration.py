@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import uuid
 
-import numpy as np
 import pytest
 
 from bead.config.simulation import (
@@ -15,16 +14,14 @@ from bead.config.simulation import (
     SimulatedAnnotatorConfig,
     SimulationRunnerConfig,
 )
-from bead.items.item import Item, ModelOutput
+from bead.items.item import Item
 from bead.items.item_template import (
     ItemTemplate,
     PresentationSpec,
     TaskSpec,
-    TaskType,
 )
 from bead.simulation.annotators.base import SimulatedAnnotator
 from bead.simulation.runner import SimulationRunner
-
 
 # ============================================================================
 # Fixtures
@@ -130,7 +127,9 @@ def ordinal_scale_items() -> list[Item]:
 # ============================================================================
 
 
-def test_forced_choice_lm_based_integration(forced_choice_template, forced_choice_items):
+def test_forced_choice_lm_based_integration(
+    forced_choice_template, forced_choice_items
+):
     """Test complete forced choice workflow with LM scores."""
     # Create LM-based annotator
     config = SimulatedAnnotatorConfig(
@@ -293,13 +292,17 @@ def test_random_annotator_all_task_types(
     annotator = SimulatedAnnotator.from_config(config)
 
     # Test forced choice
-    fc_annotations = annotator.annotate_batch(forced_choice_items, forced_choice_template)
+    fc_annotations = annotator.annotate_batch(
+        forced_choice_items, forced_choice_template
+    )
     assert len(fc_annotations) == len(forced_choice_items)
     for annotation in fc_annotations.values():
         assert annotation in ["option_a", "option_b"]
 
     # Test ordinal scale
-    ord_annotations = annotator.annotate_batch(forced_choice_items, ordinal_scale_template)
+    ord_annotations = annotator.annotate_batch(
+        forced_choice_items, ordinal_scale_template
+    )
     assert len(ord_annotations) == len(forced_choice_items)
     for annotation in ord_annotations.values():
         assert 1 <= annotation <= 7
@@ -312,7 +315,9 @@ def test_random_annotator_all_task_types(
         assert isinstance(annotation, bool)
 
     # Test categorical
-    cat_annotations = annotator.annotate_batch(forced_choice_items, categorical_template)
+    cat_annotations = annotator.annotate_batch(
+        forced_choice_items, categorical_template
+    )
     assert len(cat_annotations) == len(forced_choice_items)
     for annotation in cat_annotations.values():
         assert annotation in ["cat1", "cat2", "cat3"]
@@ -370,10 +375,14 @@ def test_reproducibility_with_seeds(forced_choice_template, forced_choice_items)
 
     # Run twice with same seed
     annotator1 = SimulatedAnnotator.from_config(config)
-    annotations1 = annotator1.annotate_batch(forced_choice_items, forced_choice_template)
+    annotations1 = annotator1.annotate_batch(
+        forced_choice_items, forced_choice_template
+    )
 
     annotator2 = SimulatedAnnotator.from_config(config)
-    annotations2 = annotator2.annotate_batch(forced_choice_items, forced_choice_template)
+    annotations2 = annotator2.annotate_batch(
+        forced_choice_items, forced_choice_template
+    )
 
     # Should produce identical results
     for item in forced_choice_items:
@@ -488,7 +497,9 @@ def test_runner_output_saving(forced_choice_template, forced_choice_items, tmp_p
     output_path = tmp_path / "simulation_results.json"
 
     config = SimulationRunnerConfig(
-        annotator_configs=[SimulatedAnnotatorConfig(strategy="lm_score", random_state=42)],
+        annotator_configs=[
+            SimulatedAnnotatorConfig(strategy="lm_score", random_state=42)
+        ],
         n_annotators=1,
         output_format="dict",
         save_path=output_path,

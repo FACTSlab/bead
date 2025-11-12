@@ -296,7 +296,14 @@ class ItemConstructor:
 
         if isinstance(ast_node, FunctionCall):
             # Check if this is a model function call
-            func_name = ast_node.function.name
+            # Function can be Variable (for functions) or AttributeAccess (for methods)
+            if isinstance(ast_node.function, Variable):
+                func_name: str = ast_node.function.name
+            elif isinstance(ast_node.function, AttributeAccess):
+                func_name = ast_node.function.attribute
+            else:
+                # Skip other function call types
+                return calls
 
             model_functions = {
                 "lm_prob",

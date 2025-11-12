@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 from collections.abc import Callable, Iterator
 from pathlib import Path
-from typing import Literal
+from typing import Literal, cast
 from uuid import UUID
 
 import pandas as pd
@@ -20,7 +20,7 @@ from bead.data.base import BeadBaseModel
 from bead.resources.template import Template
 
 # Type alias for supported DataFrame types
-type DataFrame = pd.DataFrame | pl.DataFrame
+DataFrame = pd.DataFrame | pl.DataFrame
 
 
 def _empty_str_list() -> list[str]:
@@ -567,7 +567,8 @@ class TemplateCollection(BeadBaseModel):
             if backend == "pandas":
                 return pd.DataFrame(columns=columns)
             else:
-                return pl.DataFrame(schema=dict.fromkeys(columns, pl.Utf8))
+                schema: dict[str, type[pl.Utf8]] = dict.fromkeys(columns, pl.Utf8)
+                return pl.DataFrame(schema=schema)
 
         rows = []
         for template in self.templates.values():
@@ -625,10 +626,16 @@ class TemplateCollection(BeadBaseModel):
         ... })
         >>> collection = TemplateCollection.from_dataframe(df, "test")  # doctest: +SKIP
         """
-        # Get columns
-        columns = df.columns
+        # Get columns, handling both pandas and polars
+        is_polars = isinstance(df, pl.DataFrame)
+        if is_polars:
+            df_polars = cast(pl.DataFrame, df)
+            columns_list: list[str] = df_polars.columns
+        else:
+            df_pandas = cast(pd.DataFrame, df)
+            columns_list = list(df_pandas.columns)
 
-        if "name" not in columns or "template_string" not in columns:
+        if "name" not in columns_list or "template_string" not in columns_list:
             raise ValueError("DataFrame must have 'name' and 'template_string' columns")
 
         collection = cls(name=name)

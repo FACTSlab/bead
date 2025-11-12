@@ -8,6 +8,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from bead.active_learning.trainers.huggingface import HuggingFaceTrainer
+from bead.active_learning.trainers.lightning import PyTorchLightningTrainer
+
 if TYPE_CHECKING:
     from bead.active_learning.trainers.base import BaseTrainer
 
@@ -97,10 +100,5 @@ def list_trainers() -> list[str]:
 
 
 # Register built-in trainers
-from bead.active_learning.trainers.huggingface import HuggingFaceTrainer  # noqa: E402
-from bead.active_learning.trainers.lightning import (
-    PyTorchLightningTrainer,  # noqa: E402
-)
-
 register_trainer("huggingface", HuggingFaceTrainer)
 register_trainer("pytorch_lightning", PyTorchLightningTrainer)

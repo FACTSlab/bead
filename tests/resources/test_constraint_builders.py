@@ -4,13 +4,13 @@ from __future__ import annotations
 
 import pytest
 
-from bead.resources.constraints import Constraint
 from bead.resources.constraint_builders import (
     AgreementConstraintBuilder,
     ConditionalConstraintBuilder,
     ConstraintBuilder,
     SetMembershipConstraintBuilder,
 )
+from bead.resources.constraints import Constraint
 
 
 class TestConstraintBuilder:

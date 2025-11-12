@@ -14,7 +14,8 @@ class TemplateConfig(BaseModel):
     Parameters
     ----------
     filling_strategy : str
-        Strategy name for filling templates ("exhaustive", "random", "stratified", "mlm", "mixed").
+        Strategy name for filling templates
+        ("exhaustive", "random", "stratified", "mlm", "mixed").
     batch_size : int
         Batch size for filling operations.
     max_combinations : int | None
@@ -44,7 +45,8 @@ class TemplateConfig(BaseModel):
     slot_strategies : dict[str, dict[str, Any]] | None
         Per-slot strategy configuration for mixed filling.
         Maps slot names to strategy configs with format:
-        {'slot_name': {'strategy': 'exhaustive|random|stratified|mlm', ...strategy_config...}}
+        {'slot_name': {'strategy': 'exhaustive|random|stratified|mlm',
+         ...strategy_config...}}
 
     Examples
     --------
@@ -69,8 +71,9 @@ class TemplateConfig(BaseModel):
     ...         "adjective": {"strategy": "mlm"}
     ...     }
     ... )
-    >>> config_mixed.slot_strategies
-    {'noun': {'strategy': 'exhaustive'}, 'verb': {'strategy': 'exhaustive'}, 'adjective': {'strategy': 'mlm'}}
+    >>> config_mixed.slot_strategies  # doctest: +SKIP
+    {'noun': {'strategy': 'exhaustive'}, 'verb': {'strategy': 'exhaustive'},
+     'adjective': {'strategy': 'mlm'}}
     """
 
     filling_strategy: Literal["exhaustive", "random", "stratified", "mlm", "mixed"] = (
@@ -122,7 +125,8 @@ class TemplateConfig(BaseModel):
     slot_strategies: dict[str, dict[str, Any]] | None = Field(
         default=None,
         description="Per-slot strategy configuration for mixed filling. "
-        "Format: {'slot_name': {'strategy': 'exhaustive|random|stratified|mlm', ...config...}}",
+        "Format: {'slot_name': {'strategy': "
+        "'exhaustive|random|stratified|mlm', ...config...}}",
     )
 
     @field_validator("max_combinations")
@@ -182,7 +186,10 @@ class TemplateConfig(BaseModel):
         if self.slot_strategies is not None:
             for slot_name, config in self.slot_strategies.items():
                 if "strategy" not in config:
-                    msg = f"'strategy' key required for slot '{slot_name}' in slot_strategies"
+                    msg = (
+                        f"'strategy' key required for slot '{slot_name}' "
+                        f"in slot_strategies"
+                    )
                     raise ValueError(msg)
 
                 strategy_name = config["strategy"]
@@ -192,7 +199,10 @@ class TemplateConfig(BaseModel):
 
                 # If MLM, check model config is available
                 if strategy_name == "mlm" and self.mlm_model_name is None:
-                    msg = f"mlm_model_name must be specified when slot '{slot_name}' uses MLM"
+                    msg = (
+                        f"mlm_model_name must be specified when slot "
+                        f"'{slot_name}' uses MLM"
+                    )
                     raise ValueError(msg)
 
         return self

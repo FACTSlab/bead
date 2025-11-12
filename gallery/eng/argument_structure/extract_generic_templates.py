@@ -123,7 +123,9 @@ def main(input_file: str = "templates/verbnet_frames.jsonl") -> None:
 
     total = sum(len(g) for g in template_groups.values())
     console.print(f"[green]✓[/green] Loaded {total:,} verb-specific templates")
-    console.print(f"[green]✓[/green] Found {len(template_groups)} unique template structures\n")
+    console.print(
+        f"[green]✓[/green] Found {len(template_groups)} unique template structures\n"
+    )
 
     # Create generic templates
     console.rule("[2/4] Creating Generic Templates")
@@ -179,7 +181,9 @@ def main(input_file: str = "templates/verbnet_frames.jsonl") -> None:
             f"[{len(specific_templates):5d} verbs, {len(frame_primaries):3d} frames]"
         )
 
-    console.print(f"\n[green]✓[/green] Created {len(generic_templates)} base templates\n")
+    console.print(
+        f"\n[green]✓[/green] Created {len(generic_templates)} base templates\n"
+    )
 
     # Generate progressive variants
     console.rule("[3/4] Generating Progressive Variants")
@@ -197,7 +201,9 @@ def main(input_file: str = "templates/verbnet_frames.jsonl") -> None:
             if past_prog:
                 progressive_templates.append(past_prog)
 
-    console.print(f"[green]✓[/green] Generated {len(progressive_templates)} progressive variants\n")
+    console.print(
+        f"[green]✓[/green] Generated {len(progressive_templates)} progressive variants\n"
+    )
 
     # Combine base and progressive templates
     all_templates = generic_templates + progressive_templates
@@ -210,18 +216,26 @@ def main(input_file: str = "templates/verbnet_frames.jsonl") -> None:
             template_json = template.model_dump_json()
             f.write(template_json + "\n")
 
-    console.print(f"[green]✓[/green] Saved {len(all_templates)} templates to {output_path}\n")
+    console.print(
+        f"[green]✓[/green] Saved {len(all_templates)} templates to {output_path}\n"
+    )
 
     # Summary statistics
     console.rule("[bold]Summary[/bold]")
     from rich.table import Table
+
     table = Table(show_header=False, box=None, padding=(0, 2))
     table.add_row("Base generic frames:", f"[cyan]{len(generic_templates)}[/cyan]")
     table.add_row("Progressive variants:", f"[cyan]{len(progressive_templates)}[/cyan]")
     table.add_row("Total templates:", f"[cyan]{len(all_templates)}[/cyan]")
     table.add_row("", "")
-    table.add_row("Cross-product size:", f"[cyan]~2,880 verbs × {len(all_templates)} templates[/cyan]")
-    table.add_row("Total combinations:", f"[cyan]≈ {2880 * len(all_templates):,}[/cyan]")
+    table.add_row(
+        "Cross-product size:",
+        f"[cyan]~2,880 verbs × {len(all_templates)} templates[/cyan]",
+    )
+    table.add_row(
+        "Total combinations:", f"[cyan]≈ {2880 * len(all_templates):,}[/cyan]"
+    )
     console.print(table)
 
 

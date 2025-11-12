@@ -144,8 +144,12 @@ def test_construct_with_filled_templates(cli_runner: CliRunner, tmp_path: Path) 
         template_id="t1",
         template_name="transitive",
         slot_fillers={
-            "subject": LexicalItem(lemma="cat", pos="NOUN", language_code="eng"),
-            "verb": LexicalItem(lemma="ran", pos="VERB", language_code="eng"),
+            "subject": LexicalItem(
+                lemma="cat", language_code="eng", features={"pos": "NOUN"}
+            ),
+            "verb": LexicalItem(
+                lemma="ran", language_code="eng", features={"pos": "VERB"}
+            ),
         },
         rendered_text="The cat ran",
         strategy_name="exhaustive",

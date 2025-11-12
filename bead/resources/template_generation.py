@@ -191,7 +191,7 @@ class FrameToTemplateMapper(ABC):
 
     def create_template_metadata(
         self,
-        frame_data: Any,
+        frame_data: dict[str, Any],
         **additional_metadata: Any,
     ) -> dict[str, Any]:
         """Create metadata dictionary for template.
@@ -201,7 +201,7 @@ class FrameToTemplateMapper(ABC):
 
         Parameters
         ----------
-        frame_data : Any
+        frame_data : dict[str, Any]
             Frame specification from the external inventory.
         **additional_metadata : Any
             Additional metadata to include.
@@ -221,9 +221,8 @@ class FrameToTemplateMapper(ABC):
         """
         metadata: dict[str, Any] = {}
 
-        # Add frame data (if it's a dict)
-        if isinstance(frame_data, dict):
-            metadata.update(frame_data)
+        # Add frame data
+        metadata.update(frame_data)
 
         # Add additional metadata
         metadata.update(additional_metadata)

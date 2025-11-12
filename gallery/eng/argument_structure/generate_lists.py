@@ -20,9 +20,7 @@ from bead.items.item import Item
 from bead.lists import (
     BalanceConstraint,
     DiversityConstraint,
-    ExperimentList,
     ListCollection,
-    QuantileConstraint,
     UniquenessConstraint,
 )
 from bead.lists.constraints import (
@@ -171,7 +169,7 @@ def main() -> None:
     items_per_list = list_config["items_per_list"]
     strategy = list_config.get("strategy", "balanced")
 
-    console.print(f"[green]✓[/green] Configuration loaded")
+    console.print("[green]✓[/green] Configuration loaded")
     console.print(f"  • Lists to generate: [cyan]{n_lists}[/cyan]")
     console.print(f"  • Items per list: [cyan]{items_per_list}[/cyan]")
     console.print(f"  • Strategy: [cyan]{strategy}[/cyan]\n")
@@ -186,7 +184,9 @@ def main() -> None:
     console.rule("[3/5] Building Constraints")
     list_constraints, batch_constraints = build_constraints(config)
     console.print(f"[green]✓[/green] Built {len(list_constraints)} list constraints")
-    console.print(f"[green]✓[/green] Built {len(batch_constraints)} batch constraints\n")
+    console.print(
+        f"[green]✓[/green] Built {len(batch_constraints)} batch constraints\n"
+    )
 
     # Partition items into lists
     console.rule("[4/5] Partitioning Items")
@@ -224,11 +224,14 @@ def main() -> None:
 
         console.print(f"[green]✓[/green] Created {len(experiment_lists)} lists")
         for i, exp_list in enumerate(experiment_lists):
-            console.print(f"  • List {i+1}: [cyan]{len(exp_list.item_refs)}[/cyan] items")
+            console.print(
+                f"  • List {i + 1}: [cyan]{len(exp_list.item_refs)}[/cyan] items"
+            )
 
     except Exception as e:
         console.print(f"[red]✗[/red] Error during partitioning: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
 
@@ -240,6 +243,7 @@ def main() -> None:
 
     # Create list collection
     from uuid import uuid4
+
     list_collection = ListCollection(
         name="argument_structure_lists",
         source_items_id=uuid4(),  # Generate a UUID for the source items
@@ -253,7 +257,7 @@ def main() -> None:
         },
         partitioning_stats={
             "total_items": sum(len(lst.item_refs) for lst in experiment_lists),
-        }
+        },
     )
 
     # Save as JSONL
@@ -261,14 +265,22 @@ def main() -> None:
         for exp_list in list_collection.lists:
             f.write(exp_list.model_dump_json() + "\n")
 
-    console.print(f"[green]✓[/green] Saved {len(experiment_lists)} lists to [cyan]{output_path}[/cyan]\n")
+    console.print(
+        f"[green]✓[/green] Saved {len(experiment_lists)} lists to [cyan]{output_path}[/cyan]\n"
+    )
 
     # Print summary table
     console.rule("[bold]Summary[/bold]")
     table = Table(show_header=False, box=None, padding=(0, 2))
     table.add_row("Total lists:", f"[cyan]{len(experiment_lists)}[/cyan]")
-    table.add_row("Total items distributed:", f"[cyan]{sum(len(lst.item_refs) for lst in experiment_lists)}[/cyan]")
-    table.add_row("Items per list:", f"[cyan]{[len(lst.item_refs) for lst in experiment_lists]}[/cyan]")
+    table.add_row(
+        "Total items distributed:",
+        f"[cyan]{sum(len(lst.item_refs) for lst in experiment_lists)}[/cyan]",
+    )
+    table.add_row(
+        "Items per list:",
+        f"[cyan]{[len(lst.item_refs) for lst in experiment_lists]}[/cyan]",
+    )
     console.print(table)
 
 
@@ -281,5 +293,6 @@ if __name__ == "__main__":
     except Exception as e:
         console.print(f"\n[red]✗ Unexpected error: {e}[/red]")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)

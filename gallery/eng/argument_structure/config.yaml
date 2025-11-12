@@ -84,6 +84,9 @@ template:
   # Strategy type: "exhaustive", "mlm", or "mixed"
   filling_strategy: "mixed"
 
+  # Output path for filled templates
+  output_path: "filled_templates/generic_frames_filled.jsonl"
+
   # MLM (Masked Language Model) settings for smart filling
   mlm:
     model_name: "bert-base-uncased"
@@ -97,33 +100,166 @@ template:
   # - mlm: Use MLM to select contextually appropriate fillers
   #   - max_fills: Limit to top-N items by MLM probability (after constraint filtering)
   #   - enforce_unique: Ensure each beam hypothesis uses different items for this slot
+  #
+  # MLM used for all slots EXCEPT determiners and "be" forms
+  # Constraints from templates are preserved and used to filter MLM predictions
   slot_strategies:
+    # ========================================================================
+    # DETERMINERS - EXHAUSTIVE (no MLM)
+    # ========================================================================
+    det_subj:
+      strategy: "exhaustive"
+      description: "All subject determiners"
+
+    det_dobj:
+      strategy: "exhaustive"
+      description: "All direct object determiners"
+
+    det_iobj:
+      strategy: "exhaustive"
+      description: "All indirect object determiners"
+
+    det_pobj:
+      strategy: "exhaustive"
+      description: "All prepositional object determiners"
+
+    det_pobj2:
+      strategy: "exhaustive"
+      description: "All second prepositional object determiners"
+
+    det_pobj3:
+      strategy: "exhaustive"
+      description: "All third prepositional object determiners"
+
+    # ========================================================================
+    # BE FORMS - EXHAUSTIVE (no MLM)
+    # ========================================================================
+    be:
+      strategy: "exhaustive"
+      description: "All forms of 'be' (am, is, are, was, were, been, being)"
+
+    # ========================================================================
+    # MAIN VERB - EXHAUSTIVE (no MLM)
+    # Critical: Must test ALL verbs in ALL frames for cross-product design
+    # This is the core experimental manipulation for argument structure alternations
+    # ========================================================================
     verb:
       strategy: "exhaustive"
-      description: "Test all verbs in all frames"
+      description: "ALL VerbNet verbs (exhaustive cross-product with all frames)"
 
-    noun:
-      strategy: "exhaustive"
-      description: "Use all bleached nouns for generality"
+    comp_verb:
+      strategy: "mlm"
+      description: "MLM selection of complement clause verbs"
+      max_fills: 5
+      enforce_unique: true
 
-    det:
-      strategy: "exhaustive"
-      description: "Test all determiners"
+    comp_verb_gerund:
+      strategy: "mlm"
+      description: "MLM selection of gerund verbs"
+      max_fills: 5
+      enforce_unique: true
 
+    # ========================================================================
+    # NOUNS - MLM with constraints
+    # Uses existing NOUN constraints from templates (bleached nouns)
+    # ========================================================================
+    noun_subj:
+      strategy: "mlm"
+      description: "MLM selection of subject nouns (from bleached nouns)"
+      max_fills: 5
+      enforce_unique: true
+
+    noun_dobj:
+      strategy: "mlm"
+      description: "MLM selection of direct object nouns"
+      max_fills: 5
+      enforce_unique: true
+
+    noun_iobj:
+      strategy: "mlm"
+      description: "MLM selection of indirect object nouns"
+      max_fills: 5
+      enforce_unique: true
+
+    noun_pobj:
+      strategy: "mlm"
+      description: "MLM selection of prepositional object nouns"
+      max_fills: 5
+      enforce_unique: true
+
+    noun_pobj2:
+      strategy: "mlm"
+      description: "MLM selection of second prepositional object nouns"
+      max_fills: 5
+      enforce_unique: true
+
+    noun_pobj3:
+      strategy: "mlm"
+      description: "MLM selection of third prepositional object nouns"
+      max_fills: 5
+      enforce_unique: true
+
+    subj:
+      strategy: "mlm"
+      description: "MLM selection of subject nouns"
+      max_fills: 5
+      enforce_unique: true
+
+    comp_subj:
+      strategy: "mlm"
+      description: "MLM selection of complement clause subjects"
+      max_fills: 5
+      enforce_unique: true
+
+    comp_obj:
+      strategy: "mlm"
+      description: "MLM selection of complement clause objects"
+      max_fills: 5
+      enforce_unique: true
+
+    recipient:
+      strategy: "mlm"
+      description: "MLM selection of recipient nouns"
+      max_fills: 5
+      enforce_unique: true
+
+    wh_noun:
+      strategy: "mlm"
+      description: "MLM selection of wh-clause nouns"
+      max_fills: 5
+      enforce_unique: true
+
+    # ========================================================================
+    # PREPOSITIONS - MLM with constraints
+    # Uses existing ADP constraints from templates
+    # ========================================================================
     prep:
-      strategy: "exhaustive"
-      description: "Test all prepositions"
+      strategy: "mlm"
+      description: "MLM selection of prepositions (constrained by template)"
+      max_fills: 5
+      enforce_unique: true
 
-    comp:
-      strategy: "exhaustive"
-      description: "Test all complementizers"
+    prep2:
+      strategy: "mlm"
+      description: "MLM selection of second prepositions"
+      max_fills: 5
+      enforce_unique: true
 
+    prep3:
+      strategy: "mlm"
+      description: "MLM selection of third prepositions"
+      max_fills: 5
+      enforce_unique: true
+
+    # ========================================================================
+    # ADJECTIVES - MLM without constraints (fully MLM-driven)
+    # ========================================================================
     adjective:
       strategy: "mlm"
-      description: "Use MLM for contextually appropriate adjectives"
+      description: "MLM for contextually appropriate adjectives (unconstrained)"
       beam_size: 3
-      max_fills: 5          # Top 5 most likely adjectives from constraint-valid set
-      enforce_unique: true  # Each beam hypothesis uses different adjective
+      max_fills: 5
+      enforce_unique: true
 
 # Items Configuration
 # ============================================================================
@@ -374,6 +510,15 @@ deployment:
   # Platform: "jatos", "prolific", "mturk"
   platform: "jatos"
 
+  # Number of lists to randomly select for deployment
+  n_lists_to_deploy: 20
+
+  # Random seed for reproducible list selection
+  random_seed: 42
+
+  # Output directory for deployment files
+  output_dir: "deployment"
+
   # Experiment settings
   experiment:
     title: "Sentence Acceptability Judgments"
@@ -413,6 +558,13 @@ deployment:
     # Compensation
     payment_usd: 2.50
     bonus_usd: 0.50  # For high-quality responses
+
+  # Server configuration for remote deployment
+  server:
+    host: null  # Will prompt if null
+    port: 22
+    username: null  # Will prompt if null
+    deploy_path: "/var/www/experiments"
 
 # Logging Configuration
 # ============================================================================

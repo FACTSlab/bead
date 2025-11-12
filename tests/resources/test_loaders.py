@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
-import tempfile
 from pathlib import Path
 
 import pytest
 
 from bead.resources.loaders import from_csv, from_tsv
-from bead.resources.lexicon import Lexicon
 
 
 class TestFromCSV:
@@ -60,7 +58,7 @@ dog,NOUN"""
 
         # Check POS was mapped correctly
         for item in lexicon:
-            assert item.pos == "NOUN"
+            assert item.features.get("pos") == "NOUN"
 
     def test_load_with_features(self, tmp_path: Path) -> None:
         """Test loading CSV with feature columns."""
@@ -86,7 +84,7 @@ water,mass,mass"""
         assert items_dict["water"].features["countability"] == "mass"
 
     def test_load_with_attributes(self, tmp_path: Path) -> None:
-        """Test loading CSV with attribute columns."""
+        """Test loading CSV with feature columns."""
         csv_content = """lemma,semantic_class,frequency
 walk,motion,1000
 run,motion,800"""
@@ -97,15 +95,15 @@ run,motion,800"""
         lexicon = from_csv(
             path=csv_file,
             name="test_verbs",
-            attribute_columns=["semantic_class", "frequency"],
+            feature_columns=["semantic_class", "frequency"],
             language_code="eng",
         )
 
         items_dict = {item.lemma: item for item in lexicon}
 
-        assert items_dict["walk"].attributes["semantic_class"] == "motion"
+        assert items_dict["walk"].features["semantic_class"] == "motion"
         # Numeric values are preserved as their type (int, not string)
-        assert items_dict["walk"].attributes["frequency"] == 1000
+        assert items_dict["walk"].features["frequency"] == 1000
 
     def test_load_with_missing_values(self, tmp_path: Path) -> None:
         """Test loading CSV with missing values."""
@@ -176,7 +174,7 @@ test,NOUN"""
             )
 
     def test_combined_features_and_attributes(self, tmp_path: Path) -> None:
-        """Test loading CSV with both features and attributes."""
+        """Test loading CSV with multiple feature columns."""
         csv_content = """word,number,semantic_class
 cat,singular,animal
 dog,singular,animal"""
@@ -188,14 +186,13 @@ dog,singular,animal"""
             path=csv_file,
             name="test",
             column_mapping={"word": "lemma"},
-            feature_columns=["number"],
-            attribute_columns=["semantic_class"],
+            feature_columns=["number", "semantic_class"],
             language_code="eng",
         )
 
         item = next(iter(lexicon))
         assert "number" in item.features
-        assert "semantic_class" in item.attributes
+        assert "semantic_class" in item.features
 
 
 class TestFromTSV:
@@ -237,4 +234,4 @@ cat\tNOUN"""
         assert len(lexicon.items) == 1
         item = next(iter(lexicon))
         assert item.lemma == "cat"
-        assert item.pos == "NOUN"
+        assert item.features.get("pos") == "NOUN"
