@@ -88,11 +88,14 @@ class RandomEffectsManager:
             If mode='random_slopes' but required kwargs missing.
         """
         self.config = config
-        self.intercepts: dict[str, torch.Tensor] = {}
+        # Nested dict structure: intercepts[param_name][participant_id] = tensor
+        # Examples:
+        #   intercepts["mu"]["alice"] = tensor([0.12])
+        #   intercepts["cutpoint_1"]["alice"] = tensor([0.05])
+        self.intercepts: dict[str, dict[str, torch.Tensor]] = {}
         self.slopes: dict[str, nn.Module] = {}
         self.participant_sample_counts: dict[str, int] = {}
 
-        # NEW: Variance component tracking
         self.variance_components: VarianceComponents | None = None
         self.variance_history: list[VarianceComponents] = []
 
@@ -142,15 +145,13 @@ class RandomEffectsManager:
             self.participant_sample_counts[participant_id] = n_samples
 
     def get_intercepts(
-        self, participant_id: str, n_classes: int, create_if_missing: bool = True
+        self,
+        participant_id: str,
+        n_classes: int,
+        param_name: str,
+        create_if_missing: bool = True,
     ) -> torch.Tensor:
-        """Get random intercepts for participant.
-
-        Behavior:
-        - Known participant: Return learned intercepts
-        - Unknown participant:
-          - If create_if_missing=True: Initialize from prior N(μ_0, σ²_0)
-          - If create_if_missing=False: Return zeros (prior mean)
+        """Get random intercepts for specific distribution parameter.
 
         Parameters
         ----------
@@ -158,6 +159,8 @@ class RandomEffectsManager:
             Participant identifier.
         n_classes : int
             Number of classes (length of bias vector).
+        param_name : str
+            Name of the distribution parameter (e.g., "mu", "cutpoint_1", "cutpoint_2").
         create_if_missing : bool, default=True
             Whether to create new intercepts for unknown participants.
             True: Training (create new random effects)
@@ -175,17 +178,13 @@ class RandomEffectsManager:
 
         Examples
         --------
-        >>> # Training: Create if missing
-        >>> bias = manager.get_intercepts("alice", n_classes=3, create_if_missing=True)
+        >>> bias = manager.get_intercepts("alice", n_classes=3, param_name="mu")
         >>> bias.shape
         torch.Size([3])
 
-        >>> # Prediction: Use prior for unknown
-        >>> bias_new = manager.get_intercepts(
-        ...     "unknown", n_classes=3, create_if_missing=False
-        ... )
-        >>> torch.allclose(bias_new, torch.zeros(3))
-        True
+        >>> # Multi-parameter: Ordered beta
+        >>> mu_bias = manager.get_intercepts("alice", 1, param_name="mu")
+        >>> c1_bias = manager.get_intercepts("alice", 1, param_name="cutpoint_1")
         """
         if self.config.mode != "random_intercepts":
             raise ValueError(
@@ -194,9 +193,15 @@ class RandomEffectsManager:
                 f"Use mode='random_intercepts' in MixedEffectsConfig."
             )
 
+        # Initialize parameter dict if first time seeing this parameter
+        if param_name not in self.intercepts:
+            self.intercepts[param_name] = {}
+
+        param_dict = self.intercepts[param_name]
+
         # Known participant: return learned intercepts
-        if participant_id in self.intercepts:
-            return self.intercepts[participant_id]
+        if participant_id in param_dict:
+            return param_dict[participant_id]
 
         # Unknown participant: use prior mean
         if not create_if_missing:
@@ -208,7 +213,7 @@ class RandomEffectsManager:
             + self.config.prior_mean
         )
         bias.requires_grad = True
-        self.intercepts[participant_id] = bias
+        param_dict[participant_id] = bias
         return bias
 
     def get_intercepts_with_shrinkage(
@@ -352,41 +357,30 @@ class RandomEffectsManager:
         self.slopes[participant_id] = participant_head
         return participant_head
 
-    def estimate_variance_components(self) -> VarianceComponents | None:
+    def estimate_variance_components(
+        self,
+    ) -> dict[str, VarianceComponents] | None:
         """Estimate variance components (G matrix) from random effects.
-
-        Implements Maximum Likelihood Estimation (MLE):
-
-            σ²_u = Var(u_i) across all participants
-
-        For random intercepts:
-            σ²_u = (1/K) Σ_i ||u_i - mean(u)||²
-
-        For random slopes:
-            σ²_u = (1/K) Σ_i ||φ_i - mean(φ)||²
-
-        Returns variance component estimates for:
-        - Model diagnostics (how much participant variation?)
-        - Shrinkage estimation (λ_i depends on σ²_u)
-        - Model comparison (compare σ²_u across models)
 
         Returns
         -------
-        VarianceComponents | None
-            Variance component estimates, or None if mode='fixed'.
+        dict[str, VarianceComponents] | None
+            Dictionary mapping param_name -> VarianceComponents.
+            For single-parameter models (most common), returns dict with one key.
+            For multi-parameter models (e.g., ordered beta), returns dict
+            with multiple keys.
+            Returns None if mode='fixed' or no random_slopes.
 
         Examples
         --------
-        >>> # After training with random intercepts
-        >>> var_comp = manager.estimate_variance_components()
-        >>> print(f"Participant variance: {var_comp.variance:.3f}")
-        >>> print(f"Number of participants: {var_comp.n_groups}")
+        >>> # Single parameter (most common)
+        >>> var_comps = manager.estimate_variance_components()
+        >>> print(f"Mu variance: {var_comps['mu'].variance:.3f}")
 
-        >>> # Interpret variance:
-        >>> # σ²_u = 0.01 → participants very similar
-        >>> # (little benefit from mixed effects)
-        >>> # σ²_u = 1.00 → substantial participant variation (mixed effects helpful)
-        >>> # σ²_u = 10.0 → large participant differences (mixed effects essential)
+        >>> # Multi-parameter (ordered beta)
+        >>> var_comps = manager.estimate_variance_components()
+        >>> print(f"Mu variance: {var_comps['mu'].variance:.3f}")
+        >>> print(f"Cutpoint_1 variance: {var_comps['cutpoint_1'].variance:.3f}")
         """
         if self.config.mode == "fixed":
             return None
@@ -395,33 +389,28 @@ class RandomEffectsManager:
             if not self.intercepts:
                 return None
 
-            # Stack all intercepts: shape (n_participants, n_classes)
-            all_intercepts = torch.stack(list(self.intercepts.values()))
+            variance_components: dict[str, VarianceComponents] = {}
+            for param_name, param_intercepts in self.intercepts.items():
+                if not param_intercepts:
+                    continue
 
-            # Compute variance across participants
-            # MLE estimate: σ²_u = Var(u_i)
-            variance = torch.var(all_intercepts, unbiased=True).item()
+                all_intercepts = torch.stack(list(param_intercepts.values()))
+                variance = torch.var(all_intercepts, unbiased=True).item()
 
-            var_comp = VarianceComponents(
-                grouping_factor="participant",
-                effect_type="intercept",
-                variance=variance,
-                n_groups=len(self.intercepts),
-                n_observations_per_group=self.participant_sample_counts.copy(),
-            )
+                variance_components[param_name] = VarianceComponents(
+                    grouping_factor="participant",
+                    effect_type="intercept",
+                    variance=variance,
+                    n_groups=len(param_intercepts),
+                    n_observations_per_group=self.participant_sample_counts.copy(),
+                )
 
-            # Update tracking
-            self.variance_components = var_comp
-            self.variance_history.append(var_comp)
-
-            return var_comp
+            return variance_components
 
         elif self.config.mode == "random_slopes":
             if not self.slopes:
                 return None
 
-            # Compute variance of parameters across participants
-            # Flatten all parameters from all participant heads
             all_params: list[torch.Tensor] = []
             for head in self.slopes.values():
                 params_flat = torch.cat([p.flatten() for p in head.parameters()])
@@ -430,18 +419,16 @@ class RandomEffectsManager:
             all_params_tensor = torch.stack(all_params)
             variance = torch.var(all_params_tensor, unbiased=True).item()
 
-            var_comp = VarianceComponents(
-                grouping_factor="participant",
-                effect_type="slope",
-                variance=variance,
-                n_groups=len(self.slopes),
-                n_observations_per_group=self.participant_sample_counts.copy(),
-            )
-
-            self.variance_components = var_comp
-            self.variance_history.append(var_comp)
-
-            return var_comp
+            # Random slopes still returns single variance component (not per-parameter)
+            return {
+                "slopes": VarianceComponents(
+                    grouping_factor="participant",
+                    effect_type="slope",
+                    variance=variance,
+                    n_groups=len(self.slopes),
+                    n_observations_per_group=self.participant_sample_counts.copy(),
+                )
+            }
 
         return None
 
@@ -458,6 +445,8 @@ class RandomEffectsManager:
 
         Participants with fewer samples get stronger regularization.
         This prevents overfitting when participant has little data.
+
+        For multi-parameter random effects, sums over all parameters.
 
         Returns
         -------
@@ -478,21 +467,25 @@ class RandomEffectsManager:
         loss = torch.tensor(0.0)
 
         if self.config.mode == "random_intercepts":
-            for participant_id, bias in self.intercepts.items():
-                # Deviation from prior mean
-                deviation = bias - self.config.prior_mean
-                squared_dev = torch.sum(deviation**2)
+            # Iterate over all parameters (e.g., "mu", "cutpoint_1", "cutpoint_2")
+            for _param_name, param_dict in self.intercepts.items():
+                for participant_id, bias in param_dict.items():
+                    # Deviation from prior mean
+                    deviation = bias - self.config.prior_mean
+                    squared_dev = torch.sum(deviation**2)
 
-                # Adaptive weight: stronger for participants with fewer samples
-                if self.config.adaptive_regularization:
-                    n_samples = self.participant_sample_counts.get(participant_id, 1)
-                    weight = 1.0 / max(
-                        n_samples, self.config.min_samples_for_random_effects
-                    )
-                else:
-                    weight = 1.0
+                    # Adaptive weight
+                    if self.config.adaptive_regularization:
+                        n_samples = self.participant_sample_counts.get(
+                            participant_id, 1
+                        )
+                        weight = 1.0 / max(
+                            n_samples, self.config.min_samples_for_random_effects
+                        )
+                    else:
+                        weight = 1.0
 
-                loss += weight * squared_dev
+                    loss += weight * squared_dev
 
         elif self.config.mode == "random_slopes":
             for participant_id, head in self.slopes.items():
@@ -515,26 +508,22 @@ class RandomEffectsManager:
     def save(self, path: Path) -> None:
         """Save random effects to disk.
 
-        Saves:
-        - intercepts.pt (if mode='random_intercepts')
-        - slopes.pt (if mode='random_slopes')
-        - sample_counts.json
-        - variance_history.json (NEW: for diagnostics)
-
         Parameters
         ----------
         path : Path
             Directory to save random effects.
-
-        Examples
-        --------
-        >>> manager.save(Path("model_checkpoint/random_effects"))
         """
         path.mkdir(parents=True, exist_ok=True)
 
-        # Save intercepts
+        # Save intercepts (nested dict)
         if self.config.mode == "random_intercepts" and self.intercepts:
-            torch.save(self.intercepts, path / "intercepts.pt")
+            # Convert to CPU and detach
+            intercepts_cpu: dict[str, dict[str, torch.Tensor]] = {}
+            for param_name, param_dict in self.intercepts.items():
+                intercepts_cpu[param_name] = {
+                    pid: tensor.detach().cpu() for pid, tensor in param_dict.items()
+                }
+            torch.save(intercepts_cpu, path / "intercepts.pt")
 
         # Save slopes
         if self.config.mode == "random_slopes" and self.slopes:
@@ -545,11 +534,11 @@ class RandomEffectsManager:
         with open(path / "sample_counts.json", "w") as f:
             json.dump(self.participant_sample_counts, f)
 
-        # NEW: Save variance component history
+        # Save variance history (if any)
         if self.variance_history:
-            variance_data = [vc.model_dump() for vc in self.variance_history]
-            with open(path / "variance_history.json", "w") as f:
-                json.dump(variance_data, f, indent=2)
+            # Note: variance_history may contain VarianceComponents or dicts
+            # For now, don't persist it - can be recomputed
+            pass
 
     def load(self, path: Path, fixed_head: nn.Module | None = None) -> None:
         """Load random effects from disk.
@@ -575,11 +564,11 @@ class RandomEffectsManager:
         if not path.exists():
             raise FileNotFoundError(f"Random effects directory not found: {path}")
 
-        # Load intercepts
+        # Load intercepts (nested dict)
         if self.config.mode == "random_intercepts":
             intercepts_path = path / "intercepts.pt"
             if intercepts_path.exists():
-                self.intercepts = torch.load(intercepts_path)
+                self.intercepts = torch.load(intercepts_path, weights_only=False)
 
         # Load slopes
         if self.config.mode == "random_slopes":
@@ -591,7 +580,7 @@ class RandomEffectsManager:
 
             slopes_path = path / "slopes.pt"
             if slopes_path.exists():
-                slopes_state = torch.load(slopes_path)
+                slopes_state = torch.load(slopes_path, weights_only=False)
                 self.slopes = {}
                 for pid, state_dict in slopes_state.items():
                     head = copy.deepcopy(fixed_head)
@@ -603,14 +592,3 @@ class RandomEffectsManager:
         if sample_counts_path.exists():
             with open(sample_counts_path) as f:
                 self.participant_sample_counts = json.load(f)
-
-        # NEW: Load variance history
-        variance_history_path = path / "variance_history.json"
-        if variance_history_path.exists():
-            with open(variance_history_path) as f:
-                variance_data = json.load(f)
-                self.variance_history = [
-                    VarianceComponents(**vc) for vc in variance_data
-                ]
-                if self.variance_history:
-                    self.variance_components = self.variance_history[-1]

@@ -416,7 +416,10 @@ class BinaryModel(ActiveLearningModel):
                     for j, pid in enumerate(batch_participant_ids):
                         # bias is now scalar (n_classes=1)
                         bias = self.random_effects.get_intercepts(
-                            pid, n_classes=self.num_classes, create_if_missing=True
+                            pid,
+                            n_classes=self.num_classes,
+                            param_name="mu",
+                            create_if_missing=True,
                         )
                         logits[j] = logits[j] + bias.item()
 
@@ -459,11 +462,14 @@ class BinaryModel(ActiveLearningModel):
 
         # Estimate variance components
         if self.config.mixed_effects.estimate_variance_components:
-            var_comp = self.random_effects.estimate_variance_components()
-            if var_comp:
-                self.variance_history.append(var_comp)
-                metrics["participant_variance"] = var_comp.variance
-                metrics["n_participants"] = var_comp.n_groups
+            var_comps = self.random_effects.estimate_variance_components()
+            if var_comps:
+                # Extract the "mu" variance component (single-parameter model)
+                var_comp = var_comps.get("mu") or var_comps.get("slopes")
+                if var_comp:
+                    self.variance_history.append(var_comp)
+                    metrics["participant_variance"] = var_comp.variance
+                    metrics["n_participants"] = var_comp.n_groups
 
         if validation_items is not None and validation_labels is not None:
             self._validate_labels(validation_labels)
@@ -566,7 +572,10 @@ class BinaryModel(ActiveLearningModel):
                 for i, pid in enumerate(participant_ids):
                     # Unknown participants: use prior mean (zero bias)
                     bias = self.random_effects.get_intercepts(
-                        pid, n_classes=self.num_classes, create_if_missing=False
+                        pid,
+                        n_classes=self.num_classes,
+                        param_name="mu",
+                        create_if_missing=False,
                     )
                     logits[i] = logits[i] + bias.item()
 
@@ -688,7 +697,10 @@ class BinaryModel(ActiveLearningModel):
                 logits = self.classifier_head(embeddings).squeeze(1)
                 for i, pid in enumerate(participant_ids):
                     bias = self.random_effects.get_intercepts(
-                        pid, n_classes=self.num_classes, create_if_missing=False
+                        pid,
+                        n_classes=self.num_classes,
+                        param_name="mu",
+                        create_if_missing=False,
                     )
                     logits[i] = logits[i] + bias.item()
 

@@ -504,11 +504,13 @@ class ForcedChoiceModel(ActiveLearningModel):
 
         # Estimate variance components
         if self.config.mixed_effects.estimate_variance_components:
-            var_comp = self.random_effects.estimate_variance_components()
-            if var_comp:
-                self.variance_history.append(var_comp)
-                metrics["participant_variance"] = var_comp.variance
-                metrics["n_participants"] = var_comp.n_groups
+            var_comps = self.random_effects.estimate_variance_components()
+            if var_comps:
+                var_comp = var_comps.get("mu") or var_comps.get("slopes")
+                if var_comp:
+                    self.variance_history.append(var_comp)
+                    metrics["participant_variance"] = var_comp.variance
+                    metrics["n_participants"] = var_comp.n_groups
 
         if validation_items is not None and validation_labels is not None:
             self._validate_labels(validation_labels)
