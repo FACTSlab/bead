@@ -395,7 +395,10 @@ class RandomEffectsManager:
                     continue
 
                 all_intercepts = torch.stack(list(param_intercepts.values()))
-                variance = torch.var(all_intercepts, unbiased=True).item()
+                if len(param_intercepts) == 1:
+                    variance = 0.0
+                else:
+                    variance = torch.var(all_intercepts, unbiased=True).item()
 
                 variance_components[param_name] = VarianceComponents(
                     grouping_factor="participant",
@@ -417,7 +420,10 @@ class RandomEffectsManager:
                 all_params.append(params_flat)
 
             all_params_tensor = torch.stack(all_params)
-            variance = torch.var(all_params_tensor, unbiased=True).item()
+            if len(self.slopes) == 1:
+                variance = 0.0
+            else:
+                variance = torch.var(all_params_tensor, unbiased=True).item()
 
             # Random slopes still returns single variance component (not per-parameter)
             return {

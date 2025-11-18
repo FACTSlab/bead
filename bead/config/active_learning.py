@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from bead.active_learning.config import MixedEffectsConfig
 
@@ -445,6 +445,499 @@ class MultiSelectModelConfig(BaseModel):
     device: Literal["cpu", "cuda", "mps"] = Field(
         default="cpu",
         description="Device to train on",
+    )
+    mixed_effects: MixedEffectsConfig = Field(
+        default_factory=MixedEffectsConfig,
+        description="Mixed effects configuration for participant-level modeling",
+    )
+
+
+class OrdinalScaleModelConfig(BaseModel):
+    """Configuration for ordinal scale active learning models.
+
+    Parameters
+    ----------
+    model_name : str
+        HuggingFace model identifier.
+    max_length : int
+        Maximum sequence length for tokenization.
+    encoder_mode : Literal["single_encoder"]
+        Encoding strategy for ordinal scale tasks.
+    include_instructions : bool
+        Whether to include task instructions.
+    learning_rate : float
+        Learning rate for AdamW optimizer.
+    batch_size : int
+        Batch size for training.
+    num_epochs : int
+        Number of training epochs.
+    device : Literal["cpu", "cuda", "mps"]
+        Device to train on.
+    scale_min : float
+        Minimum value of the ordinal scale (default 0.0).
+    scale_max : float
+        Maximum value of the ordinal scale (default 1.0).
+    distribution : Literal["truncated_normal"]
+        Distribution for modeling bounded continuous responses.
+    sigma : float
+        Standard deviation for truncated normal distribution.
+    mixed_effects : MixedEffectsConfig
+        Mixed effects configuration for participant-level modeling.
+
+    Examples
+    --------
+    >>> config = OrdinalScaleModelConfig()
+    >>> config.model_name
+    'bert-base-uncased'
+    >>> config.scale_min
+    0.0
+    >>> config.scale_max
+    1.0
+    >>> config.mixed_effects.mode
+    'fixed'
+    """
+
+    model_name: str = Field(
+        default="bert-base-uncased",
+        description="HuggingFace model identifier",
+    )
+    max_length: int = Field(
+        default=128,
+        description="Maximum sequence length for tokenization",
+        gt=0,
+    )
+    encoder_mode: Literal["single_encoder"] = Field(
+        default="single_encoder",
+        description="Encoding strategy for ordinal scale tasks",
+    )
+    include_instructions: bool = Field(
+        default=False,
+        description="Whether to include task instructions",
+    )
+    learning_rate: float = Field(
+        default=2e-5,
+        description="Learning rate for AdamW optimizer",
+        gt=0,
+    )
+    batch_size: int = Field(
+        default=16,
+        description="Batch size for training",
+        gt=0,
+    )
+    num_epochs: int = Field(
+        default=3,
+        description="Number of training epochs",
+        gt=0,
+    )
+    device: Literal["cpu", "cuda", "mps"] = Field(
+        default="cpu",
+        description="Device to train on",
+    )
+    scale_min: float = Field(
+        default=0.0,
+        description="Minimum value of the ordinal scale",
+    )
+    scale_max: float = Field(
+        default=1.0,
+        description="Maximum value of the ordinal scale",
+        gt=0.0,
+    )
+    distribution: Literal["truncated_normal"] = Field(
+        default="truncated_normal",
+        description="Distribution for modeling bounded continuous responses",
+    )
+    sigma: float = Field(
+        default=0.1,
+        description="Standard deviation for truncated normal distribution",
+        gt=0,
+    )
+    mixed_effects: MixedEffectsConfig = Field(
+        default_factory=MixedEffectsConfig,
+        description="Mixed effects configuration for participant-level modeling",
+    )
+
+
+class MagnitudeModelConfig(BaseModel):
+    """Configuration for magnitude active learning models.
+
+    Parameters
+    ----------
+    model_name : str
+        HuggingFace model identifier.
+    max_length : int
+        Maximum sequence length for tokenization.
+    encoder_mode : Literal["single_encoder"]
+        Encoding strategy for magnitude tasks.
+    include_instructions : bool
+        Whether to include task instructions.
+    learning_rate : float
+        Learning rate for AdamW optimizer.
+    batch_size : int
+        Batch size for training.
+    num_epochs : int
+        Number of training epochs.
+    device : Literal["cpu", "cuda", "mps"]
+        Device to train on.
+    bounded : bool
+        Whether magnitude values are bounded to a range.
+    min_value : float | None
+        Minimum value (for bounded case). Required if bounded=True.
+    max_value : float | None
+        Maximum value (for bounded case). Required if bounded=True.
+    distribution : Literal["normal", "truncated_normal"]
+        Distribution for modeling responses.
+        "normal" for unbounded, "truncated_normal" for bounded.
+    sigma : float
+        Standard deviation for the distribution.
+    mixed_effects : MixedEffectsConfig
+        Mixed effects configuration for participant-level modeling.
+
+    Examples
+    --------
+    >>> # Unbounded magnitude (e.g., reading time)
+    >>> config = MagnitudeModelConfig(bounded=False, distribution="normal")
+    >>> config.bounded
+    False
+    >>> config.distribution
+    'normal'
+
+    >>> # Bounded magnitude (e.g., confidence on 0-100 scale)
+    >>> config = MagnitudeModelConfig(
+    ...     bounded=True,
+    ...     min_value=0.0,
+    ...     max_value=100.0,
+    ...     distribution="truncated_normal"
+    ... )
+    >>> config.min_value
+    0.0
+    """
+
+    model_name: str = Field(
+        default="bert-base-uncased",
+        description="HuggingFace model identifier",
+    )
+    max_length: int = Field(
+        default=128,
+        description="Maximum sequence length for tokenization",
+        gt=0,
+    )
+    encoder_mode: Literal["single_encoder"] = Field(
+        default="single_encoder",
+        description="Encoding strategy for magnitude tasks",
+    )
+    include_instructions: bool = Field(
+        default=False,
+        description="Whether to include task instructions",
+    )
+    learning_rate: float = Field(
+        default=2e-5,
+        description="Learning rate for AdamW optimizer",
+        gt=0,
+    )
+    batch_size: int = Field(
+        default=16,
+        description="Batch size for training",
+        gt=0,
+    )
+    num_epochs: int = Field(
+        default=3,
+        description="Number of training epochs",
+        gt=0,
+    )
+    device: Literal["cpu", "cuda", "mps"] = Field(
+        default="cpu",
+        description="Device to train on",
+    )
+    bounded: bool = Field(
+        default=False,
+        description="Whether magnitude values are bounded to a range",
+    )
+    min_value: float | None = Field(
+        default=None,
+        description="Minimum value (required if bounded=True)",
+    )
+    max_value: float | None = Field(
+        default=None,
+        description="Maximum value (required if bounded=True)",
+    )
+    distribution: Literal["normal", "truncated_normal"] = Field(
+        default="normal",
+        description="Distribution for modeling responses",
+    )
+    sigma: float = Field(
+        default=0.1,
+        description="Standard deviation for the distribution",
+        gt=0,
+    )
+    mixed_effects: MixedEffectsConfig = Field(
+        default_factory=MixedEffectsConfig,
+        description="Mixed effects configuration for participant-level modeling",
+    )
+
+    @model_validator(mode="after")
+    def validate_bounded_configuration(self) -> MagnitudeModelConfig:
+        """Validate bounded configuration consistency.
+
+        Raises
+        ------
+        ValueError
+            If bounded=True but min_value or max_value not set.
+        ValueError
+            If bounded=False but min_value or max_value is set.
+        ValueError
+            If min_value >= max_value.
+        ValueError
+            If distribution inconsistent with bounded setting.
+        """
+        if self.bounded:
+            if self.min_value is None or self.max_value is None:
+                raise ValueError(
+                    "bounded=True requires both min_value and max_value to be set. "
+                    f"Got min_value={self.min_value}, max_value={self.max_value}."
+                )
+            if self.min_value >= self.max_value:
+                raise ValueError(
+                    f"min_value ({self.min_value}) must be less than "
+                    f"max_value ({self.max_value})."
+                )
+            if self.distribution != "truncated_normal":
+                raise ValueError(
+                    "bounded=True requires distribution='truncated_normal'. "
+                    f"Got distribution='{self.distribution}'."
+                )
+        else:
+            if self.min_value is not None or self.max_value is not None:
+                raise ValueError(
+                    "bounded=False but min_value or max_value is set. "
+                    f"Got min_value={self.min_value}, max_value={self.max_value}. "
+                    "Either set bounded=True or remove min_value/max_value."
+                )
+            if self.distribution != "normal":
+                raise ValueError(
+                    "bounded=False requires distribution='normal'. "
+                    f"Got distribution='{self.distribution}'."
+                )
+        return self
+
+
+class FreeTextModelConfig(BaseModel):
+    """Configuration for free text generation with GLMM support.
+
+    Implements seq2seq generation with participant-level random effects using
+    LoRA (Low-Rank Adaptation) for random slopes mode.
+
+    Parameters
+    ----------
+    model_name : str
+        HuggingFace seq2seq model identifier (e.g., "t5-base", "facebook/bart-base").
+    max_input_length : int
+        Maximum input sequence length for tokenization.
+    max_output_length : int
+        Maximum output sequence length for generation.
+    num_beams : int
+        Beam search width (1 = greedy decoding).
+    temperature : float
+        Sampling temperature for generation.
+    top_p : float
+        Nucleus sampling probability cutoff.
+    learning_rate : float
+        Learning rate for AdamW optimizer.
+    batch_size : int
+        Batch size for training (typically smaller for seq2seq due to memory).
+    num_epochs : int
+        Number of training epochs.
+    device : Literal["cpu", "cuda", "mps"]
+        Device to train on.
+    lora_rank : int
+        LoRA rank r for low-rank decomposition (typical: 4-16).
+    lora_alpha : float
+        LoRA scaling factor α (typically 2*rank).
+    lora_dropout : float
+        Dropout probability for LoRA layers.
+    lora_target_modules : list[str]
+        Attention modules to apply LoRA (e.g., ["q_proj", "v_proj"]).
+    eval_metric : Literal["exact_match", "token_accuracy", "bleu"]
+        Evaluation metric for generation quality.
+    mixed_effects : MixedEffectsConfig
+        Mixed effects configuration for participant-level modeling.
+
+    Examples
+    --------
+    >>> config = FreeTextModelConfig()
+    >>> config.model_name
+    't5-base'
+    >>> config.lora_rank
+    8
+    >>> config.mixed_effects.mode
+    'fixed'
+
+    >>> # With random slopes (LoRA)
+    >>> config = FreeTextModelConfig(
+    ...     mixed_effects=MixedEffectsConfig(mode="random_slopes"),
+    ...     lora_rank=8,
+    ...     lora_alpha=16.0
+    ... )
+    """
+
+    model_name: str = Field(
+        default="t5-base",
+        description="HuggingFace seq2seq model identifier",
+    )
+    max_input_length: int = Field(
+        default=128,
+        description="Maximum input sequence length",
+        gt=0,
+    )
+    max_output_length: int = Field(
+        default=64,
+        description="Maximum output sequence length",
+        gt=0,
+    )
+    num_beams: int = Field(
+        default=4,
+        description="Beam search width (1 = greedy)",
+        gt=0,
+    )
+    temperature: float = Field(
+        default=1.0,
+        description="Sampling temperature",
+        gt=0.0,
+    )
+    top_p: float = Field(
+        default=0.9,
+        description="Nucleus sampling probability cutoff",
+        ge=0.0,
+        le=1.0,
+    )
+    learning_rate: float = Field(
+        default=2e-5,
+        description="Learning rate for AdamW optimizer",
+        gt=0,
+    )
+    batch_size: int = Field(
+        default=8,
+        description="Batch size for training",
+        gt=0,
+    )
+    num_epochs: int = Field(
+        default=3,
+        description="Number of training epochs",
+        gt=0,
+    )
+    device: Literal["cpu", "cuda", "mps"] = Field(
+        default="cpu",
+        description="Device to train on",
+    )
+    lora_rank: int = Field(
+        default=8,
+        description="LoRA rank r for low-rank decomposition",
+        gt=0,
+    )
+    lora_alpha: float = Field(
+        default=16.0,
+        description="LoRA scaling factor α",
+        gt=0,
+    )
+    lora_dropout: float = Field(
+        default=0.1,
+        description="Dropout probability for LoRA layers",
+        ge=0.0,
+        lt=1.0,
+    )
+    lora_target_modules: list[str] = Field(
+        default=["q_proj", "v_proj"],
+        description="Attention modules to apply LoRA",
+    )
+    eval_metric: Literal["exact_match", "token_accuracy", "bleu"] = Field(
+        default="exact_match",
+        description="Evaluation metric for generation quality",
+    )
+    mixed_effects: MixedEffectsConfig = Field(
+        default_factory=MixedEffectsConfig,
+        description="Mixed effects configuration for participant-level modeling",
+    )
+
+
+class ClozeModelConfig(BaseModel):
+    """Configuration for cloze (fill-in-the-blank) models with GLMM support.
+
+    Implements masked language modeling with participant-level random effects for
+    predicting tokens at unfilled slots in partially-filled templates.
+
+    Parameters
+    ----------
+    model_name : str
+        HuggingFace masked LM model identifier.
+        Examples: "bert-base-uncased", "roberta-base".
+    max_length : int
+        Maximum sequence length for tokenization.
+    learning_rate : float
+        Learning rate for AdamW optimizer.
+    batch_size : int
+        Batch size for training.
+    num_epochs : int
+        Number of training epochs.
+    device : Literal["cpu", "cuda", "mps"]
+        Device to train on.
+    mask_token : str
+        Token used for masking (model-specific, e.g., "[MASK]" for BERT).
+    eval_metric : Literal["exact_match", "token_accuracy"]
+        Evaluation metric for masked token prediction.
+    mixed_effects : MixedEffectsConfig
+        Mixed effects configuration for participant-level modeling.
+
+    Examples
+    --------
+    >>> config = ClozeModelConfig()
+    >>> config.model_name
+    'bert-base-uncased'
+    >>> config.mask_token
+    '[MASK]'
+    >>> config.mixed_effects.mode
+    'fixed'
+
+    >>> # With random intercepts
+    >>> config = ClozeModelConfig(
+    ...     mixed_effects=MixedEffectsConfig(mode="random_intercepts"),
+    ...     num_epochs=5
+    ... )
+    """
+
+    model_name: str = Field(
+        default="bert-base-uncased",
+        description="HuggingFace masked LM model identifier",
+    )
+    max_length: int = Field(
+        default=128,
+        description="Maximum sequence length for tokenization",
+        gt=0,
+    )
+    learning_rate: float = Field(
+        default=2e-5,
+        description="Learning rate for AdamW optimizer",
+        gt=0,
+    )
+    batch_size: int = Field(
+        default=16,
+        description="Batch size for training",
+        gt=0,
+    )
+    num_epochs: int = Field(
+        default=3,
+        description="Number of training epochs",
+        gt=0,
+    )
+    device: Literal["cpu", "cuda", "mps"] = Field(
+        default="cpu",
+        description="Device to train on",
+    )
+    mask_token: str = Field(
+        default="[MASK]",
+        description="Token used for masking (model-specific)",
+    )
+    eval_metric: Literal["exact_match", "token_accuracy"] = Field(
+        default="exact_match",
+        description="Evaluation metric for masked token prediction",
     )
     mixed_effects: MixedEffectsConfig = Field(
         default_factory=MixedEffectsConfig,

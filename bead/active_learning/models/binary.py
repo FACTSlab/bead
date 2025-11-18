@@ -376,7 +376,8 @@ class BinaryModel(ActiveLearningModel):
 
         # Add random effects parameters
         if self.config.mixed_effects.mode == "random_intercepts":
-            params_to_optimize.extend(self.random_effects.intercepts.values())
+            for param_dict in self.random_effects.intercepts.values():
+                params_to_optimize.extend(param_dict.values())
         elif self.config.mixed_effects.mode == "random_slopes":
             for head in self.random_effects.slopes.values():
                 params_to_optimize.extend(head.parameters())

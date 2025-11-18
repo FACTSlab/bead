@@ -441,7 +441,8 @@ class MultiSelectModel(ActiveLearningModel):
 
         # Add random effects parameters
         if self.config.mixed_effects.mode == "random_intercepts":
-            params_to_optimize.extend(self.random_effects.intercepts.values())
+            for param_dict in self.random_effects.intercepts.values():
+                params_to_optimize.extend(param_dict.values())
         elif self.config.mixed_effects.mode == "random_slopes":
             for head in self.random_effects.slopes.values():
                 params_to_optimize.extend(head.parameters())
@@ -481,7 +482,7 @@ class MultiSelectModel(ActiveLearningModel):
                     logits = self.classifier_head(embeddings)
                     for j, pid in enumerate(batch_participant_ids):
                         bias = self.random_effects.get_intercepts(
-                            pid, n_classes=self.num_options, create_if_missing=True
+                            pid, n_classes=self.num_options, param_name="mu", create_if_missing=True
                         )
                         logits[j] = logits[j] + bias
 
@@ -653,7 +654,7 @@ class MultiSelectModel(ActiveLearningModel):
                 for i, pid in enumerate(participant_ids):
                     # Unknown participants: use prior mean (zero bias)
                     bias = self.random_effects.get_intercepts(
-                        pid, n_classes=self.num_options, create_if_missing=False
+                        pid, n_classes=self.num_options, param_name="mu", create_if_missing=False
                     )
                     logits[i] = logits[i] + bias
 
@@ -783,7 +784,7 @@ class MultiSelectModel(ActiveLearningModel):
                 logits = self.classifier_head(embeddings)
                 for i, pid in enumerate(participant_ids):
                     bias = self.random_effects.get_intercepts(
-                        pid, n_classes=self.num_options, create_if_missing=False
+                        pid, n_classes=self.num_options, param_name="mu", create_if_missing=False
                     )
                     logits[i] = logits[i] + bias
 
