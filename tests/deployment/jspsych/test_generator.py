@@ -1,4 +1,4 @@
-"""Tests for JsPsychExperimentGenerator."""
+"""Tests for JsPsychExperimentGenerator (batch mode)."""
 
 from __future__ import annotations
 
@@ -8,12 +8,14 @@ from uuid import uuid4
 
 import pytest
 
+from bead.data.serialization import read_jsonlines
 from bead.deployment.jspsych.config import (
     ChoiceConfig,
     ExperimentConfig,
     RatingScaleConfig,
 )
 from bead.deployment.jspsych.generator import JsPsychExperimentGenerator
+from bead.items.item import Item
 from bead.lists import ExperimentList
 
 
@@ -76,10 +78,10 @@ class TestDirectoryStructure:
         assert (tmp_output_dir / "data").exists()
 
 
-class TestTimelineGeneration:
-    """Tests for timeline data generation."""
+class TestBatchGeneration:
+    """Tests for batch experiment generation."""
 
-    def test_generate_timeline_data(
+    def test_generate_batch_experiment(
         self,
         sample_experiment_config: ExperimentConfig,
         sample_experiment_list: ExperimentList,
@@ -87,131 +89,7 @@ class TestTimelineGeneration:
         sample_templates: dict,
         tmp_output_dir: Path,
     ) -> None:
-        """Test timeline data generation."""
-        generator = JsPsychExperimentGenerator(
-            config=sample_experiment_config,
-            output_dir=tmp_output_dir,
-        )
-
-        timeline_data = generator._generate_timeline_data(
-            sample_experiment_list,
-            sample_items,
-            sample_templates,
-        )
-
-        assert "trials" in timeline_data
-        assert len(timeline_data["trials"]) == len(sample_experiment_list.item_refs)
-
-        first_trial = timeline_data["trials"][0]
-        assert "type" in first_trial
-        assert "stimulus" in first_trial
-        assert "data" in first_trial
-
-    def test_missing_item_raises_error(
-        self,
-        sample_experiment_config: ExperimentConfig,
-        sample_experiment_list: ExperimentList,
-        sample_items: dict,
-        sample_templates: dict,
-        tmp_output_dir: Path,
-    ) -> None:
-        """Test timeline data generation with missing item."""
-        generator = JsPsychExperimentGenerator(
-            config=sample_experiment_config,
-            output_dir=tmp_output_dir,
-        )
-
-        sample_experiment_list.add_item(uuid4())
-
-        with pytest.raises(ValueError, match="not found in items dictionary"):
-            generator._generate_timeline_data(
-                sample_experiment_list,
-                sample_items,
-                sample_templates,
-            )
-
-    def test_trial_order_preserved(
-        self,
-        sample_experiment_config: ExperimentConfig,
-        sample_experiment_list: ExperimentList,
-        sample_items: dict,
-        sample_templates: dict,
-        tmp_output_dir: Path,
-    ) -> None:
-        """Test that trial numbers are correctly assigned."""
-        generator = JsPsychExperimentGenerator(
-            config=sample_experiment_config,
-            output_dir=tmp_output_dir,
-        )
-
-        timeline_data = generator._generate_timeline_data(
-            sample_experiment_list,
-            sample_items,
-            sample_templates,
-        )
-
-        for i, trial in enumerate(timeline_data["trials"]):
-            assert trial["data"]["trial_number"] == i
-
-
-class TestConstraintExtraction:
-    """Tests for constraint and metadata extraction."""
-
-    def test_extract_ordering_constraints(
-        self,
-        sample_experiment_config: ExperimentConfig,
-        sample_experiment_list: ExperimentList,
-        tmp_output_dir: Path,
-    ) -> None:
-        """Test ordering constraint extraction."""
-        generator = JsPsychExperimentGenerator(
-            config=sample_experiment_config,
-            output_dir=tmp_output_dir,
-        )
-
-        constraints = generator._extract_ordering_constraints(sample_experiment_list)
-
-        assert len(constraints) > 0
-        assert any(c.practice_item_property is not None for c in constraints)
-
-    def test_extract_item_metadata(
-        self,
-        sample_experiment_config: ExperimentConfig,
-        sample_experiment_list: ExperimentList,
-        sample_items: dict,
-        sample_templates: dict,
-        tmp_output_dir: Path,
-    ) -> None:
-        """Test item metadata extraction."""
-        generator = JsPsychExperimentGenerator(
-            config=sample_experiment_config,
-            output_dir=tmp_output_dir,
-        )
-
-        metadata = generator._extract_item_metadata(
-            sample_experiment_list,
-            sample_items,
-        )
-
-        assert len(metadata) == len(sample_experiment_list.item_refs)
-
-        first_item_id = sample_experiment_list.item_refs[0]
-        assert first_item_id in metadata
-        assert "condition" in metadata[first_item_id]
-
-
-class TestCompleteGeneration:
-    """Tests for complete experiment generation."""
-
-    def test_generate_experiment(
-        self,
-        sample_experiment_config: ExperimentConfig,
-        sample_experiment_list: ExperimentList,
-        sample_items: dict,
-        sample_templates: dict,
-        tmp_output_dir: Path,
-    ) -> None:
-        """Test complete experiment generation."""
+        """Test complete batch experiment generation."""
         generator = JsPsychExperimentGenerator(
             config=sample_experiment_config,
             output_dir=tmp_output_dir,
@@ -224,12 +102,110 @@ class TestCompleteGeneration:
         )
 
         assert output_path == tmp_output_dir
+
+        # Check core files
         assert (tmp_output_dir / "index.html").exists()
         assert (tmp_output_dir / "css" / "experiment.css").exists()
         assert (tmp_output_dir / "js" / "experiment.js").exists()
         assert (tmp_output_dir / "data" / "config.json").exists()
 
-    def test_no_lists_raises_error(
+        # Check batch mode files
+        assert (tmp_output_dir / "js" / "list_distributor.js").exists()
+        assert (tmp_output_dir / "data" / "lists.jsonl").exists()
+        assert (tmp_output_dir / "data" / "items.jsonl").exists()
+        assert (tmp_output_dir / "data" / "distribution.json").exists()
+
+    def test_lists_jsonl_content(
+        self,
+        sample_experiment_config: ExperimentConfig,
+        sample_experiment_list: ExperimentList,
+        sample_items: dict,
+        sample_templates: dict,
+        tmp_output_dir: Path,
+    ) -> None:
+        """Test lists.jsonl file content."""
+        generator = JsPsychExperimentGenerator(
+            config=sample_experiment_config,
+            output_dir=tmp_output_dir,
+        )
+
+        generator.generate(
+            lists=[sample_experiment_list],
+            items=sample_items,
+            templates=sample_templates,
+        )
+
+        # Read lists.jsonl
+        lists_path = tmp_output_dir / "data" / "lists.jsonl"
+        loaded_lists = read_jsonlines(lists_path, ExperimentList)
+
+        assert len(loaded_lists) == 1
+        assert loaded_lists[0].name == sample_experiment_list.name
+        assert loaded_lists[0].id == sample_experiment_list.id
+
+    def test_items_jsonl_content(
+        self,
+        sample_experiment_config: ExperimentConfig,
+        sample_experiment_list: ExperimentList,
+        sample_items: dict,
+        sample_templates: dict,
+        tmp_output_dir: Path,
+    ) -> None:
+        """Test items.jsonl file content."""
+        generator = JsPsychExperimentGenerator(
+            config=sample_experiment_config,
+            output_dir=tmp_output_dir,
+        )
+
+        generator.generate(
+            lists=[sample_experiment_list],
+            items=sample_items,
+            templates=sample_templates,
+        )
+
+        # Read items.jsonl
+        items_path = tmp_output_dir / "data" / "items.jsonl"
+        loaded_items = read_jsonlines(items_path, Item)
+
+        assert len(loaded_items) == len(sample_items)
+
+        # Check all items are present
+        loaded_ids = {item.id for item in loaded_items}
+        expected_ids = set(sample_items.keys())
+        assert loaded_ids == expected_ids
+
+    def test_distribution_json_content(
+        self,
+        sample_experiment_config: ExperimentConfig,
+        sample_experiment_list: ExperimentList,
+        sample_items: dict,
+        sample_templates: dict,
+        tmp_output_dir: Path,
+    ) -> None:
+        """Test distribution.json file content."""
+        generator = JsPsychExperimentGenerator(
+            config=sample_experiment_config,
+            output_dir=tmp_output_dir,
+        )
+
+        generator.generate(
+            lists=[sample_experiment_list],
+            items=sample_items,
+            templates=sample_templates,
+        )
+
+        # Read distribution.json
+        dist_path = tmp_output_dir / "data" / "distribution.json"
+        dist_config = json.loads(dist_path.read_text())
+
+        assert "strategy_type" in dist_config
+        assert dist_config["strategy_type"] == "balanced"
+
+
+class TestValidation:
+    """Tests for input validation."""
+
+    def test_empty_lists_raises_error(
         self,
         sample_experiment_config: ExperimentConfig,
         sample_items: dict,
@@ -242,18 +218,54 @@ class TestCompleteGeneration:
             output_dir=tmp_output_dir,
         )
 
-        with pytest.raises(ValueError, match="At least one ExperimentList is required"):
+        with pytest.raises(ValueError, match="at least one ExperimentList"):
             generator.generate(
                 lists=[],
                 items=sample_items,
                 templates=sample_templates,
             )
 
+    def test_empty_items_raises_error(
+        self,
+        sample_experiment_config: ExperimentConfig,
+        sample_experiment_list: ExperimentList,
+        sample_templates: dict,
+        tmp_output_dir: Path,
+    ) -> None:
+        """Test error when no items provided."""
+        generator = JsPsychExperimentGenerator(
+            config=sample_experiment_config,
+            output_dir=tmp_output_dir,
+        )
 
-class TestFileGeneration:
-    """Tests for individual file generation."""
+        with pytest.raises(ValueError, match="requires items dictionary"):
+            generator.generate(
+                lists=[sample_experiment_list],
+                items={},
+                templates=sample_templates,
+            )
 
-    def test_html_content(
+    def test_empty_templates_raises_error(
+        self,
+        sample_experiment_config: ExperimentConfig,
+        sample_experiment_list: ExperimentList,
+        sample_items: dict,
+        tmp_output_dir: Path,
+    ) -> None:
+        """Test error when no templates provided."""
+        generator = JsPsychExperimentGenerator(
+            config=sample_experiment_config,
+            output_dir=tmp_output_dir,
+        )
+
+        with pytest.raises(ValueError, match="requires templates dictionary"):
+            generator.generate(
+                lists=[sample_experiment_list],
+                items=sample_items,
+                templates={},
+            )
+
+    def test_missing_item_reference_raises_error(
         self,
         sample_experiment_config: ExperimentConfig,
         sample_experiment_list: ExperimentList,
@@ -261,25 +273,23 @@ class TestFileGeneration:
         sample_templates: dict,
         tmp_output_dir: Path,
     ) -> None:
-        """Test HTML file content generation."""
+        """Test error when list references non-existent item."""
         generator = JsPsychExperimentGenerator(
             config=sample_experiment_config,
             output_dir=tmp_output_dir,
         )
 
-        generator.generate(
-            lists=[sample_experiment_list],
-            items=sample_items,
-            templates=sample_templates,
-        )
+        # Add a non-existent item to the list
+        sample_experiment_list.add_item(uuid4())
 
-        html_content = (tmp_output_dir / "index.html").read_text()
+        with pytest.raises(ValueError, match="not found in items dictionary"):
+            generator.generate(
+                lists=[sample_experiment_list],
+                items=sample_items,
+                templates=sample_templates,
+            )
 
-        assert sample_experiment_config.title in html_content
-        assert "jspsych" in html_content.lower()
-        assert "seedrandom" in html_content.lower()
-
-    def test_js_content(
+    def test_missing_template_reference_raises_error(
         self,
         sample_experiment_config: ExperimentConfig,
         sample_experiment_list: ExperimentList,
@@ -287,139 +297,66 @@ class TestFileGeneration:
         sample_templates: dict,
         tmp_output_dir: Path,
     ) -> None:
-        """Test JavaScript file content generation."""
+        """Test error when item references non-existent template."""
         generator = JsPsychExperimentGenerator(
             config=sample_experiment_config,
             output_dir=tmp_output_dir,
         )
 
-        generator.generate(
-            lists=[sample_experiment_list],
-            items=sample_items,
-            templates=sample_templates,
+        # Create an item with non-existent template
+        bad_item_id = uuid4()
+        bad_item = Item(
+            id=bad_item_id,
+            item_template_id=uuid4(),  # Non-existent template
+            rendered_elements={"text": "test"},
+            item_metadata={},
         )
+        sample_items[bad_item_id] = bad_item
+        sample_experiment_list.add_item(bad_item_id)
 
-        js_content = (tmp_output_dir / "js" / "experiment.js").read_text()
+        with pytest.raises(ValueError, match="not found in templates dictionary"):
+            generator.generate(
+                lists=[sample_experiment_list],
+                items=sample_items,
+                templates=sample_templates,
+            )
 
-        assert "initJsPsych" in js_content
-        assert "timeline" in js_content
-        assert sample_experiment_config.title in js_content
-        assert sample_experiment_config.instructions in js_content
 
-    def test_css_content(
+class TestMultipleLists:
+    """Tests for multiple list generation."""
+
+    def test_multiple_lists(
         self,
         sample_experiment_config: ExperimentConfig,
-        sample_experiment_list: ExperimentList,
         sample_items: dict,
         sample_templates: dict,
         tmp_output_dir: Path,
     ) -> None:
-        """Test CSS file generation."""
+        """Test generation with multiple lists."""
         generator = JsPsychExperimentGenerator(
             config=sample_experiment_config,
             output_dir=tmp_output_dir,
         )
 
+        # Create 3 lists
+        item_ids = list(sample_items.keys())
+        lists = []
+        for i in range(3):
+            exp_list = ExperimentList(name=f"list_{i}", list_number=i)
+            # Add first 3 items to each list (simple example)
+            for item_id in item_ids[:3]:
+                exp_list.add_item(item_id)
+            lists.append(exp_list)
+
         generator.generate(
-            lists=[sample_experiment_list],
+            lists=lists,
             items=sample_items,
             templates=sample_templates,
         )
 
-        css_file = tmp_output_dir / "css" / "experiment.css"
-        assert css_file.exists()
+        # Read lists.jsonl
+        lists_path = tmp_output_dir / "data" / "lists.jsonl"
+        loaded_lists = read_jsonlines(lists_path, ExperimentList)
 
-        css_content = css_file.read_text()
-        assert "--primary-color" in css_content or "primary" in css_content.lower()
-        assert ".jspsych-btn" in css_content
-
-    def test_config_json(
-        self,
-        sample_experiment_config: ExperimentConfig,
-        sample_experiment_list: ExperimentList,
-        sample_items: dict,
-        sample_templates: dict,
-        tmp_output_dir: Path,
-    ) -> None:
-        """Test config.json generation."""
-        generator = JsPsychExperimentGenerator(
-            config=sample_experiment_config,
-            output_dir=tmp_output_dir,
-        )
-
-        generator.generate(
-            lists=[sample_experiment_list],
-            items=sample_items,
-            templates=sample_templates,
-        )
-
-        config_file = tmp_output_dir / "data" / "config.json"
-        config_data = json.loads(config_file.read_text())
-
-        assert (
-            config_data["experiment_type"] == sample_experiment_config.experiment_type
-        )
-        assert config_data["title"] == sample_experiment_config.title
-        assert (
-            config_data["randomize_trial_order"]
-            == sample_experiment_config.randomize_trial_order
-        )
-
-
-class TestRandomization:
-    """Tests for randomization handling."""
-
-    def test_with_randomization(
-        self,
-        sample_experiment_config: ExperimentConfig,
-        sample_experiment_list: ExperimentList,
-        sample_items: dict,
-        sample_templates: dict,
-        tmp_output_dir: Path,
-    ) -> None:
-        """Test experiment generation with randomization enabled."""
-        sample_experiment_config.randomize_trial_order = True
-
-        generator = JsPsychExperimentGenerator(
-            config=sample_experiment_config,
-            output_dir=tmp_output_dir,
-        )
-
-        generator.generate(
-            lists=[sample_experiment_list],
-            items=sample_items,
-            templates=sample_templates,
-        )
-
-        js_content = (tmp_output_dir / "js" / "experiment.js").read_text()
-
-        assert "randomizeTrials" in js_content or "function shuffle" in js_content
-
-    def test_without_randomization(
-        self,
-        sample_experiment_config: ExperimentConfig,
-        sample_experiment_list: ExperimentList,
-        sample_items: dict,
-        sample_templates: dict,
-        tmp_output_dir: Path,
-    ) -> None:
-        """Test experiment generation without randomization."""
-        sample_experiment_config.randomize_trial_order = False
-
-        generator = JsPsychExperimentGenerator(
-            config=sample_experiment_config,
-            output_dir=tmp_output_dir,
-        )
-
-        generator.generate(
-            lists=[sample_experiment_list],
-            items=sample_items,
-            templates=sample_templates,
-        )
-
-        js_content = (tmp_output_dir / "js" / "experiment.js").read_text()
-
-        assert (
-            "original order" in js_content.lower()
-            or "timeline.push(...experimentTrials)" in js_content
-        )
+        assert len(loaded_lists) == 3
+        assert {lst.name for lst in loaded_lists} == {"list_0", "list_1", "list_2"}

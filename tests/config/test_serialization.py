@@ -267,3 +267,103 @@ class TestBeadConfigToYaml:
         yaml_str = config.to_yaml()
         # Should contain the changed value
         assert "CRITICAL" in yaml_str
+
+
+class TestDistributionStrategyYAML:
+    """Tests for distribution strategy YAML serialization."""
+
+    def test_distribution_strategy_serializes_to_yaml(self) -> None:
+        """Test that distribution strategy serializes correctly to YAML."""
+        from bead.deployment.distribution import (
+            DistributionStrategyType,
+            ListDistributionStrategy,
+        )
+
+        config = get_default_config()
+        config.deployment.distribution_strategy = ListDistributionStrategy(
+            strategy_type=DistributionStrategyType.QUOTA_BASED,
+            strategy_config={"participants_per_list": 25, "allow_overflow": False},
+            max_participants=400,
+        )
+
+        yaml_str = to_yaml(config, include_defaults=False)
+        parsed = yaml.safe_load(yaml_str)
+
+        # Should contain deployment section with distribution strategy
+        assert "deployment" in parsed
+        assert "distribution_strategy" in parsed["deployment"]
+        assert parsed["deployment"]["distribution_strategy"]["strategy_type"] == "quota_based"
+        assert parsed["deployment"]["distribution_strategy"]["max_participants"] == 400
+
+    def test_distribution_strategy_roundtrip(self) -> None:
+        """Test YAML roundtrip for distribution strategy."""
+        from bead.deployment.distribution import (
+            DistributionStrategyType,
+            ListDistributionStrategy,
+        )
+
+        # Create config with custom distribution strategy
+        config = get_default_config()
+        config.deployment.distribution_strategy = ListDistributionStrategy(
+            strategy_type=DistributionStrategyType.WEIGHTED_RANDOM,
+            strategy_config={
+                "weight_expression": "list_metadata.priority || 1.0",
+                "normalize_weights": True,
+            },
+        )
+
+        # Serialize to YAML
+        yaml_str = to_yaml(config, include_defaults=True)
+
+        # Parse and create new config
+        parsed = yaml.safe_load(yaml_str)
+        new_config = BeadConfig(**parsed)
+
+        # Verify it matches
+        assert new_config.deployment.distribution_strategy.strategy_type == DistributionStrategyType.WEIGHTED_RANDOM
+        assert new_config.deployment.distribution_strategy.strategy_config["weight_expression"] == "list_metadata.priority || 1.0"
+
+    def test_all_strategy_types_serialize(self) -> None:
+        """Test that all 8 strategy types can be serialized."""
+        from bead.deployment.distribution import (
+            DistributionStrategyType,
+            ListDistributionStrategy,
+        )
+
+        strategies = [
+            DistributionStrategyType.RANDOM,
+            DistributionStrategyType.SEQUENTIAL,
+            DistributionStrategyType.BALANCED,
+            DistributionStrategyType.LATIN_SQUARE,
+            DistributionStrategyType.STRATIFIED,
+            DistributionStrategyType.WEIGHTED_RANDOM,
+            DistributionStrategyType.QUOTA_BASED,
+            DistributionStrategyType.METADATA_BASED,
+        ]
+
+        for strategy_type in strategies:
+            config = get_default_config()
+
+            # Provide required config for strategies that need it
+            strategy_config = {}
+            if strategy_type == DistributionStrategyType.QUOTA_BASED:
+                strategy_config = {"participants_per_list": 25}
+            elif strategy_type == DistributionStrategyType.WEIGHTED_RANDOM:
+                strategy_config = {"weight_expression": "1.0"}
+            elif strategy_type == DistributionStrategyType.STRATIFIED:
+                strategy_config = {"factors": ["condition"]}
+            elif strategy_type == DistributionStrategyType.METADATA_BASED:
+                strategy_config = {"rank_expression": "0"}
+
+            config.deployment.distribution_strategy = ListDistributionStrategy(
+                strategy_type=strategy_type,
+                strategy_config=strategy_config,
+            )
+
+            # Should serialize without error
+            yaml_str = to_yaml(config, include_defaults=True)
+            parsed = yaml.safe_load(yaml_str)
+
+            # Should deserialize without error
+            new_config = BeadConfig(**parsed)
+            assert new_config.deployment.distribution_strategy.strategy_type == strategy_type

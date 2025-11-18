@@ -10,6 +10,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from bead.deployment.distribution import ListDistributionStrategy
+
 # Type alias for experiment types
 type ExperimentType = Literal[
     "likert_rating",
@@ -25,8 +27,8 @@ type UITheme = Literal["light", "dark", "auto"]
 class ExperimentConfig(BaseModel):
     """Configuration for jsPsych experiment generation.
 
-    This model defines all configurable aspects of a jsPsych experiment,
-    including the experiment type, UI settings, and trial presentation options.
+    Defines all configurable aspects of a jsPsych experiment, including experiment
+    type, UI settings, trial presentation options, and list distribution strategy.
 
     Attributes
     ----------
@@ -38,6 +40,10 @@ class ExperimentConfig(BaseModel):
         Brief description of the experiment
     instructions : str
         Instructions shown to participants before the experiment
+    distribution_strategy : ListDistributionStrategy
+        List distribution strategy for batch mode (required, no default).
+        Specifies how participants are assigned to experiment lists using JATOS
+        batch sessions. See bead.deployment.distribution for available strategies.
     randomize_trial_order : bool
         Whether to randomize trial order (default: True)
     show_progress_bar : bool
@@ -62,11 +68,20 @@ class ExperimentConfig(BaseModel):
 
     Examples
     --------
+    >>> from bead.deployment.distribution import (
+    ...     ListDistributionStrategy,
+    ...     DistributionStrategyType
+    ... )
+    >>> strategy = ListDistributionStrategy(
+    ...     strategy_type=DistributionStrategyType.BALANCED,
+    ...     max_participants=100
+    ... )
     >>> config = ExperimentConfig(
     ...     experiment_type="likert_rating",
     ...     title="Sentence Acceptability Study",
     ...     description="Rate the acceptability of sentences",
-    ...     instructions="Please rate each sentence on a scale from 1 to 7."
+    ...     instructions="Please rate each sentence on a scale from 1 to 7.",
+    ...     distribution_strategy=strategy
     ... )
     >>> config.randomize_trial_order
     True
@@ -84,6 +99,7 @@ class ExperimentConfig(BaseModel):
     title: str
     description: str
     instructions: str
+    distribution_strategy: ListDistributionStrategy
     randomize_trial_order: bool = Field(default=True)
     show_progress_bar: bool = Field(default=True)
     ui_theme: UITheme = Field(default="light")

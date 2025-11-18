@@ -4,6 +4,11 @@ from __future__ import annotations
 
 from pydantic import BaseModel, Field
 
+from bead.deployment.distribution import (
+    DistributionStrategyType,
+    ListDistributionStrategy,
+)
+
 
 class DeploymentConfig(BaseModel):
     """Configuration for experiment deployment.
@@ -22,6 +27,9 @@ class DeploymentConfig(BaseModel):
         Whether to include attention checks.
     jatos_export : bool
         Whether to export to JATOS.
+    distribution_strategy : ListDistributionStrategy
+        List distribution strategy for batch experiments.
+        Defaults to balanced assignment.
 
     Examples
     --------
@@ -30,6 +38,8 @@ class DeploymentConfig(BaseModel):
     'jspsych'
     >>> config.jspsych_version
     '7.3.0'
+    >>> config.distribution_strategy.strategy_type
+    <DistributionStrategyType.BALANCED: 'balanced'>
     """
 
     platform: str = Field(default="jspsych", description="Deployment platform")
@@ -42,3 +52,9 @@ class DeploymentConfig(BaseModel):
         default=True, description="Include attention checks"
     )
     jatos_export: bool = Field(default=False, description="Export to JATOS")
+    distribution_strategy: ListDistributionStrategy = Field(
+        default_factory=lambda: ListDistributionStrategy(
+            strategy_type=DistributionStrategyType.BALANCED
+        ),
+        description="List distribution strategy for batch experiments",
+    )

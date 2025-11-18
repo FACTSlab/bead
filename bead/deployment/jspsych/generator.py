@@ -1,7 +1,7 @@
-"""Main jsPsych experiment generator.
+"""jsPsych batch experiment generator.
 
-This module provides the JsPsychExperimentGenerator class, which orchestrates
-the generation of complete jsPsych 8.x experiments from ExperimentLists and Items.
+Generates complete jsPsych 8.x experiments using JATOS batch sessions for
+server-side list distribution.
 """
 
 from __future__ import annotations
@@ -13,6 +13,7 @@ from uuid import UUID
 
 from jinja2 import Environment, FileSystemLoader
 
+from bead.data.serialization import SerializationError, write_jsonlines
 from bead.deployment.jspsych.config import (
     ChoiceConfig,
     ExperimentConfig,
@@ -97,61 +98,257 @@ class JsPsychExperimentGenerator:
         items: dict[UUID, Item],
         templates: dict[UUID, ItemTemplate],
     ) -> Path:
-        """Generate complete jsPsych experiment.
+        """Generate complete jsPsych batch experiment.
+
+        Creates a unified batch experiment that uses JATOS batch sessions for
+        server-side list distribution. All participants are automatically assigned
+        to lists according to the distribution strategy specified in the experiment
+        configuration.
 
         Parameters
         ----------
         lists : list[ExperimentList]
-            Experiment lists to generate trials from. For Phase 19, we typically
-            use a single list, but the API supports multiple lists for future phases.
+            Experiment lists for batch distribution (required, must be non-empty).
+            All lists will be serialized to lists.jsonl and made available for
+            participant assignment.
         items : dict[UUID, Item]
-            Dictionary of items keyed by UUID.
+            Dictionary of items keyed by UUID (required, must be non-empty).
+            All items referenced by lists must be present in this dictionary.
         templates : dict[UUID, ItemTemplate]
-            Dictionary of item templates keyed by UUID.
+            Dictionary of item templates keyed by UUID (required, must be non-empty).
+            All templates referenced by items must be present in this dictionary.
 
         Returns
         -------
         Path
-            Path to the generated experiment directory.
+            Path to the generated experiment directory containing:
+            - index.html
+            - js/experiment.js, js/list_distributor.js
+            - css/experiment.css
+            - data/config.json, data/lists.jsonl, data/items.jsonl, data/distribution.json
 
         Raises
         ------
         ValueError
-            If no lists provided or if items/templates are missing.
+            If lists is empty, items is empty, templates is empty, or if any
+            referenced UUIDs are not found in the provided dictionaries.
+        SerializationError
+            If writing JSONL files fails.
+
+        Examples
+        --------
+        >>> from pathlib import Path
+        >>> from bead.deployment.distribution import ListDistributionStrategy, DistributionStrategyType
+        >>> strategy = ListDistributionStrategy(strategy_type=DistributionStrategyType.BALANCED)
+        >>> config = ExperimentConfig(
+        ...     experiment_type="forced_choice",
+        ...     title="Test",
+        ...     description="Test",
+        ...     instructions="Test",
+        ...     distribution_strategy=strategy
+        ... )
+        >>> generator = JsPsychExperimentGenerator(config=config, output_dir=Path("/tmp/exp"))
+        >>> # output_dir = generator.generate(lists, items, templates)
         """
+        # Validate inputs (no fallbacks)
         if not lists:
-            raise ValueError("At least one ExperimentList is required")
+            raise ValueError(
+                "generate() requires at least one ExperimentList. Got empty list. "
+                "Create lists using ListPartitioner before calling generate(). "
+                "Example: partitioner.partition_with_batch_constraints(items, metadata, ...)"
+            )
+
+        if not items:
+            raise ValueError(
+                "generate() requires items dictionary. Got empty dict. "
+                "Ensure items are constructed before calling generate(). "
+                "Items must be created using item construction utilities from bead.items."
+            )
+
+        if not templates:
+            raise ValueError(
+                "generate() requires templates dictionary. Got empty dict. "
+                "Ensure item templates are included. If items don't use templates, "
+                "provide an empty template: {item.item_template_id: ItemTemplate(...)}."
+            )
+
+        # Validate all item references can be resolved
+        self._validate_item_references(lists, items)
+
+        # Validate all template references can be resolved
+        self._validate_template_references(items, templates)
 
         # Create directory structure
         self._create_directory_structure()
 
-        # For Phase 19, we use the first list
-        # (multi-list support will be added in future phases)
-        experiment_list = lists[0]
+        # Write batch data files (lists, items, distribution config)
+        self._write_lists_jsonl(lists)
+        self._write_items_jsonl(items)
+        self._write_distribution_config()
 
-        # Generate timeline data (trials)
-        timeline_data = self._generate_timeline_data(experiment_list, items, templates)
-
-        # Extract ordering constraints and item metadata
-        ordering_constraints = self._extract_ordering_constraints(experiment_list)
-        item_metadata = self._extract_item_metadata(experiment_list, items)
-
-        # Generate randomizer code if randomization is enabled
-        randomizer_code = ""
-        if self.config.randomize_trial_order and ordering_constraints:
-            randomizer_code = generate_randomizer_function(
-                item_ids=experiment_list.item_refs,
-                constraints=ordering_constraints,
-                metadata=item_metadata,
-            )
-
-        # Generate all files
-        self._generate_html(timeline_data, randomizer_code)
+        # Generate HTML/CSS/JS files
+        self._generate_html()
         self._generate_css()
-        self._generate_experiment_script(timeline_data, randomizer_code)
+        self._generate_experiment_script()
         self._generate_config_file()
+        self._copy_list_distributor_script()
 
         return self.output_dir
+
+    def _validate_item_references(
+        self,
+        lists: list[ExperimentList],
+        items: dict[UUID, Item],
+    ) -> None:
+        """Validate all item UUIDs in lists can be resolved.
+
+        Parameters
+        ----------
+        lists : list[ExperimentList]
+            Lists to validate.
+        items : dict[UUID, Item]
+            Items dictionary.
+
+        Raises
+        ------
+        ValueError
+            If any item UUID in lists is not found in items dict.
+        """
+        for exp_list in lists:
+            for item_id in exp_list.item_refs:
+                if item_id not in items:
+                    available_sample = list(items.keys())[:5]
+                    raise ValueError(
+                        f"Item {item_id} referenced in list '{exp_list.name}' "
+                        f"(list_number={exp_list.list_number}) not found in items dictionary. "
+                        f"Available item UUIDs (first 5): {available_sample}{'...' if len(items) > 5 else ''}. "
+                        f"Ensure all items referenced in lists are included in the items dict passed to generate()."
+                    )
+
+    def _validate_template_references(
+        self,
+        items: dict[UUID, Item],
+        templates: dict[UUID, ItemTemplate],
+    ) -> None:
+        """Validate all template UUIDs in items can be resolved.
+
+        Parameters
+        ----------
+        items : dict[UUID, Item]
+            Items dictionary.
+        templates : dict[UUID, ItemTemplate]
+            Templates dictionary.
+
+        Raises
+        ------
+        ValueError
+            If any template UUID in items is not found in templates dict.
+        """
+        for item_id, item in items.items():
+            if item.item_template_id not in templates:
+                available_sample = list(templates.keys())[:5]
+                raise ValueError(
+                    f"Template {item.item_template_id} referenced by item {item_id} "
+                    f"not found in templates dictionary. "
+                    f"Available template UUIDs (first 5): {available_sample}{'...' if len(templates) > 5 else ''}. "
+                    f"Ensure all templates referenced by items are included in the templates dict passed to generate()."
+                )
+
+    def _write_lists_jsonl(self, lists: list[ExperimentList]) -> None:
+        """Write experiment lists to data/lists.jsonl.
+
+        Parameters
+        ----------
+        lists : list[ExperimentList]
+            Lists to serialize.
+
+        Raises
+        ------
+        SerializationError
+            If writing JSONL fails.
+        """
+        output_path = self.output_dir / "data" / "lists.jsonl"
+        try:
+            write_jsonlines(lists, output_path)
+        except SerializationError as e:
+            raise SerializationError(
+                f"Failed to write lists.jsonl to {output_path}: {e}. "
+                f"Check write permissions and disk space. "
+                f"Attempted to serialize {len(lists)} lists."
+            ) from e
+
+    def _write_items_jsonl(self, items: dict[UUID, Item]) -> None:
+        """Write items to data/items.jsonl.
+
+        Parameters
+        ----------
+        items : dict[UUID, Item]
+            Items dictionary to serialize.
+
+        Raises
+        ------
+        SerializationError
+            If writing JSONL fails.
+        """
+        output_path = self.output_dir / "data" / "items.jsonl"
+        try:
+            # Convert dict values to list for serialization
+            items_list = list(items.values())
+            write_jsonlines(items_list, output_path)
+        except SerializationError as e:
+            raise SerializationError(
+                f"Failed to write items.jsonl to {output_path}: {e}. "
+                f"Check write permissions and disk space. "
+                f"Attempted to serialize {len(items)} items."
+            ) from e
+
+    def _write_distribution_config(self) -> None:
+        """Write distribution strategy config to data/distribution.json.
+
+        Raises
+        ------
+        SerializationError
+            If writing JSON fails.
+        """
+        output_path = self.output_dir / "data" / "distribution.json"
+        try:
+            # Use model_dump_json() to handle UUID serialization
+            json_str = self.config.distribution_strategy.model_dump_json(indent=2)
+            output_path.write_text(json_str)
+        except (OSError, TypeError) as e:
+            raise SerializationError(
+                f"Failed to write distribution.json to {output_path}: {e}. "
+                f"Check write permissions and disk space. "
+                f"Strategy type: {self.config.distribution_strategy.strategy_type}"
+            ) from e
+
+    def _copy_list_distributor_script(self) -> None:
+        """Copy list_distributor.js template to js/ directory.
+
+        Raises
+        ------
+        FileNotFoundError
+            If list_distributor.js template is not found.
+        OSError
+            If copying fails.
+        """
+        template_path = Path(__file__).parent / "templates" / "list_distributor.js"
+        output_path = self.output_dir / "js" / "list_distributor.js"
+
+        if not template_path.exists():
+            raise FileNotFoundError(
+                f"list_distributor.js template not found at {template_path}. "
+                f"This file is required for batch mode. "
+                f"Ensure bead is installed correctly."
+            )
+
+        try:
+            output_path.write_text(template_path.read_text())
+        except OSError as e:
+            raise OSError(
+                f"Failed to copy list_distributor.js to {output_path}: {e}. "
+                f"Check write permissions."
+            ) from e
 
     def _create_directory_structure(self) -> None:
         """Create output directory structure.
@@ -167,138 +364,14 @@ class JsPsychExperimentGenerator:
         (self.output_dir / "js").mkdir(exist_ok=True)
         (self.output_dir / "data").mkdir(exist_ok=True)
 
-    def _generate_timeline_data(
-        self,
-        experiment_list: ExperimentList,
-        items: dict[UUID, Item],
-        templates: dict[UUID, ItemTemplate],
-    ) -> dict[str, Any]:
-        """Generate timeline data from experiment list.
-
-        Parameters
-        ----------
-        experiment_list : ExperimentList
-            Experiment list with item IDs.
-        items : dict[UUID, Item]
-            Dictionary of items keyed by UUID.
-        templates : dict[UUID, ItemTemplate]
-            Dictionary of item templates keyed by UUID.
-
-        Returns
-        -------
-        dict[str, Any]
-            Timeline data structure with trials.
-
-        Raises
-        ------
-        ValueError
-            If an item ID in the list is not found in items dict,
-            or if a template ID is not found in templates dict.
-        """
-        trials: list[dict[str, Any]] = []
-
-        for trial_number, item_id in enumerate(experiment_list.item_refs):
-            if item_id not in items:
-                raise ValueError(f"Item {item_id} not found in items dictionary")
-
-            item = items[item_id]
-
-            # Look up the template for this item
-            if item.item_template_id not in templates:
-                raise ValueError(
-                    f"Template {item.item_template_id} not found in "
-                    f"templates dictionary"
-                )
-
-            template = templates[item.item_template_id]
-
-            trial = create_trial(
-                item=item,
-                template=template,
-                experiment_config=self.config,
-                trial_number=trial_number,
-                rating_config=self.rating_config,
-                choice_config=self.choice_config,
-            )
-            trials.append(trial)
-
-        return {"trials": trials}
-
-    def _extract_ordering_constraints(
-        self,
-        experiment_list: ExperimentList,
-    ) -> list[OrderingConstraint]:
-        """Extract ordering constraints from experiment list.
-
-        Parameters
-        ----------
-        experiment_list : ExperimentList
-            Experiment list with constraints.
-
-        Returns
-        -------
-        list[OrderingConstraint]
-            List of ordering constraints.
-        """
-        ordering_constraints: list[OrderingConstraint] = []
-
-        for constraint in experiment_list.list_constraints:
-            if isinstance(constraint, OrderingConstraint):
-                ordering_constraints.append(constraint)
-
-        return ordering_constraints
-
-    def _extract_item_metadata(
-        self,
-        experiment_list: ExperimentList,
-        items: dict[UUID, Item],
-    ) -> dict[UUID, dict[str, Any]]:
-        """Extract item metadata needed for constraint checking.
-
-        Parameters
-        ----------
-        experiment_list : ExperimentList
-            Experiment list with item IDs.
-        items : dict[UUID, Item]
-            Dictionary of items.
-
-        Returns
-        -------
-        dict[UUID, dict[str, Any]]
-            Item metadata keyed by item UUID.
-        """
-        metadata: dict[UUID, dict[str, Any]] = {}
-
-        for item_id in experiment_list.item_refs:
-            if item_id in items:
-                item = items[item_id]
-                # Extract relevant metadata for constraint checking
-                metadata[item_id] = dict(item.item_metadata)
-
-        return metadata
-
-    def _generate_html(
-        self,
-        timeline_data: dict[str, Any],
-        randomizer_code: str,
-    ) -> None:
-        """Generate index.html file.
-
-        Parameters
-        ----------
-        timeline_data : dict[str, Any]
-            Timeline data structure.
-        randomizer_code : str
-            JavaScript randomizer code.
-        """
+    def _generate_html(self) -> None:
+        """Generate index.html file."""
         template = self.jinja_env.get_template("index.html")
 
         html_content = template.render(
             title=self.config.title,
             ui_theme=self.config.ui_theme,
             use_jatos=self.config.use_jatos,
-            config_json=json.dumps(self.config.model_dump()),
-            timeline_json=json.dumps(timeline_data),
         )
 
         output_file = self.output_dir / "index.html"
@@ -312,20 +385,8 @@ class JsPsychExperimentGenerator:
         # Copy CSS template directly (no rendering needed)
         output_file.write_text(template_file.read_text())
 
-    def _generate_experiment_script(
-        self,
-        timeline_data: dict[str, Any],
-        randomizer_code: str,
-    ) -> None:
-        """Generate experiment.js file.
-
-        Parameters
-        ----------
-        timeline_data : dict[str, Any]
-            Timeline data structure.
-        randomizer_code : str
-            JavaScript randomizer code.
-        """
+    def _generate_experiment_script(self) -> None:
+        """Generate experiment.js file."""
         template = self.jinja_env.get_template("experiment.js.template")
 
         # Auto-generate Prolific redirect URL if completion code is provided
@@ -341,10 +402,8 @@ class JsPsychExperimentGenerator:
             description=self.config.description,
             instructions=self.config.instructions,
             show_progress_bar=self.config.show_progress_bar,
-            randomize_trial_order=self.config.randomize_trial_order,
             use_jatos=self.config.use_jatos,
             on_finish_url=on_finish_url,
-            randomizer_code=randomizer_code,
         )
 
         output_file = self.output_dir / "js" / "experiment.js"
@@ -352,7 +411,6 @@ class JsPsychExperimentGenerator:
 
     def _generate_config_file(self) -> None:
         """Generate config.json file with experiment configuration."""
-        config_data = self.config.model_dump()
-
         output_file = self.output_dir / "data" / "config.json"
-        output_file.write_text(json.dumps(config_data, indent=2))
+        json_str = self.config.model_dump_json(indent=2)
+        output_file.write_text(json_str)

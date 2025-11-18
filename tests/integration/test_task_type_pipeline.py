@@ -13,6 +13,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from bead.deployment.distribution import (
+    DistributionStrategyType,
+    ListDistributionStrategy,
+)
 from bead.deployment.jatos.exporter import JATOSExporter
 from bead.deployment.jspsych.config import ExperimentConfig
 from bead.deployment.jspsych.generator import JsPsychExperimentGenerator
@@ -76,6 +80,9 @@ class TestForcedChoiceIntegration:
             description="Test forced choice deployment",
             instructions="Choose the best option",
             randomize_trial_order=False,
+            distribution_strategy=ListDistributionStrategy(
+                strategy_type=DistributionStrategyType.BALANCED
+            ),
         )
 
         generator = JsPsychExperimentGenerator(
@@ -159,6 +166,9 @@ class TestMultiSelectIntegration:
             title="Multi-Select Test",
             description="Test",
             instructions="Select options",
+            distribution_strategy=ListDistributionStrategy(
+                strategy_type=DistributionStrategyType.BALANCED
+            ),
         )
 
         generator = JsPsychExperimentGenerator(
@@ -211,6 +221,9 @@ class TestBinaryIntegration:
             title="Binary Test",
             description="Test",
             instructions="Answer yes/no",
+            distribution_strategy=ListDistributionStrategy(
+                strategy_type=DistributionStrategyType.BALANCED
+            ),
         )
 
         generator = JsPsychExperimentGenerator(
@@ -261,6 +274,9 @@ class TestCategoricalIntegration:
             title="NLI Test",
             description="Test",
             instructions="Select relationship",
+            distribution_strategy=ListDistributionStrategy(
+                strategy_type=DistributionStrategyType.BALANCED
+            ),
         )
 
         generator = JsPsychExperimentGenerator(
@@ -311,6 +327,9 @@ class TestOrdinalScaleIntegration:
             title="Likert Test",
             description="Test",
             instructions="Rate sentences",
+            distribution_strategy=ListDistributionStrategy(
+                strategy_type=DistributionStrategyType.BALANCED
+            ),
         )
 
         generator = JsPsychExperimentGenerator(
@@ -364,6 +383,9 @@ class TestMagnitudeIntegration:
             title="Magnitude Test",
             description="Test",
             instructions="Enter numeric value",
+            distribution_strategy=ListDistributionStrategy(
+                strategy_type=DistributionStrategyType.BALANCED
+            ),
         )
 
         generator = JsPsychExperimentGenerator(
@@ -416,6 +438,9 @@ class TestFreeTextIntegration:
             title="Free Text Test",
             description="Test",
             instructions="Enter text",
+            distribution_strategy=ListDistributionStrategy(
+                strategy_type=DistributionStrategyType.BALANCED
+            ),
         )
 
         generator = JsPsychExperimentGenerator(
@@ -474,6 +499,9 @@ class TestClozeIntegration:
             title="Cloze Test",
             description="Test",
             instructions="Fill in the blank",
+            distribution_strategy=ListDistributionStrategy(
+                strategy_type=DistributionStrategyType.BALANCED
+            ),
         )
 
         generator = JsPsychExperimentGenerator(

@@ -12,3 +12,5 @@ gallery/**/filled_templates/*.jsonl
 gallery/**/items/*.jsonl
 gallery/**/lists/*.jsonl
 gallery/**/deployment/
+node_modules/
+coverage/

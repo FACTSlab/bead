@@ -7,6 +7,10 @@ from uuid import uuid4
 import pytest
 from pydantic import ValidationError
 
+from bead.deployment.distribution import (
+    DistributionStrategyType,
+    ListDistributionStrategy,
+)
 from bead.deployment.jspsych.config import (
     ChoiceConfig,
     ExperimentConfig,
@@ -56,6 +60,9 @@ class TestCreateTrial:
             title="Test",
             description="Test",
             instructions="Test instructions",
+            distribution_strategy=ListDistributionStrategy(
+                strategy_type=DistributionStrategyType.BALANCED
+            ),
         )
         rating_config = RatingScaleConfig(min_value=1, max_value=7)
 
@@ -81,6 +88,9 @@ class TestCreateTrial:
             title="Test",
             description="Test",
             instructions="Test instructions",
+            distribution_strategy=ListDistributionStrategy(
+                strategy_type=DistributionStrategyType.BALANCED
+            ),
         )
         choice_config = ChoiceConfig()
 
@@ -123,6 +133,9 @@ class TestCreateTrial:
             title="Test",
             description="Test",
             instructions="Test instructions",
+            distribution_strategy=ListDistributionStrategy(
+                strategy_type=DistributionStrategyType.BALANCED
+            ),
         )
         choice_config = ChoiceConfig()
 
@@ -162,6 +175,9 @@ class TestCreateTrial:
             title="Test",
             description="Test",
             instructions="Test instructions",
+            distribution_strategy=ListDistributionStrategy(
+                strategy_type=DistributionStrategyType.BALANCED
+            ),
         )
 
         with pytest.raises(ValueError, match="rating_config required"):
@@ -186,6 +202,9 @@ class TestCreateTrial:
                 title="Test",
                 description="Test",
                 instructions="Test instructions",
+                distribution_strategy=ListDistributionStrategy(
+                    strategy_type=DistributionStrategyType.BALANCED
+                ),
             )
 
     def test_metadata_inclusion(
@@ -197,6 +216,9 @@ class TestCreateTrial:
             title="Test",
             description="Test",
             instructions="Test instructions",
+            distribution_strategy=ListDistributionStrategy(
+                strategy_type=DistributionStrategyType.BALANCED
+            ),
         )
         rating_config = RatingScaleConfig()
 
@@ -239,6 +261,9 @@ class TestLikertConfiguration:
             title="Test",
             description="Test",
             instructions="Test instructions",
+            distribution_strategy=ListDistributionStrategy(
+                strategy_type=DistributionStrategyType.BALANCED
+            ),
         )
 
         rating_config = RatingScaleConfig(
@@ -288,6 +313,9 @@ class TestSliderConfiguration:
             title="Test",
             description="Test",
             instructions="Test instructions",
+            distribution_strategy=ListDistributionStrategy(
+                strategy_type=DistributionStrategyType.BALANCED
+            ),
         )
 
         rating_config = RatingScaleConfig(required=True)

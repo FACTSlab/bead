@@ -33,35 +33,12 @@
     <!-- JATOS integration -->
     <script src="jatos.js"></script>
     {% endif %}
+
+    <!-- List distribution system -->
+    <script src="js/list_distributor.js"></script>
 </head>
 <body class="theme-{{ ui_theme }}">
     <div id="jspsych-target"></div>
-
-    <!-- Experiment data and configuration -->
-    <script>
-        // Load experiment configuration
-        const EXPERIMENT_CONFIG = {{ config_json | safe }};
-
-        // Load timeline data
-        const TIMELINE_DATA = {{ timeline_json | safe }};
-
-        {% if use_jatos %}
-        // JATOS mode: Get participant ID and Prolific parameters from JATOS
-        let PARTICIPANT_ID = null;
-        let PROLIFIC_PID = null;
-        let STUDY_ID = null;
-        let SESSION_ID = null;
-
-        // These will be populated when JATOS loads (in jatos.onLoad callback)
-        {% else %}
-        // Standalone mode: Get participant ID from URL or generate one
-        const urlParams = new URLSearchParams(window.location.search);
-        const PARTICIPANT_ID = urlParams.get('participant_id') || urlParams.get('PROLIFIC_PID') || 'p' + Date.now();
-        const PROLIFIC_PID = urlParams.get('PROLIFIC_PID') || null;
-        const STUDY_ID = urlParams.get('STUDY_ID') || null;
-        const SESSION_ID = urlParams.get('SESSION_ID') || null;
-        {% endif %}
-    </script>
 
     <!-- Main experiment script -->
     <script src="js/experiment.js"></script>

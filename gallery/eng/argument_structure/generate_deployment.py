@@ -17,6 +17,10 @@ from rich.console import Console
 from rich.progress import track
 from rich.table import Table
 
+from bead.deployment.distribution import (
+    DistributionStrategyType,
+    ListDistributionStrategy,
+)
 from bead.deployment.jatos.exporter import JATOSExporter
 from bead.deployment.jspsych.config import ChoiceConfig, ExperimentConfig
 from bead.deployment.jspsych.generator import JsPsychExperimentGenerator
@@ -166,6 +170,17 @@ def main() -> None:
     # Create ExperimentConfig for jsPsych (base configuration)
     console.rule("[5/6] Generating jsPsych Experiments")
 
+    # Extract distribution strategy from config
+    dist_config_dict = deployment_config.get("distribution_strategy", {})
+    strategy_type = dist_config_dict.get("strategy_type", "balanced")
+    distribution_strategy = ListDistributionStrategy(
+        strategy_type=DistributionStrategyType(strategy_type),
+        max_participants=dist_config_dict.get("max_participants"),
+        error_on_exhaustion=dist_config_dict.get("error_on_exhaustion", True),
+        debug_mode=dist_config_dict.get("debug_mode", False),
+        debug_list_index=dist_config_dict.get("debug_list_index", 0),
+    )
+
     base_config_dict = {
         "experiment_type": "forced_choice",
         "title": experiment_config_dict.get("title", "Sentence Acceptability Judgments"),
@@ -178,6 +193,7 @@ def main() -> None:
         ),
         "randomize_trial_order": jspsych_config.get("randomize_order", True),
         "show_progress_bar": True,
+        "distribution_strategy": distribution_strategy,
     }
 
     choice_config = ChoiceConfig(

@@ -515,6 +515,15 @@ deployment:
   # Platform: "jatos", "prolific", "mturk"
   platform: "jatos"
 
+  # List distribution strategy for batch experiments
+  # Strategies: random, sequential, balanced, latin_square, stratified, weighted_random, quota_based, metadata_based
+  distribution_strategy:
+    strategy_type: "balanced"  # Assign participants to least-used list
+    max_participants: 400  # Total across all lists (optional)
+    error_on_exhaustion: false  # Continue after max reached
+    debug_mode: false  # Set to true for testing (always assigns same list)
+    debug_list_index: 0  # List index to use in debug mode
+
   # Number of lists to randomly select for deployment
   n_lists_to_deploy: 20
 

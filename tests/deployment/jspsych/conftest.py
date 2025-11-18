@@ -7,6 +7,10 @@ from uuid import UUID, uuid4
 
 import pytest
 
+from bead.deployment.distribution import (
+    DistributionStrategyType,
+    ListDistributionStrategy,
+)
 from bead.deployment.jspsych.config import (
     ChoiceConfig,
     ExperimentConfig,
@@ -19,8 +23,30 @@ from bead.lists.constraints import OrderingConstraint
 
 
 @pytest.fixture
-def sample_experiment_config() -> ExperimentConfig:
+def sample_distribution_strategy() -> ListDistributionStrategy:
+    """Create a sample distribution strategy.
+
+    Returns
+    -------
+    ListDistributionStrategy
+        Sample distribution strategy for testing.
+    """
+    return ListDistributionStrategy(
+        strategy_type=DistributionStrategyType.BALANCED,
+        max_participants=100,
+    )
+
+
+@pytest.fixture
+def sample_experiment_config(
+    sample_distribution_strategy: ListDistributionStrategy,
+) -> ExperimentConfig:
     """Create a sample experiment configuration.
+
+    Parameters
+    ----------
+    sample_distribution_strategy : ListDistributionStrategy
+        Sample distribution strategy fixture.
 
     Returns
     -------
@@ -32,6 +58,7 @@ def sample_experiment_config() -> ExperimentConfig:
         title="Test Acceptability Study",
         description="Test experiment for rating sentence acceptability",
         instructions="Please rate each sentence on a scale from 1 to 7.",
+        distribution_strategy=sample_distribution_strategy,
         randomize_trial_order=True,
         show_progress_bar=True,
         ui_theme="light",
