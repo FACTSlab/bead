@@ -16,6 +16,13 @@ import pytest
 from click.testing import CliRunner
 
 from bead.cli.deployment import deployment, export_jatos, generate, validate
+from bead.cli.deployment_trials import (
+    configure_choice,
+    configure_rating,
+    configure_timing,
+    show_config,
+)
+from bead.cli.deployment_ui import customize, generate_css
 from bead.items.item import Item
 from bead.items.item_template import ItemTemplate, PresentationSpec, TaskSpec
 from bead.lists import ExperimentList
@@ -550,3 +557,636 @@ class TestHelpCommands:
 
         assert result.exit_code == 0
         assert "export" in result.output.lower() or "JATOS" in result.output
+
+
+# ==================== Trials Configuration Tests ====================
+
+
+class TestTrialsCommands:
+    """Test deployment trials configuration commands."""
+
+    def test_configure_rating_basic(
+        self, runner: CliRunner, tmp_path: Path
+    ) -> None:
+        """Test configure-rating with basic options."""
+        output_file = tmp_path / "rating_config.json"
+
+        result = runner.invoke(
+            configure_rating,
+            [
+                str(output_file),
+                "--min-value", "1",
+                "--max-value", "7",
+                "--min-label", "Very unnatural",
+                "--max-label", "Very natural",
+            ],
+        )
+
+        assert result.exit_code == 0
+        assert output_file.exists()
+
+        # Verify config content
+        config = json.loads(output_file.read_text())
+        assert config["type"] == "rating_scale"
+        assert config["min_value"] == 1
+        assert config["max_value"] == 7
+        assert config["step"] == 1
+        assert config["min_label"] == "Very unnatural"
+        assert config["max_label"] == "Very natural"
+        assert config["show_numeric_labels"] is False
+        assert config["required"] is True
+
+    def test_configure_rating_with_numeric_labels(
+        self, runner: CliRunner, tmp_path: Path
+    ) -> None:
+        """Test configure-rating with numeric labels enabled."""
+        output_file = tmp_path / "rating_config.json"
+
+        result = runner.invoke(
+            configure_rating,
+            [
+                str(output_file),
+                "--min-value", "1",
+                "--max-value", "5",
+                "--show-numeric-labels",
+            ],
+        )
+
+        assert result.exit_code == 0
+
+        config = json.loads(output_file.read_text())
+        assert config["show_numeric_labels"] is True
+        assert config["max_value"] == 5
+
+    def test_configure_rating_invalid_range(
+        self, runner: CliRunner, tmp_path: Path
+    ) -> None:
+        """Test configure-rating with invalid range (min >= max)."""
+        output_file = tmp_path / "rating_config.json"
+
+        result = runner.invoke(
+            configure_rating,
+            [
+                str(output_file),
+                "--min-value", "7",
+                "--max-value", "1",
+            ],
+        )
+
+        assert result.exit_code != 0
+
+    def test_configure_rating_invalid_step(
+        self, runner: CliRunner, tmp_path: Path
+    ) -> None:
+        """Test configure-rating with invalid step (not divisible)."""
+        output_file = tmp_path / "rating_config.json"
+
+        result = runner.invoke(
+            configure_rating,
+            [
+                str(output_file),
+                "--min-value", "1",
+                "--max-value", "7",
+                "--step", "2",  # 6 is not divisible by 2... wait, it is. Let me use 4
+            ],
+        )
+
+        # This should actually succeed since (7-1) = 6, divisible by 2
+        # Let me test with a step that doesn't divide evenly
+        result = runner.invoke(
+            configure_rating,
+            [
+                str(output_file),
+                "--min-value", "1",
+                "--max-value", "7",
+                "--step", "4",  # (7-1) = 6, not divisible by 4
+            ],
+        )
+
+        assert result.exit_code != 0
+
+    def test_configure_choice_basic(
+        self, runner: CliRunner, tmp_path: Path
+    ) -> None:
+        """Test configure-choice with basic options."""
+        output_file = tmp_path / "choice_config.json"
+
+        result = runner.invoke(
+            configure_choice,
+            [
+                str(output_file),
+                "--button-html", '<button class="custom-btn">%choice%</button>',
+                "--randomize-position",
+            ],
+        )
+
+        assert result.exit_code == 0
+        assert output_file.exists()
+
+        config = json.loads(output_file.read_text())
+        assert config["type"] == "choice"
+        assert config["button_html"] == '<button class="custom-btn">%choice%</button>'
+        assert config["enable_keyboard"] is True
+        assert config["randomize_position"] is True
+
+    def test_configure_choice_missing_placeholder(
+        self, runner: CliRunner, tmp_path: Path
+    ) -> None:
+        """Test configure-choice with missing %choice% placeholder."""
+        output_file = tmp_path / "choice_config.json"
+
+        result = runner.invoke(
+            configure_choice,
+            [
+                str(output_file),
+                "--button-html", '<button class="custom-btn">No placeholder</button>',
+            ],
+        )
+
+        assert result.exit_code != 0
+        assert "%choice%" in result.output
+
+    def test_configure_timing_basic(
+        self, runner: CliRunner, tmp_path: Path
+    ) -> None:
+        """Test configure-timing with basic options."""
+        output_file = tmp_path / "timing_config.json"
+
+        result = runner.invoke(
+            configure_timing,
+            [
+                str(output_file),
+                "--duration-ms", "500",
+                "--isi-ms", "100",
+                "--mask-char", "#",
+            ],
+        )
+
+        assert result.exit_code == 0
+        assert output_file.exists()
+
+        config = json.loads(output_file.read_text())
+        assert config["type"] == "timing"
+        assert config["duration_ms"] == 500
+        assert config["isi_ms"] == 100
+        assert config["mask_char"] == "#"
+        assert config["cumulative"] is False
+
+    def test_configure_timing_cumulative(
+        self, runner: CliRunner, tmp_path: Path
+    ) -> None:
+        """Test configure-timing with cumulative mode."""
+        output_file = tmp_path / "timing_config.json"
+
+        result = runner.invoke(
+            configure_timing,
+            [
+                str(output_file),
+                "--isi-ms", "50",
+                "--cumulative",
+            ],
+        )
+
+        assert result.exit_code == 0
+
+        config = json.loads(output_file.read_text())
+        assert config["cumulative"] is True
+        assert "duration_ms" not in config  # Optional parameter
+
+    def test_configure_timing_invalid_duration(
+        self, runner: CliRunner, tmp_path: Path
+    ) -> None:
+        """Test configure-timing with invalid duration."""
+        output_file = tmp_path / "timing_config.json"
+
+        result = runner.invoke(
+            configure_timing,
+            [
+                str(output_file),
+                "--duration-ms", "-100",  # Negative duration
+            ],
+        )
+
+        assert result.exit_code != 0
+
+    def test_show_config_single_file(
+        self, runner: CliRunner, tmp_path: Path
+    ) -> None:
+        """Test show-config with single configuration file."""
+        # Create a config file first
+        config_file = tmp_path / "test_config.json"
+        config = {
+            "type": "rating_scale",
+            "min_value": 1,
+            "max_value": 7,
+        }
+        config_file.write_text(json.dumps(config))
+
+        result = runner.invoke(
+            show_config,
+            [str(config_file)],
+        )
+
+        assert result.exit_code == 0
+        assert "test_config.json" in result.output
+        assert "rating_scale" in result.output
+
+    def test_show_config_multiple_files(
+        self, runner: CliRunner, tmp_path: Path
+    ) -> None:
+        """Test show-config with multiple configuration files."""
+        # Create two config files
+        config1 = tmp_path / "rating.json"
+        config1.write_text(json.dumps({"type": "rating_scale"}))
+
+        config2 = tmp_path / "choice.json"
+        config2.write_text(json.dumps({"type": "choice"}))
+
+        result = runner.invoke(
+            show_config,
+            [str(config1), str(config2)],
+        )
+
+        assert result.exit_code == 0
+        assert "rating.json" in result.output
+        assert "choice.json" in result.output
+
+    def test_show_config_invalid_json(
+        self, runner: CliRunner, tmp_path: Path
+    ) -> None:
+        """Test show-config with invalid JSON file."""
+        config_file = tmp_path / "invalid.json"
+        config_file.write_text("not valid json")
+
+        result = runner.invoke(
+            show_config,
+            [str(config_file)],
+        )
+
+        assert result.exit_code != 0
+        assert "JSON" in result.output
+
+    def test_trials_help(self, runner: CliRunner) -> None:
+        """Test trials command group help."""
+        result = runner.invoke(deployment, ["trials", "--help"])
+
+        assert result.exit_code == 0
+        assert "Trial configuration" in result.output
+        assert "configure-rating" in result.output
+        assert "configure-choice" in result.output
+        assert "configure-timing" in result.output
+
+
+# ==================== UI Customization Tests ====================
+
+
+class TestUICommands:
+    """Test deployment UI customization commands."""
+
+    def test_generate_css_basic(
+        self, runner: CliRunner, tmp_path: Path
+    ) -> None:
+        """Test generate-css with basic options."""
+        output_file = tmp_path / "custom.css"
+
+        result = runner.invoke(
+            generate_css,
+            [
+                str(output_file),
+                "--theme", "dark",
+                "--primary-color", "#1976D2",
+                "--secondary-color", "#FF5722",
+            ],
+        )
+
+        assert result.exit_code == 0
+        assert output_file.exists()
+
+        css_content = output_file.read_text()
+        assert "#1976D2" in css_content
+        assert "#FF5722" in css_content
+        assert "dark" in css_content.lower()
+
+    def test_generate_css_light_theme(
+        self, runner: CliRunner, tmp_path: Path
+    ) -> None:
+        """Test generate-css with light theme."""
+        output_file = tmp_path / "light.css"
+
+        result = runner.invoke(
+            generate_css,
+            [
+                str(output_file),
+                "--theme", "light",
+            ],
+        )
+
+        assert result.exit_code == 0
+        css_content = output_file.read_text()
+        assert "light" in css_content.lower() or "background" in css_content.lower()
+
+    def test_generate_css_invalid_color(
+        self, runner: CliRunner, tmp_path: Path
+    ) -> None:
+        """Test generate-css with invalid hex color."""
+        output_file = tmp_path / "custom.css"
+
+        result = runner.invoke(
+            generate_css,
+            [
+                str(output_file),
+                "--primary-color", "not-a-hex-color",
+            ],
+        )
+
+        assert result.exit_code != 0
+        assert "Invalid" in result.output
+
+    def test_customize_basic(
+        self, runner: CliRunner, tmp_path: Path
+    ) -> None:
+        """Test customize command with basic options."""
+        # Create mock experiment directory
+        exp_dir = tmp_path / "experiment"
+        exp_dir.mkdir()
+        (exp_dir / "css").mkdir()
+        index_html = exp_dir / "index.html"
+        index_html.write_text("<html><head></head><body></body></html>")
+
+        result = runner.invoke(
+            customize,
+            [
+                str(exp_dir),
+                "--theme", "dark",
+                "--primary-color", "#1976D2",
+            ],
+        )
+
+        assert result.exit_code == 0
+        assert (exp_dir / "css" / "experiment.css").exists()
+
+        # Check that index.html was updated
+        html_content = index_html.read_text()
+        assert 'css/experiment.css' in html_content
+
+    def test_customize_with_custom_css(
+        self, runner: CliRunner, tmp_path: Path
+    ) -> None:
+        """Test customize command with custom CSS file."""
+        # Create mock experiment directory
+        exp_dir = tmp_path / "experiment"
+        exp_dir.mkdir()
+        (exp_dir / "css").mkdir()
+        (exp_dir / "index.html").write_text("<html><head></head><body></body></html>")
+
+        # Create custom CSS file
+        custom_css = tmp_path / "custom.css"
+        custom_css.write_text(".my-class { color: red; }")
+
+        result = runner.invoke(
+            customize,
+            [
+                str(exp_dir),
+                "--css-file", str(custom_css),
+                "--output-name", "styles.css",
+            ],
+        )
+
+        assert result.exit_code == 0
+        output_css = exp_dir / "css" / "styles.css"
+        assert output_css.exists()
+
+        css_content = output_css.read_text()
+        assert ".my-class" in css_content
+        assert "Custom CSS" in css_content
+
+    def test_customize_invalid_color(
+        self, runner: CliRunner, tmp_path: Path
+    ) -> None:
+        """Test customize command with invalid color."""
+        exp_dir = tmp_path / "experiment"
+        exp_dir.mkdir()
+
+        result = runner.invoke(
+            customize,
+            [
+                str(exp_dir),
+                "--primary-color", "invalid-color",
+            ],
+        )
+
+        assert result.exit_code != 0
+        assert "Invalid" in result.output
+
+    def test_ui_help(self, runner: CliRunner) -> None:
+        """Test ui command group help."""
+        result = runner.invoke(deployment, ["ui", "--help"])
+
+        assert result.exit_code == 0
+        assert "UI customization" in result.output
+        assert "generate-css" in result.output
+        assert "customize" in result.output
+
+
+# ==================== Enhanced Validate Command Tests ====================
+
+
+class TestEnhancedValidateCommand:
+    """Test enhanced validate command with new flags."""
+
+    def test_validate_check_distribution(
+        self,
+        runner: CliRunner,
+        sample_lists_dir: Path,
+        sample_items_file: Path,
+        tmp_path: Path,
+    ) -> None:
+        """Test validate command with --check-distribution flag."""
+        output_dir = tmp_path / "experiment"
+
+        # Generate experiment first
+        runner.invoke(
+            generate,
+            [
+                str(sample_lists_dir),
+                str(sample_items_file),
+                str(output_dir),
+                "--experiment-type", "likert_rating",
+                "--distribution-strategy", "balanced",
+            ],
+        )
+
+        # Validate with distribution check
+        result = runner.invoke(
+            validate,
+            [str(output_dir), "--check-distribution"],
+        )
+
+        assert result.exit_code == 0
+
+    def test_validate_check_data_structure(
+        self,
+        runner: CliRunner,
+        sample_lists_dir: Path,
+        sample_items_file: Path,
+        tmp_path: Path,
+    ) -> None:
+        """Test validate command with --check-data-structure flag."""
+        output_dir = tmp_path / "experiment"
+
+        # Generate experiment first
+        runner.invoke(
+            generate,
+            [
+                str(sample_lists_dir),
+                str(sample_items_file),
+                str(output_dir),
+                "--experiment-type", "likert_rating",
+                "--distribution-strategy", "balanced",
+            ],
+        )
+
+        # Validate with data structure check
+        result = runner.invoke(
+            validate,
+            [str(output_dir), "--check-data-structure"],
+        )
+
+        assert result.exit_code == 0
+
+    def test_validate_strict_mode(
+        self,
+        runner: CliRunner,
+        sample_lists_dir: Path,
+        sample_items_file: Path,
+        tmp_path: Path,
+    ) -> None:
+        """Test validate command with --strict flag (all checks)."""
+        output_dir = tmp_path / "experiment"
+
+        # Generate experiment first
+        runner.invoke(
+            generate,
+            [
+                str(sample_lists_dir),
+                str(sample_items_file),
+                str(output_dir),
+                "--experiment-type", "likert_rating",
+                "--distribution-strategy", "balanced",
+            ],
+        )
+
+        # Validate with strict mode
+        result = runner.invoke(
+            validate,
+            [str(output_dir), "--strict"],
+        )
+
+        assert result.exit_code == 0
+
+    def test_validate_check_trials_with_config(
+        self,
+        runner: CliRunner,
+        sample_lists_dir: Path,
+        sample_items_file: Path,
+        tmp_path: Path,
+    ) -> None:
+        """Test validate command with --check-trials when trial configs exist."""
+        output_dir = tmp_path / "experiment"
+
+        # Generate experiment first
+        runner.invoke(
+            generate,
+            [
+                str(sample_lists_dir),
+                str(sample_items_file),
+                str(output_dir),
+                "--experiment-type", "likert_rating",
+                "--distribution-strategy", "balanced",
+            ],
+        )
+
+        # Add a trial config file
+        config_dir = output_dir / "config"
+        config_dir.mkdir(exist_ok=True)
+        trial_config = config_dir / "rating.json"
+        trial_config.write_text(json.dumps({
+            "type": "rating_scale",
+            "min_value": 1,
+            "max_value": 7,
+        }))
+
+        # Validate with trials check
+        result = runner.invoke(
+            validate,
+            [str(output_dir), "--check-trials"],
+        )
+
+        assert result.exit_code == 0
+
+    def test_validate_invalid_distribution_config(
+        self,
+        runner: CliRunner,
+        tmp_path: Path,
+    ) -> None:
+        """Test validate detects invalid distribution configuration."""
+        exp_dir = tmp_path / "experiment"
+        exp_dir.mkdir()
+        data_dir = exp_dir / "data"
+        data_dir.mkdir()
+
+        # Create required files
+        (exp_dir / "index.html").write_text("<html></html>")
+        (data_dir / "config.json").write_text("{}")
+        (data_dir / "items.jsonl").write_text("")
+        (data_dir / "lists.jsonl").write_text("")
+
+        # Create invalid distribution config
+        (data_dir / "distribution.json").write_text(json.dumps({
+            "strategy_type": "invalid_strategy",  # Invalid strategy
+        }))
+
+        result = runner.invoke(
+            validate,
+            [str(exp_dir), "--check-distribution"],
+        )
+
+        # Should fail due to invalid strategy
+        assert result.exit_code != 0
+
+    def test_validate_broken_item_references(
+        self,
+        runner: CliRunner,
+        tmp_path: Path,
+    ) -> None:
+        """Test validate detects broken item references in lists."""
+        exp_dir = tmp_path / "experiment"
+        exp_dir.mkdir()
+        data_dir = exp_dir / "data"
+        data_dir.mkdir()
+
+        # Create required files
+        (exp_dir / "index.html").write_text("<html></html>")
+        (data_dir / "config.json").write_text("{}")
+        (data_dir / "distribution.json").write_text(json.dumps({
+            "strategy_type": "balanced",
+        }))
+
+        # Create items file with one item
+        (data_dir / "items.jsonl").write_text(
+            '{"id": "12345678-1234-5678-1234-567812345678"}\n'
+        )
+
+        # Create lists file referencing non-existent item
+        (data_dir / "lists.jsonl").write_text(
+            '{"id": "11111111-1111-1111-1111-111111111111", "item_refs": ["nonexistent-uuid"]}\n'
+        )
+
+        result = runner.invoke(
+            validate,
+            [str(exp_dir), "--check-data-structure"],
+        )
+
+        # Should fail due to broken reference
+        assert result.exit_code != 0
+        assert "error" in result.output.lower()

@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 from uuid import UUID
 
 import click
@@ -97,9 +97,9 @@ def deployment() -> None:
     type=str,
     help="Strategy-specific configuration (JSON format). "
     "Examples: "
-    "quota_based: '{\"participants_per_list\": 25, \"allow_overflow\": false}'. "
-    "weighted_random: '{\"weight_expression\": \"list_metadata.priority || 1.0\"}'. "
-    "stratified: '{\"factors\": [\"condition\", \"verb_type\"]}'. "
+    'quota_based: \'{"participants_per_list": 25, "allow_overflow": false}\'. '
+    'weighted_random: \'{"weight_expression": "list_metadata.priority || 1.0"}\'. '
+    'stratified: \'{"factors": ["condition", "verb_type"]}\'. '
     "metadata_based: "
     "'{\"filter_expression\": \"list_metadata.difficulty === 'easy'\"}'. ",
 )
@@ -249,7 +249,8 @@ def generate(
         unique_template_ids = {item.item_template_id for item in items_dict.values()}
         templates_dict: dict[UUID, ItemTemplate] = {}
         for template_id in unique_template_ids:
-            # Create minimal stub template (no actual template structure needed for deployment)
+            # Create minimal stub template (no actual template
+            # structure needed for deployment)
             templates_dict[template_id] = ItemTemplate(
                 id=template_id,
                 name=f"template_{template_id}",
@@ -429,8 +430,39 @@ def upload_jatos(
 @click.argument(
     "experiment_dir", type=click.Path(exists=True, file_okay=False, path_type=Path)
 )
+@click.option(
+    "--check-distribution",
+    is_flag=True,
+    default=False,
+    help="Validate distribution strategy configuration",
+)
+@click.option(
+    "--check-trials",
+    is_flag=True,
+    default=False,
+    help="Validate trial configurations (if present)",
+)
+@click.option(
+    "--check-data-structure",
+    is_flag=True,
+    default=False,
+    help="Validate JSONL data structure and schemas",
+)
+@click.option(
+    "--strict",
+    is_flag=True,
+    default=False,
+    help="Enable all validation checks (comprehensive validation)",
+)
 @click.pass_context
-def validate(ctx: click.Context, experiment_dir: Path) -> None:
+def validate(
+    ctx: click.Context,
+    experiment_dir: Path,
+    check_distribution: bool,
+    check_trials: bool,
+    check_data_structure: bool,
+    strict: bool,
+) -> None:
     """Validate generated experiment structure.
 
     Parameters
@@ -439,13 +471,36 @@ def validate(ctx: click.Context, experiment_dir: Path) -> None:
         Click context object.
     experiment_dir : Path
         Directory containing generated experiment.
+    check_distribution : bool
+        Validate distribution strategy configuration.
+    check_trials : bool
+        Validate trial configurations (if present).
+    check_data_structure : bool
+        Validate JSONL data structure and schemas.
+    strict : bool
+        Enable all validation checks.
 
     Examples
     --------
     $ bead deployment validate experiment/
+
+    $ bead deployment validate experiment/ --check-distribution
+
+    $ bead deployment validate experiment/ --strict
     """
     try:
+        # Enable all checks if strict mode is enabled
+        if strict:
+            check_distribution = True
+            check_trials = True
+            check_data_structure = True
+
         print_info(f"Validating experiment: {experiment_dir}")
+        if strict:
+            print_info("Running in strict mode (all checks enabled)")
+
+        validation_errors: list[str] = []
+        validation_warnings: list[str] = []
 
         # Check required files (batch mode)
         required_files = [
@@ -466,40 +521,83 @@ def validate(ctx: click.Context, experiment_dir: Path) -> None:
                 missing_files.append(file_path)
 
         if missing_files:
-            print_error("Missing required files:")
             for file_path in missing_files:
-                console.print(f"  [red]✗[/red] {file_path}")
-            ctx.exit(1)
+                validation_errors.append(f"Missing required file: {file_path}")
 
         # Validate lists.jsonl
         lists_file = experiment_dir / "data" / "lists.jsonl"
-        with open(lists_file, encoding="utf-8") as f:
-            lists_data = [json.loads(line) for line in f if line.strip()]
+        if lists_file.exists():
+            with open(lists_file, encoding="utf-8") as f:
+                lists_data = [json.loads(line) for line in f if line.strip()]
 
-        if not lists_data:
-            print_error("lists.jsonl must contain at least one list")
-            ctx.exit(1)
+            if not lists_data:
+                validation_errors.append("lists.jsonl must contain at least one list")
+        else:
+            lists_data = []
 
         # Validate items.jsonl
         items_file = experiment_dir / "data" / "items.jsonl"
-        with open(items_file, encoding="utf-8") as f:
-            items_data = [json.loads(line) for line in f if line.strip()]
+        if items_file.exists():
+            with open(items_file, encoding="utf-8") as f:
+                items_data = [json.loads(line) for line in f if line.strip()]
 
-        if not items_data:
-            print_error("items.jsonl must contain at least one item")
-            ctx.exit(1)
+            if not items_data:
+                validation_errors.append("items.jsonl must contain at least one item")
+        else:
+            items_data = []
 
         # Validate distribution.json
         dist_file = experiment_dir / "data" / "distribution.json"
-        with open(dist_file, encoding="utf-8") as f:
-            dist_data: object = json.load(f)
+        dist_data: dict[str, Any] | None = None
+        if dist_file.exists():
+            with open(dist_file, encoding="utf-8") as f:
+                dist_data_obj: object = json.load(f)
+                if isinstance(dist_data_obj, dict):
+                    dist_data = dist_data_obj  # type: ignore[assignment]
 
-        if not isinstance(dist_data, dict) or "strategy_type" not in dist_data:  # type: ignore[operator]
-            print_error("distribution.json must contain a strategy_type field")
+            if dist_data is None or "strategy_type" not in dist_data:
+                validation_errors.append(
+                    "distribution.json must be a dict with strategy_type field"
+                )
+
+        # Additional validation checks
+        if check_distribution and dist_data:
+            _validate_distribution_config(
+                dist_data, validation_errors, validation_warnings
+            )
+
+        if check_trials:
+            _validate_trial_configs(
+                experiment_dir, validation_errors, validation_warnings
+            )
+
+        if check_data_structure and items_data and lists_data:
+            _validate_data_structure(
+                items_data, lists_data, validation_errors, validation_warnings
+            )
+
+        # Report results
+        if validation_errors:
+            print_error(f"Validation failed with {len(validation_errors)} error(s):")
+            for error in validation_errors:
+                console.print(f"  [red]✗[/red] {error}")
+            if validation_warnings:
+                console.print()
+                console.print(
+                    f"[yellow]⚠[/yellow] {len(validation_warnings)} warning(s):"
+                )
+                for warning in validation_warnings:
+                    console.print(f"  [yellow]⚠[/yellow] {warning}")
             ctx.exit(1)
 
+        if validation_warnings:
+            console.print(f"[yellow]⚠[/yellow] {len(validation_warnings)} warning(s):")
+            for warning in validation_warnings:
+                console.print(f"  [yellow]⚠[/yellow] {warning}")
+
         print_success(
-            f"Experiment structure is valid ({len(lists_data)} lists, {len(items_data)} items)"
+            f"Experiment structure is valid "
+            f"({len(lists_data)} lists, {len(items_data)} items)"
         )
 
     except json.JSONDecodeError as e:
@@ -510,8 +608,205 @@ def validate(ctx: click.Context, experiment_dir: Path) -> None:
         ctx.exit(1)
 
 
+def _validate_distribution_config(
+    dist_data: dict[str, Any],
+    errors: list[str],
+    warnings: list[str],
+) -> None:
+    """Validate distribution strategy configuration.
+
+    Parameters
+    ----------
+    dist_data : dict[str, Any]
+        Distribution configuration data.
+    errors : list[str]
+        List to append errors to.
+    warnings : list[str]
+        List to append warnings to.
+    """
+    strategy_type = dist_data.get("strategy_type")
+
+    # Validate strategy type
+    valid_strategies = [
+        "random",
+        "sequential",
+        "balanced",
+        "latin_square",
+        "stratified",
+        "weighted_random",
+        "quota_based",
+        "metadata_based",
+    ]
+
+    if strategy_type not in valid_strategies:
+        errors.append(
+            f"Invalid strategy_type: {strategy_type}. "
+            f"Must be one of: {', '.join(valid_strategies)}"
+        )
+        return
+
+    # Validate strategy-specific configuration
+    strategy_config = dist_data.get("strategy_config")
+
+    if strategy_type == "quota_based":
+        if not strategy_config:
+            errors.append("quota_based strategy requires strategy_config")
+        elif "participants_per_list" not in strategy_config:
+            errors.append(
+                "quota_based requires participants_per_list in strategy_config"
+            )
+
+    elif strategy_type == "weighted_random":
+        if strategy_config and "weight_expression" not in strategy_config:
+            warnings.append(
+                "weighted_random without weight_expression uses uniform weights"
+            )
+
+    elif strategy_type == "metadata_based":
+        if not strategy_config:
+            errors.append("metadata_based strategy requires strategy_config")
+        elif (
+            "filter_expression" not in strategy_config
+            and "rank_expression" not in strategy_config
+        ):
+            warnings.append(
+                "metadata_based without filter or rank expressions has no effect"
+            )
+
+    elif strategy_type == "stratified":
+        if not strategy_config:
+            warnings.append(
+                "stratified strategy without factors uses random assignment"
+            )
+        elif "factors" not in strategy_config:
+            warnings.append(
+                "stratified strategy without factors uses random assignment"
+            )
+
+
+def _validate_trial_configs(
+    experiment_dir: Path,
+    errors: list[str],
+    warnings: list[str],
+) -> None:
+    """Validate trial configuration files if present.
+
+    Parameters
+    ----------
+    experiment_dir : Path
+        Experiment directory.
+    errors : list[str]
+        List to append errors to.
+    warnings : list[str]
+        List to append warnings to.
+    """
+    # Check for trial configuration files
+    config_dir = experiment_dir / "config"
+    if not config_dir.exists():
+        return  # No config directory, skip trial validation
+
+    trial_configs = list(config_dir.glob("*_config.json"))
+
+    for config_file in trial_configs:
+        try:
+            config_data: object = json.loads(config_file.read_text(encoding="utf-8"))
+
+            if not isinstance(config_data, dict):
+                errors.append(f"Trial config {config_file.name} must be a JSON object")
+                continue
+
+            config_dict: dict[str, Any] = config_data  # type: ignore[assignment]
+
+            # Validate config type
+            config_type = config_dict.get("type")
+            if not config_type:
+                errors.append(f"Trial config {config_file.name} missing 'type' field")
+                continue
+
+            # Validate type-specific fields
+            if config_type == "rating_scale":
+                required_fields = ["min_value", "max_value", "step"]
+                for field in required_fields:
+                    if field not in config_dict:
+                        errors.append(
+                            f"Rating config {config_file.name} missing '{field}' field"
+                        )
+
+            elif config_type == "choice":
+                if "button_html" not in config_dict:
+                    warnings.append(
+                        f"Choice config {config_file.name} missing button_html "
+                        f"(will use default)"
+                    )
+
+        except json.JSONDecodeError:
+            errors.append(f"Trial config {config_file.name} contains invalid JSON")
+
+
+def _validate_data_structure(
+    items_data: list[dict[str, Any]],
+    lists_data: list[dict[str, Any]],
+    errors: list[str],
+    warnings: list[str],
+) -> None:
+    """Validate JSONL data structure and schemas.
+
+    Parameters
+    ----------
+    items_data : list[dict[str, Any]]
+        Items data from items.jsonl.
+    lists_data : list[dict[str, Any]]
+        Lists data from lists.jsonl.
+    errors : list[str]
+        List to append errors to.
+    warnings : list[str]
+        List to append warnings to.
+    """
+    # Validate items structure
+    for i, item in enumerate(items_data):
+        if "id" not in item:
+            errors.append(f"Item {i} missing 'id' field")
+
+        if "item_template_id" not in item:
+            warnings.append(f"Item {i} missing 'item_template_id' field")
+
+        if "rendered_elements" not in item:
+            errors.append(f"Item {i} missing 'rendered_elements' field")
+
+    # Validate lists structure
+    for i, exp_list in enumerate(lists_data):
+        if "id" not in exp_list:
+            errors.append(f"List {i} missing 'id' field")
+
+        if "item_refs" not in exp_list:
+            errors.append(f"List {i} missing 'item_refs' field")
+        elif not isinstance(exp_list["item_refs"], list):
+            errors.append(f"List {i} 'item_refs' must be a list")
+        elif not exp_list["item_refs"]:
+            warnings.append(f"List {i} has no items (empty item_refs)")
+
+    # Check that all item_refs in lists exist in items
+    item_ids = {item.get("id") for item in items_data if "id" in item}
+
+    for i, exp_list in enumerate(lists_data):
+        if "item_refs" in exp_list and isinstance(exp_list["item_refs"], list):
+            # item_refs are UUID strings from JSON
+            item_refs_list = cast(list[str], exp_list["item_refs"])
+            for item_ref in item_refs_list:
+                if item_ref not in item_ids:
+                    errors.append(f"List {i} references non-existent item: {item_ref}")
+
+
+# Import nested command groups
+from bead.cli.deployment_trials import deployment_trials  # noqa: E402
+from bead.cli.deployment_ui import deployment_ui  # noqa: E402
+
 # Register commands
 deployment.add_command(generate)
 deployment.add_command(export_jatos)
 deployment.add_command(upload_jatos)
 deployment.add_command(validate)
+
+# Register nested command groups
+deployment.add_command(deployment_trials)
+deployment.add_command(deployment_ui)
