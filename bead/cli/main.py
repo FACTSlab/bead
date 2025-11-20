@@ -369,6 +369,7 @@ Thumbs.db
 
 
 # Import command groups
+from bead.cli.active_learning import active_learning  # noqa: E402
 from bead.cli.config import config  # noqa: E402
 from bead.cli.deployment import deployment  # noqa: E402
 from bead.cli.items import items  # noqa: E402
@@ -378,6 +379,7 @@ from bead.cli.resources import resources  # noqa: E402
 from bead.cli.templates import templates  # noqa: E402
 from bead.cli.training import training  # noqa: E402
 
+cli.add_command(active_learning)
 cli.add_command(config)
 cli.add_command(resources)
 cli.add_command(templates)
