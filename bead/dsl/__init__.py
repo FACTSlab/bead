@@ -1,27 +1,7 @@
-"""Constraint Domain-Specific Language (DSL).
+"""Domain-Specific Language (DSL) for constraint expressions.
 
-This module provides a DSL for expressing constraints on lexical items
-in templates. The DSL includes:
-
-- Boolean operators: and, or, not
-- Comparison operators: ==, !=, <, >, <=, >=
-- Membership operators: in, not in
-- Arithmetic operators: +, -, *, /, %
-- Function calls
-- Attribute access
-- List literals
-- Standard library functions
-
-Examples
---------
->>> from bead.dsl import parse, evaluate
->>> node = parse("lemma == 'walk' and pos == 'VERB'")
->>> from bead.dsl import EvaluationContext
->>> ctx = EvaluationContext()
->>> ctx.set_variable("lemma", "walk")
->>> ctx.set_variable("pos", "VERB")
->>> evaluate(node, ctx)
-True
+Supports boolean operators (and, or, not), comparison operators, membership
+tests, arithmetic, function calls, attribute access, and list literals.
 """
 
 from typing import Any

@@ -1,11 +1,7 @@
-"""Training framework adapters for bead.
+"""Training framework adapters.
 
-This module provides trainer implementations for different ML frameworks:
-- HuggingFace Transformers
-- PyTorch Lightning
-
-All trainers implement the BaseTrainer interface and return ModelMetadata
-for tracking training results.
+Provides trainer implementations for HuggingFace Transformers and PyTorch
+Lightning. All trainers implement the BaseTrainer interface.
 """
 
 from __future__ import annotations

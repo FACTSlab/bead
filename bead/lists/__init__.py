@@ -1,14 +1,8 @@
 """List construction module for experimental list partitioning.
 
-This module provides data models for organizing experimental items into
-balanced lists for presentation to participants. It includes:
-
-- ExperimentList: A single experimental list with items and constraints
-- ListCollection: A collection of experimental lists with partitioning metadata
-- List constraints: Uniqueness, balance, quantile, and size constraints
-
-Note: This module provides data models only. List partitioning logic is
-implemented in the partitioner module (Phase 18).
+Provides data models for organizing experimental items into balanced lists
+for presentation to participants. Includes ExperimentList, ListCollection,
+and constraint types (uniqueness, balance, quantile, size, diversity, ordering).
 """
 
 from bead.lists.constraints import (

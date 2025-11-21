@@ -15,3 +15,4 @@ gallery/**/lists/*.jsonl
 gallery/**/deployment/
 node_modules/
 coverage/
+site/

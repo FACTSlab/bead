@@ -1,29 +1,7 @@
 """Model adapters for judgment prediction during item construction.
 
-This module provides adapters for various model types used to compute
-constraints during Stage 3 (Item Construction). Each adapter integrates
-with the ModelOutputCache (Phase 13) for efficient caching.
-
-These are SEPARATE from template filling adapters (bead.templates.models),
-which are used in Stage 2.
-
-Available Adapters
-------------------
-Local Models:
-- HuggingFaceLanguageModel: Causal language models (GPT-2, LLaMA, etc.)
-- HuggingFaceMaskedLanguageModel: Masked language models (BERT, RoBERTa, etc.)
-- HuggingFaceNLI: Natural language inference models (MNLI, etc.)
-- HuggingFaceSentenceTransformer: Sentence embedding models
-
-API Models:
-- OpenAIAdapter: OpenAI GPT models via API
-- AnthropicAdapter: Anthropic Claude models via API
-- GoogleAdapter: Google Gemini models via API
-- TogetherAIAdapter: Together AI models via API
-
-Registry:
-- ModelAdapterRegistry: Centralized registry for all adapters
-- default_registry: Pre-configured registry with all built-in adapters
+Integrates HuggingFace transformers, OpenAI, Anthropic, Google, and Together
+AI models. Separate from template filling adapters (Stage 2).
 """
 
 # API utilities - explicit re-exports for type checkers

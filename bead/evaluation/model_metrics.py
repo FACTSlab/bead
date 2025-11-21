@@ -307,7 +307,7 @@ class ModelMetrics:
         y_pred: list[Label],
         labels: list[Label] | None = None,
     ) -> dict[str, dict[str, float]]:
-        """Generate comprehensive classification report.
+        """Generate classification report with per-class metrics.
 
         Computes precision, recall, F1, and support for each class,
         plus macro and weighted averages.

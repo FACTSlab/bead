@@ -380,7 +380,6 @@ class CSPFiller(TemplateFiller):
         list[str]
             Slot names in optimal filling order.
         """
-
         # Sort slots by:
         # 1. Number of candidates (fewer first, most constrained)
         # 2. Number of constraints (more first, more likely to fail)

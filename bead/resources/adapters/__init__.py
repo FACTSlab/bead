@@ -1,8 +1,7 @@
 """External resource adapters for linguistic databases.
 
-This module provides adapters for fetching lexical items from external
-linguistic databases including VerbNet, PropBank, FrameNet (via glazing),
-and UniMorph morphological paradigms.
+Fetches lexical items from VerbNet, PropBank, FrameNet (via glazing), and
+UniMorph morphological paradigms.
 """
 
 from bead.resources.adapters.base import ResourceAdapter

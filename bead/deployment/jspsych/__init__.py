@@ -1,7 +1,7 @@
-"""jsPsych deployment components.
+"""jsPsych 8.x deployment components.
 
-This module provides functionality for generating jsPsych experiments with
-constraint-aware trial randomization.
+Generates jsPsych experiments with batch mode support and server-side list
+distribution via JATOS batch sessions.
 """
 
 from bead.deployment.jspsych.randomizer import generate_randomizer_function

@@ -1,7 +1,7 @@
-"""CLI module for bead package.
+"""Command-line interface.
 
-This module provides the command-line interface for bead, including
-configuration management, project initialization, and pipeline commands.
+Provides commands for configuration management, project initialization,
+and pipeline execution.
 """
 
 from __future__ import annotations

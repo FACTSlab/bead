@@ -31,7 +31,7 @@ def _serialize_item_metadata(item: Item, template: ItemTemplate) -> dict[str, An
     Returns
     -------
     dict[str, Any]
-        Comprehensive metadata dictionary containing all item and template fields.
+        Metadata dictionary containing all item and template fields.
     """
     return {
         # Item identification
@@ -175,7 +175,7 @@ def create_trial(
     Returns
     -------
     dict[str, Any]
-        A jsPsych trial object with comprehensive metadata.
+        A jsPsych trial object with item and template metadata.
 
     Raises
     ------

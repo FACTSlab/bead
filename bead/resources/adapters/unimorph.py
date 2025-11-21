@@ -199,7 +199,7 @@ class UniMorphAdapter(ResourceAdapter):
     def _get_tag_dimension(self, tag: str) -> str:
         """Get the dimension for a UniMorph tag.
 
-        Based on comprehensive analysis of 173 languages and 575 tags from
+        Based on analysis of 173 languages and 575 tags from
         the actual UniMorph data.
 
         Parameters
@@ -216,7 +216,7 @@ class UniMorphAdapter(ResourceAdapter):
         if tag.startswith("LGSPEC") or tag.startswith("LGSPE"):
             return "lgspec"
 
-        # Tag-to-dimension mapping (comprehensive)
+        # Tag-to-dimension mapping
         # Build lookup lazily to avoid repeating this logic
         if not hasattr(self, "_tag_map"):
             self._tag_map = self._build_tag_map()
@@ -224,7 +224,7 @@ class UniMorphAdapter(ResourceAdapter):
         return self._tag_map.get(tag, "unknown")
 
     def _build_tag_map(self) -> dict[str, str]:
-        """Build comprehensive tag-to-dimension mapping.
+        """Build complete tag-to-dimension mapping.
 
         Returns
         -------
@@ -504,7 +504,7 @@ class UniMorphAdapter(ResourceAdapter):
         for i in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 14, 15, 17]:
             mapping[f"BANTU{i}"] = "bantu_class"
 
-        # Possessive markers (comprehensive)
+        # Possessive markers
         pss_tags = ["PSS", "PSS0", "PSS1", "PSS2", "PSS3", "PSS4"]
         for base in ["PSS1", "PSS2", "PSS3"]:
             for suffix in [
@@ -540,7 +540,7 @@ class UniMorphAdapter(ResourceAdapter):
         for tag in pss_tags:
             mapping[tag] = "possessive"
 
-        # Case (comprehensive with all combinations)
+        # Case (all combinations)
         case_tags = [
             "NOM",
             "ACC",
@@ -729,7 +729,7 @@ class UniMorphAdapter(ResourceAdapter):
     def _parse_features(self, features_str: str) -> dict[str, str]:
         """Parse UniMorph features string into dictionary.
 
-        Maps UniMorph feature tags to their dimensions based on comprehensive
+        Maps UniMorph feature tags to their dimensions based on
         analysis of 173 languages and 575 unique tags from actual UniMorph data.
 
         Parameters

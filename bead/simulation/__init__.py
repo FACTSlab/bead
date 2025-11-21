@@ -1,28 +1,7 @@
 """Simulation framework for generating synthetic human judgments.
 
-This module provides comprehensive simulation infrastructure for testing
-active learning pipelines without requiring real human data. The framework:
-
-- Supports all task types (forced_choice, ordinal_scale, magnitude, etc.)
-- Respects task specifications from ItemTemplate
-- Uses model outputs (LM scores, embeddings) for informed decisions
-- Provides configurable noise models
-- Extends the existing DSL for custom simulation logic
-
-Examples
---------
->>> from bead.simulation import SimulatedAnnotator
->>> from bead.config.simulation import SimulatedAnnotatorConfig, NoiseModelConfig
->>>
->>> # Create annotator with configuration
->>> config = SimulatedAnnotatorConfig(
-...     strategy="lm_score",
-...     noise_model=NoiseModelConfig(noise_type="temperature", temperature=1.0)
-... )
->>> annotator = SimulatedAnnotator.from_config(config)
->>>
->>> # Annotate items (automatically handles any task type)
->>> judgments = annotator.annotate_batch(items)
+Provides annotators, noise models, and strategies for testing active
+learning pipelines without real human data.
 """
 
 from bead.simulation.annotators.base import SimulatedAnnotator

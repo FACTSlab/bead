@@ -1,8 +1,7 @@
-"""Data infrastructure for bead package.
+"""Data infrastructure.
 
-This module provides core data models, identifiers, timestamps,
-serialization utilities, metadata tracking, repository pattern,
-and validation utilities.
+Provides core data models, identifiers, timestamps, serialization,
+metadata tracking, repository pattern, and validation utilities.
 """
 
 from __future__ import annotations

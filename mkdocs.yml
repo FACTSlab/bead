@@ -1,0 +1,93 @@
+site_name: bead Documentation
+site_description: Framework for large-scale linguistic judgment experiments
+site_url: https://aaronstevenwhite.io/bead
+repo_url: https://github.com/aaronstevenwhite/bead
+repo_name: aaronstevenwhite/bead
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            docstring_style: numpy
+            docstring_section_style: table
+            show_signature_annotations: true
+            show_source: false
+            show_root_heading: true
+            show_root_full_path: false
+            show_object_full_path: false
+            members_order: source
+            heading_level: 2
+            line_length: 75
+          inventories:
+            - https://docs.pydantic.dev/latest/objects.inv
+          paths: [bead]
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.tabbed:
+      alternate_style: true
+  - tables
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Installation: installation.md
+  - Quick Start: quickstart.md
+  - User Guide:
+    - Core Concepts: user-guide/concepts.md
+    - Resources: user-guide/resources.md
+    - Templates: user-guide/templates.md
+    - Items: user-guide/items.md
+    - Lists: user-guide/lists.md
+    - Deployment: user-guide/deployment.md
+    - Active Learning: user-guide/active-learning.md
+    - Configuration: user-guide/configuration.md
+  - CLI Reference: cli/reference.md
+  - API Reference:
+    - bead.resources: api/resources.md
+    - bead.templates: api/templates.md
+    - bead.items: api/items.md
+    - bead.lists: api/lists.md
+    - bead.deployment: api/deployment.md
+    - bead.active_learning: api/active_learning.md
+    - bead.config: api/config.md
+    - bead.data: api/data.md
+  - Developer Guide:
+    - Architecture: developer-guide/architecture.md
+    - Setup: developer-guide/setup.md
+    - Testing: developer-guide/testing.md
+    - Contributing: developer-guide/contributing.md
+  - Examples: examples/gallery.md

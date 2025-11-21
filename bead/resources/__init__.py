@@ -1,7 +1,7 @@
-"""Resource models for bead.
+"""Resource models.
 
-This module provides data models for lexical items, templates, constraints,
-and template structures.
+Provides data models for lexical items, templates, constraints, and
+template structures.
 """
 
 from bead.resources.constraints import Constraint

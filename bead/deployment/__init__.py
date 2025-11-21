@@ -1,5 +1,5 @@
 """Deployment module for generating experiments.
 
-This module provides functionality for deploying bead experiments to various
-platforms, including jsPsych/JATOS.
+Generates experiments for jsPsych/JATOS platforms with batch mode support
+and configurable list distribution strategies.
 """

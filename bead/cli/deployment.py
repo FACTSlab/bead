@@ -489,7 +489,7 @@ def upload_jatos(
     "--strict",
     is_flag=True,
     default=False,
-    help="Enable all validation checks (comprehensive validation)",
+    help="Enable all validation checks (strict mode)",
 )
 @click.pass_context
 def validate(

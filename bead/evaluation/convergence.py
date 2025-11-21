@@ -382,7 +382,7 @@ class ConvergenceDetector:
         iteration: int,
         human_agreement: float | None = None,
     ) -> dict[str, Any]:
-        """Generate comprehensive convergence report.
+        """Generate convergence report with status and metrics.
 
         Parameters
         ----------

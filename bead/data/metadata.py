@@ -104,7 +104,7 @@ class ProcessingRecord(BeadBaseModel):
 
 
 class MetadataTracker(BeadBaseModel):
-    """Comprehensive metadata tracking for provenance and processing history.
+    """Metadata tracking for provenance and processing history.
 
     Tracks both provenance (where data came from) and processing history
     (what operations were applied) for complete data lineage.

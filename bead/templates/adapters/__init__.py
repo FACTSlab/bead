@@ -1,7 +1,7 @@
 """Template filling model adapters.
 
-This module provides adapters for masked language models used in template filling.
-These models are SEPARATE from judgment prediction models used later in the pipeline.
+Provides masked language model adapters for template filling (Stage 2).
+Separate from judgment prediction models (Stage 3).
 """
 
 from __future__ import annotations

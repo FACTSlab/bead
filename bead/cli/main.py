@@ -56,10 +56,10 @@ def cli(
     verbose: bool,
     quiet: bool,
 ) -> None:
-    r"""Bead - A comprehensive CLI for linguistic judgment experiments.
+    r"""CLI for linguistic judgment experiments.
 
-    CLI for constructing, deploying, and analyzing large-scale linguistic
-    judgment experiments with active learning.
+    Provides commands for constructing, deploying, and analyzing large-scale
+    linguistic judgment experiments with active learning.
 
     \b
     Examples:

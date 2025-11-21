@@ -1,23 +1,7 @@
-"""Configuration system for bead package.
+"""Configuration system for the bead pipeline.
 
-This module provides configuration models, default settings, and profiles
-for all aspects of the bead pipeline.
-
-Examples
---------
->>> from bead.config import BeadConfig, get_default_config, get_profile
->>> # Use default configuration
->>> config = get_default_config()
->>> config.profile
-'default'
->>> # Use a profile
->>> dev_config = get_profile("dev")
->>> dev_config.logging.level
-'DEBUG'
->>> # Create custom configuration
->>> from bead.config import PathsConfig
->>> from pathlib import Path
->>> custom = BeadConfig(paths=PathsConfig(data_dir=Path("my_data")))
+Provides configuration models, default settings, and named profiles for
+development, testing, and production environments.
 """
 
 from __future__ import annotations

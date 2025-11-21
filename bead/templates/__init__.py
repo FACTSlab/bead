@@ -1,4 +1,8 @@
-"""Template-related functionality for bead."""
+"""Template filling functionality.
+
+Provides template filling strategies (exhaustive, random, stratified) and
+constraint resolution for generating experimental stimuli.
+"""
 
 from __future__ import annotations
 

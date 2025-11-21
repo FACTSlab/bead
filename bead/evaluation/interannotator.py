@@ -1,7 +1,7 @@
 """Inter-annotator agreement metrics.
 
-This module provides comprehensive inter-annotator agreement metrics for
-assessing reliability and consistency across multiple human annotators.
+This module provides inter-annotator agreement metrics for assessing
+reliability and consistency across multiple human annotators.
 Supports Cohen's kappa (2 raters), Fleiss' kappa (multiple raters), and
 Krippendorff's alpha (most general).
 """
