@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import shutil
+import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -263,6 +264,438 @@ WORKFLOW_TEMPLATES = {
 
 
 # ============================================================================
+# Stage Execution Utilities
+# ============================================================================
+
+
+def _execute_stage(
+    stage: str,
+    config: dict[str, Any],
+    project_dir: Path,
+    verbose: bool,
+) -> None:
+    """Execute a specific pipeline stage.
+
+    Parameters
+    ----------
+    stage : str
+        Stage name ('resources', 'templates', 'items', 'lists',
+        'deployment', 'training').
+    config : dict[str, Any]
+        Configuration dictionary from YAML.
+    project_dir : Path
+        Project directory path.
+    verbose : bool
+        Whether to show detailed command output.
+
+    Raises
+    ------
+    RuntimeError
+        If stage execution fails.
+    """
+    if stage == "resources":
+        _execute_resources_stage(config, project_dir, verbose)
+    elif stage == "templates":
+        _execute_templates_stage(config, project_dir, verbose)
+    elif stage == "items":
+        _execute_items_stage(config, project_dir, verbose)
+    elif stage == "lists":
+        _execute_lists_stage(config, project_dir, verbose)
+    elif stage == "deployment":
+        _execute_deployment_stage(config, project_dir, verbose)
+    elif stage == "training":
+        _execute_training_stage(config, project_dir, verbose)
+    else:
+        raise ValueError(f"Unknown stage: {stage}")
+
+
+def _execute_resources_stage(
+    config: dict[str, Any], project_dir: Path, verbose: bool
+) -> None:
+    """Execute resources stage (lexicon and template creation).
+
+    This stage typically involves manual creation of lexicons and templates
+    or importing from external sources. For now, we validate that the
+    required directories exist.
+
+    Parameters
+    ----------
+    config : dict[str, Any]
+        Configuration dictionary.
+    project_dir : Path
+        Project directory.
+    verbose : bool
+        Verbose output flag.
+
+    Raises
+    ------
+    RuntimeError
+        If resources directory doesn't exist or is empty.
+    """
+    paths = config.get("paths", {})
+    lexicons_dir = project_dir / paths.get("lexicons_dir", "lexicons")
+    templates_dir = project_dir / paths.get("templates_dir", "templates")
+
+    # Check that resources exist
+    if not lexicons_dir.exists():
+        raise RuntimeError(f"Lexicons directory not found: {lexicons_dir}")
+
+    if not templates_dir.exists():
+        raise RuntimeError(f"Templates directory not found: {templates_dir}")
+
+    # Count files
+    lexicon_files = list(lexicons_dir.glob("*.jsonl"))
+    template_files = list(templates_dir.glob("*.jsonl"))
+
+    if not lexicon_files:
+        raise RuntimeError(f"No lexicon files found in {lexicons_dir}")
+
+    if not template_files:
+        raise RuntimeError(f"No template files found in {templates_dir}")
+
+    console.print(
+        f"[green]✓[/green] Found {len(lexicon_files)} lexicon(s) "
+        f"and {len(template_files)} template(s)"
+    )
+
+
+def _execute_templates_stage(
+    config: dict[str, Any], project_dir: Path, verbose: bool
+) -> None:
+    """Execute templates stage (template filling).
+
+    Parameters
+    ----------
+    config : dict[str, Any]
+        Configuration dictionary.
+    project_dir : Path
+        Project directory.
+    verbose : bool
+        Verbose output flag.
+
+    Raises
+    ------
+    RuntimeError
+        If template filling fails.
+    """
+    paths = config.get("paths", {})
+    templates_config = config.get("templates", {})
+
+    templates_dir = project_dir / paths.get("templates_dir", "templates")
+    lexicons_dir = project_dir / paths.get("lexicons_dir", "lexicons")
+    output_dir = project_dir / paths.get("filled_templates_dir", "filled_templates")
+    output_dir.mkdir(exist_ok=True)
+
+    # Get template and lexicon files
+    template_files = list(templates_dir.glob("*.jsonl"))
+    lexicon_files = list(lexicons_dir.glob("*.jsonl"))
+
+    if not template_files:
+        raise RuntimeError(f"No template files found in {templates_dir}")
+    if not lexicon_files:
+        raise RuntimeError(f"No lexicon files found in {lexicons_dir}")
+
+    # Build command for each template file
+    strategy = templates_config.get("filling_strategy", "exhaustive")
+
+    for template_file in template_files:
+        output_file = output_dir / f"filled_{template_file.name}"
+
+        cmd = [
+            "bead",
+            "templates",
+            "fill",
+            str(template_file),
+            *[str(f) for f in lexicon_files],
+            str(output_file),
+            "--strategy",
+            strategy,
+        ]
+
+        console.print(f"[cyan]Filling template: {template_file.name}[/cyan]")
+        _run_command(cmd, verbose)
+
+
+def _execute_items_stage(
+    config: dict[str, Any], project_dir: Path, verbose: bool
+) -> None:
+    """Execute items stage (item construction).
+
+    Parameters
+    ----------
+    config : dict[str, Any]
+        Configuration dictionary.
+    project_dir : Path
+        Project directory.
+    verbose : bool
+        Verbose output flag.
+
+    Raises
+    ------
+    RuntimeError
+        If item construction fails.
+    """
+    paths = config.get("paths", {})
+    items_config = config.get("items", {})
+
+    filled_dir = project_dir / paths.get("filled_templates_dir", "filled_templates")
+    output_dir = project_dir / paths.get("items_dir", "items")
+    output_dir.mkdir(exist_ok=True)
+
+    # Get filled template files
+    filled_files = list(filled_dir.glob("*.jsonl"))
+
+    if not filled_files:
+        raise RuntimeError(f"No filled templates found in {filled_dir}")
+
+    # Build item construction command
+    task_type = items_config.get("task_type")
+
+    if task_type:
+        # Use task-type-specific command if specified
+        output_file = output_dir / "items.jsonl"
+
+        cmd = [
+            "bead",
+            "items",
+            "construct",
+            *[str(f) for f in filled_files],
+            str(output_file),
+            "--task-type",
+            task_type,
+        ]
+    else:
+        # Use generic construct command
+        output_file = output_dir / "items.jsonl"
+
+        cmd = [
+            "bead",
+            "items",
+            "construct",
+            *[str(f) for f in filled_files],
+            str(output_file),
+        ]
+
+    console.print(
+        f"[cyan]Constructing items from {len(filled_files)} template(s)[/cyan]"
+    )
+    _run_command(cmd, verbose)
+
+
+def _execute_lists_stage(
+    config: dict[str, Any], project_dir: Path, verbose: bool
+) -> None:
+    """Execute lists stage (list partitioning).
+
+    Parameters
+    ----------
+    config : dict[str, Any]
+        Configuration dictionary.
+    project_dir : Path
+        Project directory.
+    verbose : bool
+        Verbose output flag.
+
+    Raises
+    ------
+    RuntimeError
+        If list partitioning fails.
+    """
+    paths = config.get("paths", {})
+    lists_config = config.get("lists", {})
+
+    items_dir = project_dir / paths.get("items_dir", "items")
+    output_dir = project_dir / paths.get("lists_dir", "lists")
+    output_dir.mkdir(exist_ok=True)
+
+    # Get item files
+    item_files = list(items_dir.glob("*.jsonl"))
+
+    if not item_files:
+        raise RuntimeError(f"No item files found in {items_dir}")
+
+    # Get first item file (typically there's just one)
+    item_file = item_files[0]
+
+    # Build partitioning command
+    n_lists = lists_config.get("n_lists", 10)
+
+    cmd = [
+        "bead",
+        "lists",
+        "partition",
+        str(item_file),
+        str(output_dir),
+        "--n-lists",
+        str(n_lists),
+    ]
+
+    # Add constraints if specified
+    if "list_constraints" in lists_config:
+        constraints_file = project_dir / lists_config["list_constraints"]
+        if constraints_file.exists():
+            cmd.extend(["--list-constraints", str(constraints_file)])
+
+    if "batch_constraints" in lists_config:
+        constraints_file = project_dir / lists_config["batch_constraints"]
+        if constraints_file.exists():
+            cmd.extend(["--batch-constraints", str(constraints_file)])
+
+    console.print(f"[cyan]Partitioning items into {n_lists} lists[/cyan]")
+    _run_command(cmd, verbose)
+
+
+def _execute_deployment_stage(
+    config: dict[str, Any], project_dir: Path, verbose: bool
+) -> None:
+    """Execute deployment stage (experiment generation).
+
+    Parameters
+    ----------
+    config : dict[str, Any]
+        Configuration dictionary.
+    project_dir : Path
+        Project directory.
+    verbose : bool
+        Verbose output flag.
+
+    Raises
+    ------
+    RuntimeError
+        If deployment generation fails.
+    """
+    paths = config.get("paths", {})
+    deployment_config = config.get("deployment", {})
+
+    lists_dir = project_dir / paths.get("lists_dir", "lists")
+    items_dir = project_dir / paths.get("items_dir", "items")
+    output_dir = project_dir / paths.get("experiments_dir", "experiments")
+    output_dir.mkdir(exist_ok=True)
+
+    # Get list and item files
+    item_files = list(items_dir.glob("*.jsonl"))
+
+    if not item_files:
+        raise RuntimeError(f"No item files found in {items_dir}")
+
+    if not lists_dir.exists():
+        raise RuntimeError(f"Lists directory not found: {lists_dir}")
+
+    item_file = item_files[0]
+
+    # Build deployment command
+    cmd = [
+        "bead",
+        "deployment",
+        "generate",
+        str(lists_dir),
+        str(item_file),
+        str(output_dir),
+    ]
+
+    # Add distribution strategy (required)
+    dist_strategy = deployment_config.get("distribution_strategy", "balanced")
+    cmd.extend(["--distribution-strategy", dist_strategy])
+
+    # Add experiment type if specified
+    if "experiment_type" in deployment_config:
+        cmd.extend(["--experiment-type", deployment_config["experiment_type"]])
+
+    console.print(
+        f"[cyan]Generating deployment with {dist_strategy} distribution[/cyan]"
+    )
+    _run_command(cmd, verbose)
+
+
+def _execute_training_stage(
+    config: dict[str, Any], project_dir: Path, verbose: bool
+) -> None:
+    """Execute training stage (model training).
+
+    Parameters
+    ----------
+    config : dict[str, Any]
+        Configuration dictionary.
+    project_dir : Path
+        Project directory.
+    verbose : bool
+        Verbose output flag.
+
+    Raises
+    ------
+    RuntimeError
+        If training fails.
+    """
+    paths = config.get("paths", {})
+    _ = config.get("training", {})  # For future use
+
+    items_dir = project_dir / paths.get("items_dir", "items")
+    output_dir = project_dir / paths.get("models_dir", "models")
+    output_dir.mkdir(exist_ok=True)
+
+    # Get item files
+    item_files = list(items_dir.glob("*.jsonl"))
+
+    if not item_files:
+        raise RuntimeError(f"No item files found in {items_dir}")
+
+    item_file = item_files[0]
+
+    # Training typically requires data collection first
+    # For workflow orchestration, we just validate the setup
+    console.print(
+        "[yellow]⚠[/yellow] Training stage requires data collection. "
+        "Skipping automated execution."
+    )
+    console.print(
+        "[cyan]ℹ[/cyan] After data collection, run: "
+        f"bead training train-model --items {item_file} --data <data.jsonl>"
+    )
+
+
+def _run_command(cmd: list[str], verbose: bool) -> None:
+    """Run a subprocess command with error handling.
+
+    Parameters
+    ----------
+    cmd : list[str]
+        Command and arguments to execute.
+    verbose : bool
+        Whether to show command output in real-time.
+
+    Raises
+    ------
+    RuntimeError
+        If command execution fails.
+    """
+    if verbose:
+        console.print(f"[dim]Running: {' '.join(cmd)}[/dim]")
+
+    try:
+        if verbose:
+            # Show output in real-time
+            result = subprocess.run(cmd, check=True, text=True)
+        else:
+            # Capture output
+            result = subprocess.run(
+                cmd, capture_output=True, text=True, check=True
+            )
+
+        if result.stdout and verbose:
+            console.print(result.stdout)
+
+    except subprocess.CalledProcessError as e:
+        error_msg = f"Command failed: {' '.join(cmd)}"
+        if e.stderr:
+            error_msg += f"\n{e.stderr}"
+        raise RuntimeError(error_msg) from e
+    except FileNotFoundError as e:
+        raise RuntimeError(
+            f"Command not found: {cmd[0]}. Is bead installed?"
+        ) from e
+
+
+# ============================================================================
 # Workflow Commands
 # ============================================================================
 
@@ -319,8 +752,19 @@ def workflow() -> None:
     default=False,
     help="Show what would be executed without running",
 )
+@click.option(
+    "--verbose",
+    "-v",
+    is_flag=True,
+    default=False,
+    help="Show detailed command output",
+)
 def run(
-    config_path: Path, stages: str | None, from_stage: str | None, dry_run: bool
+    config_path: Path,
+    stages: str | None,
+    from_stage: str | None,
+    dry_run: bool,
+    verbose: bool,
 ) -> None:
     """Run complete pipeline workflow.
 
@@ -354,7 +798,7 @@ def run(
     # Load configuration
     try:
         with open(config_path) as f:
-            _ = yaml.safe_load(f)
+            config = yaml.safe_load(f)
     except Exception as e:
         print_error(f"Failed to load config: {e}")
         sys.exit(1)
@@ -388,7 +832,7 @@ def run(
         return
 
     # Execute stages
-    state = load_state(project_dir)
+    _ = load_state(project_dir)  # For resume/status compatibility
     failed = False
 
     for stage in selected_stages:
@@ -397,19 +841,20 @@ def run(
         try:
             update_stage_state(project_dir, stage, "running")
 
-            # This is a placeholder - in reality would invoke actual commands
-            # For now, just simulate success
-            console.print(f"[green]✓[/green] Executing {stage} stage...")
-
-            # Simulate stage execution (replace with actual command invocation)
-            # Example: subprocess.run(["bead", stage, "..."], check=True)
+            # Execute the stage
+            _execute_stage(stage, config, project_dir, verbose)
 
             update_stage_state(project_dir, stage, "completed")
-            console.print(f"[green]✓[/green] {stage} stage completed")
+            print_success(f"{stage} stage completed")
 
-        except Exception as e:
+        except RuntimeError as e:
             update_stage_state(project_dir, stage, "failed", str(e))
             print_error(f"Stage '{stage}' failed: {e}")
+            failed = True
+            break
+        except Exception as e:
+            update_stage_state(project_dir, stage, "failed", str(e))
+            print_error(f"Stage '{stage}' failed with unexpected error: {e}")
             failed = True
             break
 
@@ -516,7 +961,7 @@ models/
     print_success("Created .gitignore")
 
     console.print("\n[bold green]✓ Project initialized[/bold green]")
-    console.print(f"\n[bold]Next steps:[/bold]")
+    console.print("\n[bold]Next steps:[/bold]")
     console.print("  1. Edit bead.yaml to configure your experiment")
     console.print("  2. Create lexicon files in lexicons/")
     console.print("  3. Create template files in templates/")
@@ -624,9 +1069,16 @@ def resume(config_path: Path) -> None:
 
     # Load state
     state = load_state(project_dir)
-    stages_state: dict[str, Any] = state.get("stages", {})  # type: ignore
+    stages_value = state.get("stages", {})
 
-    if not isinstance(stages_state, dict):
+    # Validate stages is a dict
+    if not isinstance(stages_value, dict):
+        print_error("Invalid workflow state. Use 'bead workflow run' to start.")
+        sys.exit(1)
+
+    stages_state: dict[str, Any] = stages_value
+
+    if not stages_state:
         print_error("No workflow state found. Use 'bead workflow run' to start.")
         sys.exit(1)
 
@@ -642,7 +1094,7 @@ def resume(config_path: Path) -> None:
 
     last_completed_idx = -1
     for i, stage in enumerate(all_stages):
-        stage_info: dict[str, Any] = stages_state.get(stage, {})
+        stage_info: dict[str, Any] = stages_state.get(stage, {})  # type: ignore[assignment]
         if stage_info.get("status") == "completed":
             last_completed_idx = i
 
@@ -657,7 +1109,14 @@ def resume(config_path: Path) -> None:
 
     # Invoke run command with from-stage
     ctx = click.get_current_context()
-    ctx.invoke(run, config_path=config_path, stages=None, from_stage=resume_from, dry_run=False)
+    ctx.invoke(
+        run,
+        config_path=config_path,
+        stages=None,
+        from_stage=resume_from,
+        dry_run=False,
+        verbose=False,
+    )
 
 
 @workflow.command()
@@ -736,11 +1195,11 @@ def rollback(stage: str, config_path: Path, force: bool, dry_run: bool) -> None:
         dirs_to_delete.extend(stage_dirs.get(s, []))
 
     # Show what will be deleted
-    console.print(f"[yellow]Will rollback stages:[/yellow]")
+    console.print("[yellow]Will rollback stages:[/yellow]")
     for s in stages_to_delete:
         console.print(f"  • {s}")
 
-    console.print(f"\n[yellow]Will delete directories:[/yellow]")
+    console.print("\n[yellow]Will delete directories:[/yellow]")
     for dir_name in dirs_to_delete:
         dir_path = project_dir / dir_name
         if dir_path.exists():
@@ -805,8 +1264,8 @@ def list_templates() -> None:
     for template_id, template_spec in WORKFLOW_TEMPLATES.items():
         table.add_row(
             template_id,
-            template_spec["name"],
-            template_spec["description"],
+            str(template_spec["name"]),
+            str(template_spec["description"]),
         )
 
     console.print(table)
