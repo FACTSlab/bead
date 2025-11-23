@@ -313,7 +313,7 @@ bead lists show-stats lists/
 Once lists are partitioned:
 
 1. [Deploy to jsPsych/JATOS](deployment.md) with distribution strategies
-2. [Train models](active-learning.md) on collected responses
-3. [Analyze results](active-learning.md#evaluation) with convergence detection
+2. [Train models](training.md) on collected responses
+3. [Analyze results](training.md#evaluation) with convergence detection
 
 For complete API documentation, see [bead.lists API reference](../api/lists.md).

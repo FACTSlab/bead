@@ -309,6 +309,6 @@ Once items are created:
 
 1. [Partition items into lists](lists.md) with constraints
 2. [Deploy to jsPsych/JATOS](deployment.md)
-3. [Train models](active-learning.md) on collected responses
+3. [Train models](training.md) on collected responses
 
 For complete API documentation, see [bead.items API reference](../api/items.md).
