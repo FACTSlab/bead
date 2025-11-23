@@ -15,9 +15,7 @@ from pathlib import Path
 import yaml
 
 from bead.data.serialization import write_jsonlines
-from bead.resources.lexical_item import LexicalItem
 from bead.resources.lexicon import Lexicon
-from bead.resources.template import Slot
 from bead.resources.template_collection import TemplateCollection
 from bead.templates.adapters.cache import ModelOutputCache
 from bead.templates.adapters.huggingface import HuggingFaceMLMAdapter
@@ -25,121 +23,9 @@ from bead.templates.filler import FilledTemplate
 from bead.templates.resolver import ConstraintResolver
 from bead.templates.strategies import MixedFillingStrategy
 
+from utils.renderers import OtherNounRenderer
+
 logger = logging.getLogger(__name__)
-
-
-def count_noun_occurrences(
-    slot_fillers: dict[str, LexicalItem],
-    template_slots: dict[str, Slot]
-) -> dict[str, int]:
-    """Count how many times each noun lemma appears."""
-    noun_counts: dict[str, int] = {}
-
-    for slot_name in template_slots:
-        if slot_name.startswith('noun_') and slot_name in slot_fillers:
-            noun_lemma = slot_fillers[slot_name].lemma
-            noun_counts[noun_lemma] = noun_counts.get(noun_lemma, 0) + 1
-
-    return noun_counts
-
-
-def ordinal_word(n: int) -> str:
-    """Convert number to ordinal word."""
-    ordinals = {
-        1: "first", 2: "second", 3: "third", 4: "fourth", 5: "fifth",
-        6: "sixth", 7: "seventh", 8: "eighth", 9: "ninth", 10: "tenth"
-    }
-    return ordinals.get(n, f"{n}th")
-
-
-def render_template(
-    template_string: str,
-    slot_fillers: dict[str, LexicalItem],
-    template_slots: dict[str, Slot]
-) -> str:
-    """Render template with proper form selection and 'other' handling.
-
-    Rules:
-    - Uses item.form if available, otherwise item.lemma
-    - If noun appears 2x: use "another"/"the other"
-    - If noun appears 3+x: use ordinals "a second", "a third", etc.
-    """
-    # Count total occurrences of each noun
-    noun_total_counts = count_noun_occurrences(slot_fillers, template_slots)
-
-    # Identify det+noun pairs in template order
-    # Extract order from template string by finding slot positions
-    det_noun_pairs = []
-    slot_positions = {}
-
-    # Find position of each slot in template string
-    for slot_name in template_slots.keys():
-        placeholder = f"{{{slot_name}}}"
-        pos = template_string.find(placeholder)
-        if pos >= 0:
-            slot_positions[slot_name] = pos
-
-    # Sort noun slots by their position in template
-    noun_slots_in_order = [
-        name for name in sorted(slot_positions.keys(), key=lambda x: slot_positions[x])
-        if name.startswith('noun_')
-    ]
-
-    # Build det+noun pairs in template order
-    for noun_slot in noun_slots_in_order:
-        suffix = noun_slot[5:]  # "subj", "dobj", "pobj", etc.
-        det_slot = f'det_{suffix}'
-        if det_slot in slot_fillers and noun_slot in slot_fillers:
-            det_noun_pairs.append((det_slot, noun_slot))
-
-    # Track current occurrence of each noun
-    noun_usage: dict[str, int] = {}
-
-    # Build result
-    result = template_string
-
-    for det_slot, noun_slot in det_noun_pairs:
-        det_item = slot_fillers[det_slot]
-        noun_item = slot_fillers[noun_slot]
-
-        det_surface = det_item.form if det_item.form else det_item.lemma
-        noun_surface = noun_item.form if noun_item.form else noun_item.lemma
-        noun_lemma = noun_item.lemma
-
-        occurrence = noun_usage.get(noun_lemma, 0)
-        total_occurrences = noun_total_counts[noun_lemma]
-
-        # Determine rendering
-        if occurrence == 0:
-            # First occurrence: use original determiner
-            rendered = f"{det_surface} {noun_surface}"
-        elif total_occurrences == 2:
-            # Exactly 2 occurrences: use "another" or "the other"
-            if det_surface.lower() == "a":
-                rendered = f"another {noun_surface}"
-            elif det_surface.lower() == "the":
-                rendered = f"the other {noun_surface}"
-            else:
-                rendered = f"another {noun_surface}"
-        else:
-            # 3+ occurrences: use ordinals
-            ordinal = ordinal_word(occurrence + 1)
-            rendered = f"a {ordinal} {noun_surface}"
-
-        # Replace det+noun pair
-        pattern = f"{{{det_slot}}} {{{noun_slot}}}"
-        result = result.replace(pattern, rendered, 1)
-
-        noun_usage[noun_lemma] = occurrence + 1
-
-    # Handle remaining slots (verbs, preps, etc.)
-    for slot_name, item in slot_fillers.items():
-        placeholder = f"{{{slot_name}}}"
-        if placeholder in result:
-            surface = item.form if item.form else item.lemma
-            result = result.replace(placeholder, surface)
-
-    return result
 
 
 def load_config(config_path: Path) -> dict:
@@ -292,6 +178,11 @@ def main() -> None:
             # For other strategies (exhaustive, random, etc.)
             slot_strategies[slot_name] = (strategy_name, {})
 
+    # Create renderer for English-specific noun handling
+    # Uses OtherNounRenderer for "another"/"the other" patterns with repeated nouns
+    renderer = OtherNounRenderer()
+    logger.info("Using OtherNounRenderer for English-specific noun handling")
+
     # Create filler with MixedFillingStrategy
     logger.info("Creating template filler with mixed strategy...")
     strategy = MixedFillingStrategy(
@@ -312,11 +203,9 @@ def main() -> None:
 
             # Convert combinations to FilledTemplate objects
             for combo in combos:
-                # Render text with smart ordinal handling
-                rendered = render_template(
-                    template.template_string,
-                    combo,
-                    template.slots
+                # Render text with English-specific noun handling
+                rendered = renderer.render(
+                    template.template_string, combo, template.slots
                 )
 
                 filled = FilledTemplate(

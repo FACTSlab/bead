@@ -17,6 +17,7 @@ from bead.dsl import ast
 from bead.dsl.parser import parse
 from bead.resources.lexical_item import LexicalItem
 from bead.resources.template import Template
+from bead.templates.renderers import DefaultRenderer, TemplateRenderer
 from bead.templates.resolver import ConstraintResolver
 
 if TYPE_CHECKING:
@@ -218,6 +219,9 @@ class CSPFiller(TemplateFiller):
         Lexicon containing candidate items.
     max_attempts : int
         Maximum number of partial assignments to try (default: 10000).
+    renderer : TemplateRenderer | None
+        Template renderer to use for generating rendered_text. If None,
+        uses DefaultRenderer() which does simple slot substitution.
 
     Examples
     --------
@@ -231,10 +235,16 @@ class CSPFiller(TemplateFiller):
     ...     print(f"Could not fill: {e}")
     """
 
-    def __init__(self, lexicon: Lexicon, max_attempts: int = 10000) -> None:
+    def __init__(
+        self,
+        lexicon: Lexicon,
+        max_attempts: int = 10000,
+        renderer: TemplateRenderer | None = None,
+    ) -> None:
         self.lexicon = lexicon
         self.max_attempts = max_attempts
         self.resolver = ConstraintResolver()
+        self.renderer = renderer if renderer is not None else DefaultRenderer()
 
     def fill(
         self,
@@ -577,11 +587,10 @@ class CSPFiller(TemplateFiller):
         FilledTemplate
             Filled template instance.
         """
-        # Render template string
-        rendered = template.template_string
-        for slot_name, item in assignment.items():
-            placeholder = f"{{{slot_name}}}"
-            rendered = rendered.replace(placeholder, item.lemma)
+        # Render template string using renderer
+        rendered = self.renderer.render(
+            template.template_string, assignment, template.slots
+        )
 
         return FilledTemplate(
             template_id=str(template.id),
@@ -589,4 +598,5 @@ class CSPFiller(TemplateFiller):
             slot_fillers=assignment.copy(),
             rendered_text=rendered,
             strategy_name="backtracking",
+            template_slots={name: slot.required for name, slot in template.slots.items()},
         )
