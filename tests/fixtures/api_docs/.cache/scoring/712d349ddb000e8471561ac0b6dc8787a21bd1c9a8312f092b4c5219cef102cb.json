@@ -1,0 +1,11 @@
+{
+  "cache_key": "712d349ddb000e8471561ac0b6dc8787a21bd1c9a8312f092b4c5219cef102cb",
+  "timestamp": "2025-11-26T12:26:10.877859+00:00",
+  "model_name": "gpt2",
+  "model_version": "unknown",
+  "operation": "log_probability",
+  "inputs": {
+    "text": "{det_subj} {noun_subj} {verb} {det_dobj} {noun_dobj}."
+  },
+  "result": -94.15066528320312
+}

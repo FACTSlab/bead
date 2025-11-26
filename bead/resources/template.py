@@ -48,12 +48,12 @@ class Slot(BeadBaseModel):
 
     Examples
     --------
-    >>> from bead.resources.constraints import IntensionalConstraint
+    >>> from bead.resources.constraints import Constraint
     >>> slot = Slot(
     ...     name="subject",
     ...     description="The subject of the sentence",
     ...     constraints=[
-    ...         IntensionalConstraint(property="pos", operator="==", value="NOUN")
+    ...         Constraint(expression="self.features.pos == 'NOUN'")
     ...     ],
     ...     required=True
     ... )

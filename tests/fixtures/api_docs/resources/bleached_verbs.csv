@@ -1,0 +1,9 @@
+word,semantic_class,aspect,valency,tenseless_vp,gerund,tenseless_clause,infinitival_clause,tensed_clause
+do,activity,dynamic,transitive/intransitive,do {{ object }},doing {{ object }},{{ subject }} do {{ object }},{{ subject }} to do {{ object }},{{ subject }} did {{ object }}
+be,state,stative,copula,be {{ complement }},being {{ complement }},{{ subject }} be {{ complement }},{{ subject }} to be {{ complement }},{{ subject }} was {{ complement }}
+have,state,stative,transitive,have {{ object }},having {{ object }},{{ subject }} have {{ object }},{{ subject }} to have {{ object }},{{ subject }} had {{ object }}
+go,change,dynamic,intransitive,go,going,{{ subject }} go,{{ subject }} to go,{{ subject }} went
+get,change,dynamic,transitive/copula,get {{ object_or_complement }},getting {{ object_or_complement }},{{ subject }} get {{ object_or_complement }},{{ subject }} to get {{ object_or_complement }},{{ subject }} got {{ object_or_complement }}
+make,causation,dynamic,transitive/causative,make {{ object }},making {{ object }},{{ subject }} make {{ object }},{{ subject }} to make {{ object }},{{ subject }} made {{ object }}
+happen,event,dynamic,intransitive,happen,happening,{{ subject }} happen,{{ subject }} to happen,{{ subject }} happened
+come,change,dynamic,intransitive,come,coming,{{ subject }} come,{{ subject }} to come,{{ subject }} came

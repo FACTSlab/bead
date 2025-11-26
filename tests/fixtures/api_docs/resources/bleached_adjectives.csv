@@ -1,0 +1,12 @@
+word,semantic_class,gradability,stage_vs_individual,notes
+good,evaluation,gradable,individual,positive evaluation
+bad,evaluation,gradable,individual,negative evaluation
+right,evaluation,non-gradable,stage,correct
+wrong,evaluation,non-gradable,stage,incorrect
+okay,evaluation,gradable,stage,acceptable
+certain,epistemic,gradable,stage,definite/sure
+ready,aspectual,non-gradable,stage,prepared state
+done,aspectual,non-gradable,stage,completed state
+different,comparison,gradable,individual,not the same
+same,comparison,non-gradable,individual,identical
+other,comparison,non-gradable,individual,alternative

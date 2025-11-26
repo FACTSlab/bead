@@ -1,0 +1,15 @@
+lemma,form,pos,tense,person,number,verb_form
+be,am,V,PRS,1,SG,
+be,is,V,PRS,3,SG,
+be,are,V,PRS,2,SG,
+be,are,V,PRS,1,PL,
+be,are,V,PRS,2,PL,
+be,are,V,PRS,3,PL,
+be,was,V,PST,1,SG,
+be,was,V,PST,3,SG,
+be,were,V,PST,2,SG,
+be,were,V,PST,1,PL,
+be,were,V,PST,2,PL,
+be,were,V,PST,3,PL,
+be,being,V,PRS,,,V.PTCP
+be,been,V,PST,,,V.PTCP

@@ -1,0 +1,42 @@
+[
+  {
+    "token": "charles",
+    "log_prob": -3.5089364051818848
+  },
+  {
+    "token": "james",
+    "log_prob": -3.548065662384033
+  },
+  {
+    "token": "john",
+    "log_prob": -3.919060707092285
+  },
+  {
+    "token": "thomas",
+    "log_prob": -3.968064308166504
+  },
+  {
+    "token": "george",
+    "log_prob": -4.239682197570801
+  },
+  {
+    "token": "-",
+    "log_prob": -4.3644819259643555
+  },
+  {
+    "token": "joseph",
+    "log_prob": -4.50242280960083
+  },
+  {
+    "token": "william",
+    "log_prob": -4.560698509216309
+  },
+  {
+    "token": "michael",
+    "log_prob": -4.652785301208496
+  },
+  {
+    "token": "paul",
+    "log_prob": -4.680724620819092
+  }
+]
