@@ -54,6 +54,26 @@ def lists() -> None:
     help="Number of lists to create",
 )
 @click.option(
+    "--list-constraints",
+    "list_constraint_files",
+    type=click.Path(exists=True, path_type=Path),
+    multiple=True,
+    help="List constraint files (JSONL, can specify multiple)",
+)
+@click.option(
+    "--batch-constraints",
+    "batch_constraint_files",
+    type=click.Path(exists=True, path_type=Path),
+    multiple=True,
+    help="Batch constraint files (JSONL, can specify multiple)",
+)
+@click.option(
+    "--max-iterations",
+    type=int,
+    default=1000,
+    help="Maximum iterations for batch constraint satisfaction (default: 1000)",
+)
+@click.option(
     "--random-seed",
     type=int,
     help="Random seed for reproducibility",
@@ -70,6 +90,9 @@ def partition(
     output_dir: Path,
     strategy: str,
     n_lists: int,
+    list_constraint_files: tuple[Path, ...],
+    batch_constraint_files: tuple[Path, ...],
+    max_iterations: int,
     random_seed: int | None,
     dry_run: bool,
 ) -> None:
@@ -87,6 +110,12 @@ def partition(
         Partitioning strategy.
     n_lists : int
         Number of lists to create.
+    list_constraint_files : tuple[Path, ...]
+        List constraint files (JSONL).
+    batch_constraint_files : tuple[Path, ...]
+        Batch constraint files (JSONL).
+    max_iterations : int
+        Maximum iterations for batch constraint satisfaction.
     random_seed : int | None
         Random seed for reproducibility.
     dry_run : bool
@@ -97,12 +126,19 @@ def partition(
     # Balanced partitioning
     $ bead lists partition items.jsonl lists/ --n-lists 5 --strategy balanced
 
-    # Random partitioning with seed
+    # With list constraints
     $ bead lists partition items.jsonl lists/ --n-lists 5 \\
-        --strategy random --random-seed 42
+        --list-constraints constraints/unique.jsonl
 
-    # Stratified partitioning
-    $ bead lists partition items.jsonl lists/ --n-lists 5 --strategy stratified
+    # With batch constraints
+    $ bead lists partition items.jsonl lists/ --n-lists 5 \\
+        --batch-constraints constraints/coverage.jsonl
+
+    # With both constraint types
+    $ bead lists partition items.jsonl lists/ --n-lists 5 \\
+        --list-constraints constraints/unique.jsonl constraints/balance.jsonl \\
+        --batch-constraints constraints/coverage.jsonl \\
+        --max-iterations 10000
 
     # Dry run to preview
     $ bead lists partition items.jsonl lists/ --n-lists 5 --strategy balanced --dry-run
@@ -130,16 +166,57 @@ def partition(
 
         print_info(f"Loaded {len(items)} items")
 
-        # Extract item UUIDs and create minimal metadata
+        # Extract item UUIDs and create metadata dict with all item data
         item_uuids = [item.id for item in items]
-        metadata = {
-            item.id: {"template_id": str(item.item_template_id)} for item in items
-        }
+        metadata = {}
+        for item in items:
+            item_meta = {
+                **item.item_metadata,
+                "template_id": str(item.item_template_id),
+            }
+            # Add task_type if it exists (optional field for backwards compatibility)
+            if hasattr(item, "task_type") and item.task_type is not None:
+                item_meta["task_type"] = item.task_type
+            metadata[item.id] = item_meta
+
+        # Load list constraints if provided
+        list_constraints = []
+        if list_constraint_files:
+            from bead.lists.constraints import ListConstraint
+
+            print_info(f"Loading {len(list_constraint_files)} list constraint file(s)")
+            for constraint_file in list_constraint_files:
+                with open(constraint_file, encoding="utf-8") as f:
+                    for line in f:
+                        line = line.strip()
+                        if not line:
+                            continue
+                        constraint_data = json.loads(line)
+                        constraint = ListConstraint(**constraint_data)
+                        list_constraints.append(constraint)
+            print_info(f"Loaded {len(list_constraints)} list constraint(s)")
+
+        # Load batch constraints if provided
+        batch_constraints = []
+        if batch_constraint_files:
+            from bead.lists.constraints import BatchConstraint
+
+            print_info(f"Loading {len(batch_constraint_files)} batch constraint file(s)")
+            for constraint_file in batch_constraint_files:
+                with open(constraint_file, encoding="utf-8") as f:
+                    for line in f:
+                        line = line.strip()
+                        if not line:
+                            continue
+                        constraint_data = json.loads(line)
+                        constraint = BatchConstraint(**constraint_data)
+                        batch_constraints.append(constraint)
+            print_info(f"Loaded {len(batch_constraints)} batch constraint(s)")
 
         # Create partitioner
         partitioner = ListPartitioner(random_seed=random_seed)
 
-        # Partition items
+        # Partition items (choose method based on constraints)
         with Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
@@ -148,12 +225,27 @@ def partition(
             progress.add_task(
                 f"Partitioning {len(items)} items into {n_lists} lists...", total=None
             )
-            experiment_lists = partitioner.partition(
-                items=item_uuids,
-                n_lists=n_lists,
-                strategy=strategy,
-                metadata=metadata,
-            )
+
+            if batch_constraints:
+                # Use batch-constrained partitioning
+                experiment_lists = partitioner.partition_with_batch_constraints(
+                    items=item_uuids,
+                    n_lists=n_lists,
+                    list_constraints=list_constraints if list_constraints else None,
+                    batch_constraints=batch_constraints,
+                    strategy=strategy,
+                    metadata=metadata,
+                    max_iterations=max_iterations,
+                )
+            else:
+                # Use standard partitioning (with optional list constraints)
+                experiment_lists = partitioner.partition(
+                    items=item_uuids,
+                    n_lists=n_lists,
+                    constraints=list_constraints if list_constraints else None,
+                    strategy=strategy,
+                    metadata=metadata,
+                )
 
         # Save lists (or show dry-run preview)
         if dry_run:
