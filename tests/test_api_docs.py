@@ -22,19 +22,48 @@ GALLERY_DIR = Path(__file__).parent.parent / "gallery" / "eng" / "argument_struc
 
 @pytest.fixture(scope="session", autouse=True)
 def setup_test_environment():
-    """Set up environment for executing code examples."""
+    """Set up environment for executing code examples.
+
+    This fixture:
+    1. Creates a temporary working directory for API tests
+    2. Copies all fixtures from api_docs to api_work
+    3. Adds gallery to sys.path for imports
+    4. Cleans up after all tests complete
+    """
+    import shutil
+
     # Add gallery to sys.path so we can import utils
     if str(GALLERY_DIR) not in sys.path:
         sys.path.insert(0, str(GALLERY_DIR))
 
-    # Change to fixtures directory so relative paths work
+    # Create temporary working directory
+    work_dir = Path(__file__).parent / "fixtures" / "api_work"
+    work_dir.mkdir(parents=True, exist_ok=True)
+
+    # Copy fixtures to working directory
+    for item in FIXTURES_DIR.iterdir():
+        dest = work_dir / item.name
+        if dest.exists():
+            if dest.is_dir():
+                shutil.rmtree(dest)
+            else:
+                dest.unlink()
+
+        if item.is_dir():
+            shutil.copytree(item, dest)
+        else:
+            shutil.copy2(item, dest)
+
+    # Change to working directory so relative paths work
     original_dir = os.getcwd()
-    os.chdir(FIXTURES_DIR)
+    os.chdir(work_dir)
 
     yield
 
-    # Restore original directory
+    # Restore original directory and clean up
     os.chdir(original_dir)
+    if work_dir.exists():
+        shutil.rmtree(work_dir, ignore_errors=True)
 
 
 @pytest.mark.parametrize("example", find_examples(DOCS_DIR), ids=str)

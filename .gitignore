@@ -17,7 +17,11 @@ node_modules/
 coverage/
 site/
 
-# CLI documentation test artifacts (created in project root during pytest-codeblocks runs)
+# Documentation test working directories (temporary copies of fixtures)
+tests/fixtures/api_work/
+tests/fixtures/cli_work/
+
+# Documentation test artifacts (created in project root if tests fail to cd)
 /constraints/
 /experiment/
 /items/
