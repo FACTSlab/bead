@@ -16,6 +16,7 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 
 from bead.cli.utils import print_error, print_info, print_success
+from bead.resources.constraints import Constraint
 from bead.resources.lexicon import Lexicon
 from bead.resources.template_collection import TemplateCollection
 from bead.templates.combinatorics import count_combinations
@@ -50,7 +51,7 @@ def templates() -> None:
 
 @click.command()
 @click.argument("template_file", type=click.Path(exists=True, path_type=Path))
-@click.argument("lexicon_file", type=click.Path(exists=True, path_type=Path))
+@click.argument("lexicon_files", nargs=-1, type=click.Path(exists=True, path_type=Path), required=True)
 @click.argument("output_file", type=click.Path(path_type=Path))
 @click.option(
     "--strategy",
@@ -76,17 +77,23 @@ def templates() -> None:
     "--language-code",
     help="ISO 639 language code to filter items",
 )
+@click.option(
+    "--constraints",
+    type=click.Path(exists=True, path_type=Path),
+    help="Path to constraints file (JSONL) to apply during filling",
+)
 @click.pass_context
 def fill(
     ctx: click.Context,
     template_file: Path,
-    lexicon_file: Path,
+    lexicon_files: tuple[Path, ...],
     output_file: Path,
     strategy: str,
     max_combinations: int | None,
     random_seed: int | None,
     grouping_property: str | None,
     language_code: str | None,
+    constraints: Path | None,
 ) -> None:
     r"""Fill templates with lexical items.
 
@@ -96,8 +103,8 @@ def fill(
         Click context object.
     template_file : Path
         Path to template file.
-    lexicon_file : Path
-        Path to lexicon file.
+    lexicon_files : tuple[Path, ...]
+        Paths to one or more lexicon files to merge.
     output_file : Path
         Path to output filled templates file.
     strategy : str
@@ -110,11 +117,17 @@ def fill(
         Property for stratified sampling.
     language_code : str | None
         ISO 639 language code filter.
+    constraints : Path | None
+        Path to constraints file (JSONL) to apply.
 
     Examples
     --------
-    # Exhaustive filling
+    # Exhaustive filling with single lexicon
     $ bead templates fill template.jsonl lexicon.jsonl filled.jsonl \\
+        --strategy exhaustive
+
+    # Multiple lexicons
+    $ bead templates fill template.jsonl nouns.jsonl verbs.jsonl dets.jsonl filled.jsonl \\
         --strategy exhaustive
 
     # Random sampling
@@ -124,6 +137,10 @@ def fill(
     # Stratified sampling
     $ bead templates fill template.jsonl lexicon.jsonl filled.jsonl \\
         --strategy stratified --max-combinations 100 --grouping-property pos
+
+    # With constraints
+    $ bead templates fill template.jsonl lexicon.jsonl filled.jsonl \\
+        --strategy exhaustive --constraints constraints.jsonl
     """
     try:
         # Validate strategy-specific options
@@ -135,10 +152,22 @@ def fill(
             print_error("--grouping-property required for stratified strategy")
             ctx.exit(1)
 
-        # Load lexicon
-        print_info(f"Loading lexicon from {lexicon_file}")
-        lexicon = Lexicon.from_jsonl(str(lexicon_file), "lexicon")
-        print_info(f"Loaded {len(lexicon)} lexical items")
+        # Load and merge lexicons
+        if not lexicon_files:
+            print_error("At least one lexicon file is required")
+            ctx.exit(1)
+
+        print_info(f"Loading {len(lexicon_files)} lexicon(s)")
+        merged_lexicon = Lexicon(name="merged", items={})
+
+        for lex_file in lexicon_files:
+            lex = Lexicon.from_jsonl(str(lex_file), lex_file.stem)
+            print_info(f"  Loaded {len(lex)} items from {lex_file.name}")
+            # Merge items
+            merged_lexicon.items.update(lex.items)
+
+        print_info(f"Total merged lexicon: {len(merged_lexicon)} items")
+        lexicon = merged_lexicon
 
         # Load templates
         print_info(f"Loading templates from {template_file}")
@@ -146,6 +175,36 @@ def fill(
             str(template_file), "templates"
         )
         print_info(f"Loaded {len(template_collection)} templates")
+
+        # Load and apply constraints if provided
+        if constraints:
+            print_info(f"Loading constraints from {constraints}")
+            loaded_constraints: list[Constraint] = []
+
+            with open(constraints, encoding="utf-8") as f:
+                for line_num, line in enumerate(f, start=1):
+                    line = line.strip()
+                    if not line:
+                        continue
+
+                    try:
+                        constraint_data = json.loads(line)
+                        constraint = Constraint(**constraint_data)
+                        loaded_constraints.append(constraint)
+                    except json.JSONDecodeError as e:
+                        print_error(f"Invalid JSON on line {line_num}: {e}")
+                        ctx.exit(1)
+                    except ValidationError as e:
+                        print_error(f"Invalid constraint on line {line_num}: {e}")
+                        ctx.exit(1)
+
+            print_info(f"Loaded {len(loaded_constraints)} constraints")
+
+            # Apply constraints to all templates
+            for template in template_collection:
+                template.constraints.extend(loaded_constraints)
+
+            print_info(f"Applied constraints to {len(template_collection)} templates")
 
         # Create strategy
         filling_strategy: ExhaustiveStrategy | RandomStrategy | StratifiedStrategy
@@ -442,7 +501,7 @@ def show_stats(ctx: click.Context, filled_file: Path) -> None:
 
 @click.command()
 @click.argument("template_file", type=click.Path(exists=True, path_type=Path))
-@click.argument("lexicon_file", type=click.Path(exists=True, path_type=Path))
+@click.argument("lexicon_files", nargs=-1, type=click.Path(exists=True, path_type=Path), required=True)
 @click.option(
     "--language-code",
     help="ISO 639 language code to filter items",
@@ -451,7 +510,7 @@ def show_stats(ctx: click.Context, filled_file: Path) -> None:
 def estimate(
     ctx: click.Context,
     template_file: Path,
-    lexicon_file: Path,
+    lexicon_files: tuple[Path, ...],
     language_code: str | None,
 ) -> None:
     r"""Estimate total combinations for exhaustive filling.
@@ -465,23 +524,37 @@ def estimate(
         Click context object.
     template_file : Path
         Path to template file.
-    lexicon_file : Path
-        Path to lexicon file.
+    lexicon_files : tuple[Path, ...]
+        Paths to one or more lexicon files to merge.
     language_code : str | None
         ISO 639 language code filter.
 
     Examples
     --------
-    # Estimate combinations
+    # Estimate combinations with single lexicon
     $ bead templates estimate template.jsonl lexicon.jsonl
+
+    # With multiple lexicons
+    $ bead templates estimate template.jsonl nouns.jsonl verbs.jsonl
 
     # With language filter
     $ bead templates estimate template.jsonl lexicon.jsonl --language-code eng
     """
     try:
-        # Load lexicon
-        print_info(f"Loading lexicon from {lexicon_file}")
-        lexicon = Lexicon.from_jsonl(str(lexicon_file), "lexicon")
+        # Load and merge lexicons
+        if not lexicon_files:
+            print_error("At least one lexicon file is required")
+            ctx.exit(1)
+
+        print_info(f"Loading {len(lexicon_files)} lexicon(s)")
+        merged_lexicon = Lexicon(name="merged", items={})
+
+        for lex_file in lexicon_files:
+            lex = Lexicon.from_jsonl(str(lex_file), lex_file.stem)
+            merged_lexicon.items.update(lex.items)
+
+        print_info(f"Total merged lexicon: {len(merged_lexicon)} items")
+        lexicon = merged_lexicon
 
         # Load templates
         print_info(f"Loading templates from {template_file}")
@@ -893,7 +966,7 @@ def export_json(
 
 @click.command()
 @click.argument("template_file", type=click.Path(exists=True, path_type=Path))
-@click.argument("lexicon_file", type=click.Path(exists=True, path_type=Path))
+@click.argument("lexicon_files", nargs=-1, type=click.Path(exists=True, path_type=Path), required=True)
 @click.argument("output_file", type=click.Path(path_type=Path))
 @click.option(
     "--n-samples",
@@ -914,7 +987,7 @@ def export_json(
 def sample_combinations(
     ctx: click.Context,
     template_file: Path,
-    lexicon_file: Path,
+    lexicon_files: tuple[Path, ...],
     output_file: Path,
     n_samples: int,
     seed: int | None,
@@ -931,8 +1004,8 @@ def sample_combinations(
         Click context object.
     template_file : Path
         Path to template file.
-    lexicon_file : Path
-        Path to lexicon file.
+    lexicon_files : tuple[Path, ...]
+        Paths to one or more lexicon files to merge.
     output_file : Path
         Path to output sampled combinations.
     n_samples : int
@@ -944,13 +1017,30 @@ def sample_combinations(
 
     Examples
     --------
+    # Single lexicon
     $ bead templates sample-combinations template.jsonl lexicon.jsonl samples.jsonl \\
+        --n-samples 1000 --seed 42
+
+    # Multiple lexicons
+    $ bead templates sample-combinations template.jsonl nouns.jsonl verbs.jsonl samples.jsonl \\
         --n-samples 1000 --seed 42
     """
     try:
-        # Load lexicon
-        print_info(f"Loading lexicon from {lexicon_file}")
-        lexicon = Lexicon.from_jsonl(str(lexicon_file), "lexicon")
+        # Load and merge lexicons
+        if not lexicon_files:
+            print_error("At least one lexicon file is required")
+            ctx.exit(1)
+
+        print_info(f"Loading {len(lexicon_files)} lexicon(s)")
+        merged_lexicon = Lexicon(name="merged", items={})
+
+        for lex_file in lexicon_files:
+            lex = Lexicon.from_jsonl(str(lex_file), lex_file.stem)
+            print_info(f"  Loaded {len(lex)} items from {lex_file.name}")
+            merged_lexicon.items.update(lex.items)
+
+        print_info(f"Total merged lexicon: {len(merged_lexicon)} items")
+        lexicon = merged_lexicon
 
         # Load templates
         print_info(f"Loading templates from {template_file}")

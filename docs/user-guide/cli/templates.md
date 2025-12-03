@@ -11,138 +11,103 @@ Template filling generates experimental stimuli by substituting lexical items in
 Generate all valid slot combinations:
 
 ```bash
-bead templates fill \
-    --template templates/frames.jsonl \
-    --lexicon lexicons/verbs.jsonl lexicons/nouns.jsonl \
-    --strategy exhaustive \
-    --output filled_templates/all_combinations.jsonl
+bead templates fill templates/generic_frames.jsonl lexicons/bleached_nouns.jsonl lexicons/determiners.jsonl lexicons/bleached_verbs.jsonl lexicons/prepositions.jsonl lexicons/be_forms.jsonl filled_templates/all_combinations.jsonl \
+    --strategy random \
+    --max-combinations 10 \
+    --random-seed 42
 ```
 
-Exhaustive filling produces every possible combination respecting constraints. Use for small template sets (< 1000 expected combinations).
+For demonstration, we use random sampling with a small limit. Exhaustive filling produces every possible combination respecting constraints but can generate thousands of combinations with multiple lexicons. Multiple lexicons are automatically merged.
 
 ### Random Sampling
 
 Sample combinations randomly:
 
 ```bash
-bead templates fill \
-    --template templates/frames.jsonl \
-    --lexicon lexicons/verbs.jsonl lexicons/nouns.jsonl \
+bead templates fill templates/generic_frames.jsonl lexicons/bleached_nouns.jsonl lexicons/determiners.jsonl lexicons/bleached_verbs.jsonl lexicons/prepositions.jsonl lexicons/be_forms.jsonl filled_templates/random_sample.jsonl \
     --strategy random \
-    --n-samples 500 \
-    --seed 42 \
-    --output filled_templates/random_sample.jsonl
+    --max-combinations 10 \
+    --random-seed 42
 ```
 
-Random sampling scales to large combinatorial spaces. The `--seed` parameter ensures reproducibility.
+Random sampling scales to large combinatorial spaces. The `--random-seed` parameter ensures reproducibility.
 
 ### Stratified Filling
 
 Balance samples across strata defined by metadata:
 
 ```bash
-bead templates fill \
-    --template templates/frames.jsonl \
-    --lexicon lexicons/verbs.jsonl lexicons/nouns.jsonl \
+bead templates fill templates/generic_frames.jsonl lexicons/bleached_nouns.jsonl lexicons/determiners.jsonl lexicons/bleached_verbs.jsonl lexicons/prepositions.jsonl lexicons/be_forms.jsonl filled_templates/stratified_sample.jsonl \
     --strategy stratified \
-    --stratify-by verb_class \
-    --n-samples-per-stratum 50 \
-    --output filled_templates/stratified_sample.jsonl
+    --max-combinations 10 \
+    --grouping-property pos
 ```
 
-Stratified filling ensures balanced representation of categories (e.g., verb classes, animacy levels).
+Stratified filling ensures balanced representation of categories (e.g., part of speech, verb classes, animacy levels).
 
 ### Constraint Satisfaction
 
 Apply constraints during filling to filter invalid combinations:
 
 ```bash
-bead templates fill \
-    --template templates/frames.jsonl \
-    --lexicon lexicons/verbs.jsonl lexicons/nouns.jsonl \
-    --constraints constraints/slot_restrictions.jsonl \
-    --strategy exhaustive \
-    --filter-invalid \
-    --output filled_templates/constrained.jsonl
+bead resources create-constraint constraints/verb_constraint.jsonl \
+    --type intensional \
+    --slot verb \
+    --expression "self.pos == 'VERB'"
+
+bead templates fill templates/generic_frames.jsonl lexicons/bleached_nouns.jsonl lexicons/determiners.jsonl lexicons/bleached_verbs.jsonl lexicons/prepositions.jsonl lexicons/be_forms.jsonl filled_templates/constrained.jsonl \
+    --strategy random \
+    --max-combinations 10 \
+    --random-seed 42 \
+    --constraints constraints/verb_constraint.jsonl
 ```
 
-The `--filter-invalid` flag removes combinations violating constraints. Constraint types:
-
-- **Extensional**: whitelist specific items
-- **Intensional**: DSL expressions on features
-- **Relational**: cross-slot requirements (e.g., subject ≠ object)
+Constraints filter combinations that violate conditions. See [Resources](resources.md#creating-constraints) for creating constraints.
 
 ### MLM-Based and Mixed Strategies
 
-**Note**: MLM-based (Masked Language Model) and mixed strategies require HuggingFace model integration and are deferred in the current CLI implementation. Use random or stratified sampling for large spaces.
+**Note**: MLM-based (Masked Language Model) and mixed strategies require HuggingFace model integration and are currently available through the Python API. Use random or stratified sampling for large spaces in CLI workflows.
 
 ## Estimating Combinations
 
 Preview combinatorial space size before filling:
 
 ```bash
-bead templates estimate-combinations \
-    --template templates/frames.jsonl \
-    --lexicon lexicons/verbs.jsonl lexicons/nouns.jsonl \
-    --constraints constraints/slot_restrictions.jsonl
+bead templates estimate-combinations templates/generic_frames.jsonl lexicons/bleached_nouns.jsonl lexicons/determiners.jsonl lexicons/bleached_verbs.jsonl lexicons/prepositions.jsonl lexicons/be_forms.jsonl
 ```
 
-Output shows:
-
-```
-Template: basic_transitive
-  Slots: subj (120 items), verb (45 items), obj (120 items)
-  Total combinations (unconstrained): 648,000
-  Estimated after constraints: 324,500
-  Recommendation: use random or stratified sampling
-```
+The command outputs the estimated number of combinations and provides recommendations for which filling strategy to use. Multiple lexicons are automatically merged.
 
 ## Sampling Combinations
 
 Draw stratified samples from large spaces:
 
 ```bash
-bead templates sample-combinations \
-    --template templates/frames.jsonl \
-    --lexicon lexicons/verbs.jsonl lexicons/nouns.jsonl \
-    --n-samples 1000 \
-    --seed 42 \
-    --language-code eng \
-    --output filled_templates/sampled.jsonl
+bead templates sample-combinations templates/generic_frames.jsonl lexicons/bleached_nouns.jsonl lexicons/determiners.jsonl lexicons/bleached_verbs.jsonl lexicons/prepositions.jsonl lexicons/be_forms.jsonl filled_templates/sampled.jsonl \
+    --n-samples 10 \
+    --seed 42
 ```
 
-Uses Latin hypercube sampling for balanced coverage across the combinatorial space.
+Uses stratified sampling for balanced coverage across the combinatorial space. Multiple lexicons are automatically merged.
 
 ## Filtering Filled Templates
 
 Filter existing filled templates by criteria:
 
 ```bash
-# By text length
-bead templates filter-filled \
-    --filled-templates filled_templates/all.jsonl \
+bead templates filter-filled filled_templates/generic_frames_filled.jsonl filled_templates/filtered_length.jsonl \
     --min-length 5 \
-    --max-length 15 \
-    --output filled_templates/filtered_length.jsonl
+    --max-length 15
 
-# By template name
-bead templates filter-filled \
-    --filled-templates filled_templates/all.jsonl \
-    --template-name "transitive" \
-    --output filled_templates/transitive_only.jsonl
+bead templates filter-filled filled_templates/generic_frames_filled.jsonl filled_templates/transitive_only.jsonl \
+    --template-name "transitive"
 
-# By strategy name
-bead templates filter-filled \
-    --filled-templates filled_templates/all.jsonl \
-    --strategy-name "exhaustive" \
-    --output filled_templates/exhaustive_only.jsonl
+bead templates filter-filled filled_templates/generic_frames_filled.jsonl filled_templates/exhaustive_only.jsonl \
+    --strategy "exhaustive"
 
-# Multiple criteria (AND logic)
-bead templates filter-filled \
-    --filled-templates filled_templates/all.jsonl \
+bead templates filter-filled filled_templates/generic_frames_filled.jsonl filled_templates/filtered_multi.jsonl \
     --min-length 6 \
-    --template-name "transitive" \
-    --output filled_templates/filtered_multi.jsonl
+    --template-name "transitive"
 ```
 
 ## Merging Filled Templates
@@ -150,21 +115,14 @@ bead templates filter-filled \
 Combine multiple filled template files:
 
 ```bash
-bead templates merge-filled \
-    --input filled_templates/batch1.jsonl \
-    --input filled_templates/batch2.jsonl \
-    --input filled_templates/batch3.jsonl \
-    --output filled_templates/merged.jsonl
+bead templates merge-filled filled_templates/batch1.jsonl filled_templates/batch2.jsonl filled_templates/merged.jsonl
 ```
 
 With deduplication by ID:
 
 ```bash
-bead templates merge-filled \
-    --input filled_templates/batch1.jsonl \
-    --input filled_templates/batch2.jsonl \
-    --deduplicate \
-    --output filled_templates/merged_unique.jsonl
+bead templates merge-filled filled_templates/batch1.jsonl filled_templates/batch2.jsonl filled_templates/merged_unique.jsonl \
+    --deduplicate
 ```
 
 The command reports duplicate count when deduplication is enabled.
@@ -176,32 +134,17 @@ Export filled templates to alternative formats for analysis or external tools.
 ### Export to CSV
 
 ```bash
-bead templates export-csv \
-    --filled-templates filled_templates/all.jsonl \
-    --output filled_templates/all.csv
+bead templates export-csv filled_templates/generic_frames_filled.jsonl exports/all.csv
 ```
 
-Output includes columns:
-
-- `id`: UUID
-- `template_id`: source template UUID
-- `template_name`: template name
-- `rendered_text`: final text with slots filled
-- `strategy_name`: filling strategy used
-- `slot_count`: number of slots in template
+Output includes columns: `id`, `template_id`, `template_name`, `rendered_text`, `strategy_name`, `slot_count`.
 
 ### Export to JSON
 
 ```bash
-bead templates export-json \
-    --filled-templates filled_templates/all.jsonl \
-    --output filled_templates/all.json
+bead templates export-json filled_templates/generic_frames_filled.jsonl exports/all.json
 
-# Pretty-printed
-bead templates export-json \
-    --filled-templates filled_templates/all.jsonl \
-    --pretty \
-    --output filled_templates/all_pretty.json
+bead templates export-json filled_templates/generic_frames_filled.jsonl exports/all_pretty.json --pretty
 ```
 
 Exports as JSON array (not JSONL). Use for compatibility with tools that don't support JSONL.
@@ -211,78 +154,38 @@ Exports as JSON array (not JSONL). Use for compatibility with tools that don't s
 Check filled templates for completeness:
 
 ```bash
-bead templates validate-filled \
-    --filled-templates filled_templates/all.jsonl
+bead templates validate-filled filled_templates/generic_frames_filled.jsonl
 ```
 
-Validation checks:
-
-- All slots filled (no empty slots)
-- Rendered text nonempty
-- Template references valid
-- Slot filler UUIDs valid
+Validation checks for all slots filled, nonempty rendered text, and valid template references.
 
 ## Statistics
 
 View statistics on filled templates:
 
 ```bash
-bead templates show-stats \
-    --filled-templates filled_templates/all.jsonl
+bead templates show-stats filled_templates/generic_frames_filled.jsonl
 ```
 
-Output includes:
-
-```
-Filled templates: 1,245
-Unique templates: 26
-Strategies: exhaustive (980), random (265)
-Average text length: 8.3 words
-Slot fill distribution:
-  verb: 45 unique items
-  subj: 98 unique items
-  obj: 102 unique items
-```
+The command displays filled template counts, unique templates, strategies used, and text length statistics.
 
 ## Workflow Example
 
 Complete workflow from templates to filled templates:
 
 ```bash
-# 1. Generate templates
-bead resources generate-templates \
-    --from-pattern "{subj} {verb} {obj}" \
-    --output templates/transitive.jsonl
+bead templates fill templates/generic_frames.jsonl lexicons/bleached_nouns.jsonl lexicons/determiners.jsonl lexicons/bleached_verbs.jsonl lexicons/prepositions.jsonl lexicons/be_forms.jsonl filled_templates/workflow_sample.jsonl \
+    --strategy random \
+    --max-combinations 20 \
+    --random-seed 42
 
-# 2. Estimate combinations
-bead templates estimate-combinations \
-    --template templates/transitive.jsonl \
-    --lexicon lexicons/nouns.jsonl lexicons/verbs.jsonl
-
-# 3. Fill with stratified sampling (large space)
-bead templates fill \
-    --template templates/transitive.jsonl \
-    --lexicon lexicons/nouns.jsonl lexicons/verbs.jsonl \
-    --strategy stratified \
-    --stratify-by verb_class \
-    --n-samples-per-stratum 20 \
-    --output filled_templates/stratified.jsonl
-
-# 4. Filter by length
-bead templates filter-filled \
-    --filled-templates filled_templates/stratified.jsonl \
+bead templates filter-filled filled_templates/workflow_sample.jsonl filled_templates/workflow_filtered.jsonl \
     --min-length 4 \
-    --max-length 10 \
-    --output filled_templates/filtered.jsonl
+    --max-length 10
 
-# 5. Validate
-bead templates validate-filled \
-    --filled-templates filled_templates/filtered.jsonl
+bead templates validate-filled filled_templates/workflow_filtered.jsonl
 
-# 6. Export to CSV for inspection
-bead templates export-csv \
-    --filled-templates filled_templates/filtered.jsonl \
-    --output filled_templates/filtered.csv
+bead templates export-csv filled_templates/workflow_filtered.jsonl exports/workflow.csv
 ```
 
 ## Next Steps
