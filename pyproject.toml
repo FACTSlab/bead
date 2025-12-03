@@ -54,7 +54,7 @@ training = [
 bead = "bead.cli.main:cli"
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["tests", "docs/user-guide/cli"]
 addopts = ["-ra", "--strict-markers", "--cov=bead", "--cov-report=term-missing"]
 
 [tool.pytest_env]
