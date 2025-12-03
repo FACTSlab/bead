@@ -4,29 +4,9 @@ The bead CLI provides command-line tools for every stage of the experimental pip
 
 ## Quick Start
 
-Complete pipeline in 6 stages:
-
 ```bash
-# Stage 1: Import resources
-bead resources import-verbnet --output lexicons/verbs.jsonl
-
-# Stage 2: Fill templates
-bead templates fill templates.jsonl lexicons/*.jsonl filled.jsonl \
-  --strategy exhaustive
-
-# Stage 3: Construct items
-bead items construct --item-template template.jsonl \
-  --filled-templates filled.jsonl --output items.jsonl
-
-# Stage 4: Partition into lists
-bead lists partition items.jsonl lists/ --n-lists 5 \
-  --strategy balanced
-
-# Stage 5: Generate experiment
-bead deployment generate lists/ items.jsonl experiment/
-
-# Stage 6: Collect data and train
-bead training collect-data results.jsonl
+# Verify bead CLI is available
+bead --help | head -5
 ```
 
 ## When to Use the CLI

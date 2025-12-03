@@ -38,64 +38,38 @@ Import verbs from VerbNet:
 
 ```bash
 bead resources import-verbnet \
-  --query "break" \
-  --output lexicons/verbnet_verbs.jsonl \
-  --limit 100
+  --verb-class "break-45.1" \
+  --limit 20 \
+  --output lexicons/verbnet_verbs.jsonl
 ```
 
-Import morphological forms from UniMorph:
+Create custom lexicon from list:
 
 ```bash
-bead resources import-unimorph \
-  --language eng \
-  --pos VERB \
-  --features "V;PST" \
-  --output lexicons/past_verbs.jsonl \
-  --limit 50
-```
-
-Create custom lexicon from CSV:
-
-```bash
-bead resources create-lexicon \
-  --input resources/nouns.csv \
+bead resources create-lexicon resources/nouns.txt lexicons/bleached_nouns.jsonl \
   --name bleached_nouns \
-  --language-code eng \
-  --output lexicons/bleached_nouns.jsonl
+  --language eng \
+  --pos NOUN
 ```
 
-Generate templates from patterns:
+Generate templates from pattern:
 
 ```bash
-bead resources generate-templates \
-  --from-pattern "{det_subj} {subj} {verb} {det_obj} {obj}" \
-  --description "Basic transitive frame" \
-  --language-code eng \
-  --output templates/transitive.jsonl
+bead resources generate-template templates/transitive.jsonl \
+  --pattern "{det} {noun} {verb} {det2} {noun2}" \
+  --language eng \
+  --description "Basic transitive frame"
 ```
 
 ### Stage 2: Fill Templates
 
-Fill templates exhaustively:
+Fill templates with random strategy:
 
 ```bash
-bead templates fill \
-  --template templates/transitive.jsonl \
-  --lexicon lexicons/verbnet_verbs.jsonl lexicons/bleached_nouns.jsonl \
-  --strategy exhaustive \
-  --output filled_templates/all_combinations.jsonl
-```
-
-Or use random sampling for large spaces:
-
-```bash
-bead templates fill \
-  --template templates/transitive.jsonl \
-  --lexicon lexicons/*.jsonl \
+bead templates fill templates/transitive.jsonl lexicons/verbnet_verbs.jsonl lexicons/bleached_nouns.jsonl filled_templates/all_combinations.jsonl \
   --strategy random \
-  --n-samples 500 \
-  --seed 42 \
-  --output filled_templates/random_sample.jsonl
+  --max-combinations 100 \
+  --random-seed 42
 ```
 
 ### Stage 3: Construct Items
@@ -104,8 +78,9 @@ Create forced-choice items from filled templates:
 
 ```bash
 bead items create-forced-choice-from-texts \
-  --texts-file filled_templates/all_combinations.jsonl \
+  filled_templates/all_combinations.jsonl \
   --n-alternatives 2 \
+  --sample 10 \
   --output items/2afc_pairs.jsonl
 ```
 
@@ -120,8 +95,7 @@ bead items create-likert-7 \
 Validate items for task type:
 
 ```bash
-bead items validate-for-task-type \
-  --items items/2afc_pairs.jsonl \
+bead items validate-for-task-type items/2afc_pairs.jsonl \
   --task-type forced_choice
 ```
 
@@ -130,9 +104,7 @@ bead items validate-for-task-type \
 Partition items into balanced lists:
 
 ```bash
-bead lists partition \
-  items/2afc_pairs.jsonl \
-  lists/ \
+bead lists partition items/2afc_pairs.jsonl lists/ \
   --n-lists 5 \
   --strategy balanced
 ```
@@ -142,23 +114,22 @@ With constraints for balance and coverage:
 ```bash
 # Create uniqueness constraint
 bead lists create-uniqueness \
-  --property-expression "item['verb_lemma']" \
+  --property-expression "item['verb']" \
   --output constraints/unique_verbs.jsonl
 
 # Create batch coverage constraint
 bead lists create-batch-coverage \
-  --property "item['template_id']" \
-  --target-values "template_1,template_2,template_3" \
+  --property-expression "item['template_id']" \
+  --target-values "0,1,2" \
   --min-coverage 1.0 \
   --output constraints/template_coverage.jsonl
 
 # Partition with constraints
-bead lists partition \
-  items/2afc_pairs.jsonl \
-  lists/ \
+bead lists partition items/2afc_pairs.jsonl lists/ \
   --n-lists 5 \
   --strategy balanced \
-  --constraints constraints/*.jsonl
+  --list-constraints constraints/unique_verbs.jsonl \
+  --batch-constraints constraints/template_coverage.jsonl
 ```
 
 View list statistics:
@@ -172,30 +143,19 @@ bead lists show-stats lists/
 Generate jsPsych experiment:
 
 ```bash
-bead deployment generate \
-  lists/ \
-  items/2afc_pairs.jsonl \
-  deployment/local \
-  --config config.yaml
+bead deployment generate lists/ items/2afc_pairs.jsonl deployment/local \
+  --experiment-type forced_choice \
+  --title "Argument Structure Judgments" \
+  --instructions "Choose the more natural sentence." \
+  --distribution-strategy balanced
 ```
 
 Export to JATOS format:
 
 ```bash
-bead deployment export-jatos \
-  deployment/local \
-  deployment/study.jzip \
+bead deployment export-jatos deployment/local deployment/study.jzip \
   --title "Argument Structure Judgments" \
   --description "Acceptability ratings for verb-frame combinations"
-```
-
-Upload to JATOS server (requires credentials):
-
-```bash
-bead deployment upload-jatos \
-  deployment/study.jzip \
-  --jatos-url https://jatos.example.com \
-  --api-token $JATOS_TOKEN
 ```
 
 ### Stage 6: Training and Evaluation
@@ -203,8 +163,7 @@ bead deployment upload-jatos \
 Collect data from JATOS:
 
 ```bash
-bead training collect-data \
-  results.jsonl \
+bead training collect-data results.jsonl \
   --jatos-url https://jatos.example.com \
   --api-token $JATOS_TOKEN \
   --study-id 123
@@ -219,9 +178,9 @@ bead training show-data-stats results.jsonl
 Compute inter-annotator agreement:
 
 ```bash
-bead training compute-agreement \
-  results.jsonl \
-  --metric krippendorff_alpha
+bead training compute-agreement results.jsonl \
+  --metric krippendorff_alpha \
+  --data-type ordinal
 ```
 
 ## Using the Workflow Command
