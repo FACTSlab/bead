@@ -12,7 +12,7 @@ Ensure property values appear at most once per list:
 
 ```bash
 bead lists create-uniqueness \
-    --property-expression "item.metadata.verb" \
+    --property-expression "item['verb']" \
     --priority 5 \
     --output constraints/unique_verbs.jsonl
 ```
@@ -25,8 +25,8 @@ Balance distribution of property values:
 
 ```bash
 bead lists create-balance \
-    --property-expression "item.metadata.condition" \
-    --target-counts control=10,experimental=10 \
+    --property-expression "item['condition']" \
+    --target-counts "control=10,experimental=10" \
     --tolerance 0.1 \
     --priority 4 \
     --output constraints/balance_condition.jsonl
@@ -40,7 +40,7 @@ Ensure property values span quantile ranges:
 
 ```bash
 bead lists create-quantile \
-    --property-expression "item.metadata.word_length" \
+    --property-expression "item['word_length']" \
     --n-quantiles 4 \
     --priority 3 \
     --output constraints/quantile_length.jsonl
@@ -54,8 +54,8 @@ Apply quantile constraints within groups:
 
 ```bash
 bead lists create-grouped-quantile \
-    --property-expression "item.metadata.frequency" \
-    --group-by-expression "item.metadata.condition" \
+    --property-expression "item['frequency']" \
+    --group-by-expression "item['condition']" \
     --n-quantiles 3 \
     --priority 3 \
     --output constraints/grouped_quantile_freq.jsonl
@@ -69,7 +69,7 @@ Require minimum unique values:
 
 ```bash
 bead lists create-diversity \
-    --property-expression "item.metadata.verb_class" \
+    --property-expression "item['verb_class']" \
     --min-unique 10 \
     --priority 3 \
     --output constraints/diversity_class.jsonl
@@ -101,7 +101,7 @@ Ensure all target values appear somewhere:
 
 ```bash
 bead lists create-batch-coverage \
-    --property-expression "item.metadata.template_id" \
+    --property-expression "item['template_id']" \
     --target-values "0,1,2,3,4,5,6,7,8,9" \
     --min-coverage 1.0 \
     --priority 5 \
@@ -116,8 +116,8 @@ Balance property values across batch:
 
 ```bash
 bead lists create-batch-balance \
-    --property-expression "item.metadata.condition" \
-    --target-distribution control=0.5,experimental=0.5 \
+    --property-expression "item['condition']" \
+    --target-distribution "control=0.5,experimental=0.5" \
     --tolerance 0.05 \
     --priority 4 \
     --output constraints/batch_balance_condition.jsonl
@@ -131,7 +131,7 @@ Limit values per list:
 
 ```bash
 bead lists create-batch-diversity \
-    --property-expression "item.metadata.target_word" \
+    --property-expression "item['target_word']" \
     --max-lists-per-value 3 \
     --priority 3 \
     --output constraints/batch_diversity_word.jsonl
@@ -145,7 +145,7 @@ Ensure minimum occurrences:
 
 ```bash
 bead lists create-batch-min-occurrence \
-    --property-expression "item.metadata.construction" \
+    --property-expression "item['construction']" \
     --min-occurrences 5 \
     --priority 4 \
     --output constraints/batch_min_occurrence.jsonl
@@ -160,51 +160,14 @@ Divide items into experimental lists.
 ### Basic Partitioning
 
 ```bash
-bead lists partition \
-    --items items/all.jsonl \
-    --n-lists 10 \
-    --strategy balanced \
-    --output lists/
+bead lists partition items/2afc_pairs.jsonl lists/ \
+    --n-lists 5 \
+    --strategy balanced
 ```
 
 The `balanced` strategy distributes items evenly across lists.
 
-### With List Constraints
-
-```bash
-bead lists partition \
-    --items items/all.jsonl \
-    --n-lists 10 \
-    --list-constraints constraints/list_constraints.jsonl \
-    --strategy balanced \
-    --output lists/
-```
-
-### With Batch Constraints
-
-```bash
-bead lists partition \
-    --items items/all.jsonl \
-    --n-lists 10 \
-    --batch-constraints constraints/batch_constraints.jsonl \
-    --strategy balanced \
-    --output lists/
-```
-
-### With Both Constraint Types
-
-```bash
-bead lists partition \
-    --items items/all.jsonl \
-    --n-lists 10 \
-    --list-constraints constraints/list_constraints.jsonl \
-    --batch-constraints constraints/batch_constraints.jsonl \
-    --strategy balanced \
-    --max-iterations 10000 \
-    --output lists/
-```
-
-The partitioner uses priority-weighted constraint satisfaction. Higher priority constraints are satisfied first.
+The `partition` command supports list and batch constraints via `--list-constraints` and `--batch-constraints` options (see workflow example below).
 
 ## Partitioning Strategies
 
@@ -217,29 +180,24 @@ Three strategies balance different goals:
 Example with stratified:
 
 ```bash
-bead lists partition \
-    --items items/all.jsonl \
-    --n-lists 10 \
-    --strategy stratified \
-    --stratify-by condition \
-    --output lists/
+bead lists partition items/2afc_pairs.jsonl lists/ \
+    --n-lists 5 \
+    --strategy stratified
 ```
 
-## Validation
+## Validation and Statistics
 
-Verify list file structure:
-
-```bash
-bead lists validate list_0.jsonl
-```
-
-Validates that the list file contains a valid ExperimentList with proper structure.
-
-## Listing and Statistics
-
-View list statistics:
+After partitioning, validate and view statistics:
 
 ```bash
+# Partition items first
+bead lists partition items/2afc_pairs.jsonl lists/ \
+    --n-lists 3 \
+    --strategy balanced
+
+# Validate a list file
+bead lists validate lists/list_0.jsonl
+
 # Show statistics
 bead lists show-stats lists/
 ```
@@ -273,33 +231,31 @@ Complete workflow from items to lists:
 ```bash
 # 1. Create list constraints
 bead lists create-uniqueness \
-    --property-expression "item.metadata.verb" \
+    --property-expression "item['verb']" \
     --priority 5 \
     --output constraints/unique_verbs.jsonl
 
 bead lists create-balance \
-    --property-expression "item.metadata.condition" \
-    --target-counts control=20,experimental=20 \
+    --property-expression "item['condition']" \
+    --target-counts "control=20,experimental=20" \
     --tolerance 0.1 \
     --priority 4 \
     --output constraints/balance_condition.jsonl
 
 # 2. Create batch constraint
 bead lists create-batch-coverage \
-    --property-expression "item.metadata.template_id" \
+    --property-expression "item['template_id']" \
     --target-values "0,1,2,3,4,5" \
     --min-coverage 1.0 \
     --priority 5 \
     --output constraints/batch_coverage.jsonl
 
 # 3. Partition with constraints
-bead lists partition \
-    --items items/2afc_pairs.jsonl \
-    --n-lists 10 \
+bead lists partition items/2afc_pairs.jsonl lists/ \
+    --n-lists 5 \
     --list-constraints constraints/unique_verbs.jsonl constraints/balance_condition.jsonl \
     --batch-constraints constraints/batch_coverage.jsonl \
-    --strategy balanced \
-    --output lists/
+    --strategy balanced
 
 # 4. Validate a list file
 bead lists validate lists/list_0.jsonl
