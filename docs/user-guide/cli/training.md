@@ -14,10 +14,10 @@ Train without random effects:
 bead models train-model \
     --task-type forced_choice \
     --items items/2afc_pairs.jsonl \
-    --data responses/responses.jsonl \
+    --labels responses/labels.jsonl \
     --model-name bert-base-uncased \
     --mixed-effects-mode fixed \
-    --output models/fixed_model/
+    --output-dir models/fixed_model/
 ```
 
 Use when participant and item variability is minimal or when sample sizes are small.
@@ -30,12 +30,11 @@ Model participant and item baseline differences:
 bead models train-model \
     --task-type forced_choice \
     --items items/2afc_pairs.jsonl \
-    --data responses/responses.jsonl \
+    --labels responses/labels.jsonl \
+    --participant-ids responses/participant_ids.txt \
     --model-name bert-base-uncased \
     --mixed-effects-mode random_intercepts \
-    --participant-intercept \
-    --item-intercept \
-    --output models/random_intercepts_model/
+    --output-dir models/random_intercepts_model/
 ```
 
 Random intercepts capture that some participants are consistently stricter/lenient and some items are consistently easier/harder.
@@ -48,13 +47,11 @@ Model interactions between participants and items:
 bead models train-model \
     --task-type forced_choice \
     --items items/2afc_pairs.jsonl \
-    --data responses/responses.jsonl \
+    --labels responses/labels.jsonl \
+    --participant-ids responses/participant_ids.txt \
     --model-name bert-base-uncased \
     --mixed-effects-mode random_slopes \
-    --participant-intercept \
-    --item-intercept \
-    --interaction \
-    --output models/random_slopes_model/
+    --output-dir models/random_slopes_model/
 ```
 
 Random slopes capture that participants respond differently to different items (participant × item interactions).
@@ -78,12 +75,11 @@ Specify the task type with `--task-type`:
 bead models train-model \
     --task-type ordinal_scale \
     --items items/likert7.jsonl \
-    --data responses/likert_responses.jsonl \
+    --labels responses/likert_labels.jsonl \
+    --participant-ids responses/participant_ids.txt \
     --model-name bert-base-uncased \
     --mixed-effects-mode random_intercepts \
-    --participant-intercept \
-    --item-intercept \
-    --output models/ordinal_model/
+    --output-dir models/ordinal_model/
 ```
 
 ## LoRA Training
@@ -94,13 +90,13 @@ Use Low-Rank Adaptation for parameter-efficient fine-tuning:
 bead models train-model \
     --task-type free_text \
     --items items/paraphrase.jsonl \
-    --data responses/paraphrase_responses.jsonl \
+    --labels responses/paraphrase_labels.jsonl \
     --model-name gpt2 \
     --mixed-effects-mode fixed \
     --use-lora \
     --lora-rank 8 \
     --lora-alpha 16 \
-    --output models/lora_model/
+    --output-dir models/lora_model/
 ```
 
 LoRA reduces trainable parameters, enabling fine-tuning of larger models with limited compute.
@@ -111,7 +107,7 @@ Generate predictions from trained models:
 
 ```bash
 bead models predict \
-    --model models/random_intercepts_model/ \
+    --model-dir models/random_intercepts_model/ \
     --items items/new_items.jsonl \
     --participant-ids participant_ids.txt \
     --output predictions/predictions.jsonl
@@ -125,7 +121,7 @@ Get class probability distributions:
 
 ```bash
 bead models predict-proba \
-    --model models/random_intercepts_model/ \
+    --model-dir models/random_intercepts_model/ \
     --items items/new_items.jsonl \
     --participant-ids participant_ids.txt \
     --output predictions/probabilities.json
@@ -167,8 +163,9 @@ Compute standard metrics:
 
 ```bash
 bead training evaluate \
-    --model models/random_intercepts_model/ \
-    --test-data responses/test_set.jsonl \
+    --model-dir models/random_intercepts_model/ \
+    --test-items items/test_set.jsonl \
+    --test-labels responses/test_labels.jsonl \
     --metrics accuracy,f1,precision,recall \
     --output evaluation/metrics.json
 ```
@@ -180,7 +177,7 @@ k-fold cross-validation with stratification:
 ```bash
 bead training cross-validate \
     --items items/all.jsonl \
-    --data responses/all_responses.jsonl \
+    --labels responses/all_labels.jsonl \
     --model-config config/model_config.yaml \
     --k-folds 5 \
     --stratify-by participant_id \
@@ -196,10 +193,10 @@ Plot performance vs training set size:
 ```bash
 bead training learning-curve \
     --items items/all.jsonl \
-    --data responses/all_responses.jsonl \
+    --labels responses/all_labels.jsonl \
     --model-config config/model_config.yaml \
     --train-sizes 0.1,0.2,0.5,0.8,1.0 \
-    --output evaluation/learning_curve.png
+    --output evaluation/learning_curve.json
 ```
 
 ## Inter-Annotator Agreement
@@ -211,20 +208,17 @@ Compute agreement among human annotators:
 bead training compute-agreement \
     --annotations responses/multi_annotator.jsonl \
     --metric krippendorff_alpha \
-    --task-type ordinal_scale
+    --data-type ordinal
 
 # Fleiss' kappa (categorical data, multiple raters)
 bead training compute-agreement \
     --annotations responses/multi_annotator.jsonl \
-    --metric fleiss_kappa \
-    --task-type categorical
+    --metric fleiss_kappa
 
 # Cohen's kappa (pairwise agreement)
 bead training compute-agreement \
     --annotations responses/two_annotators.jsonl \
-    --metric cohens_kappa \
-    --task-type binary \
-    --pairwise
+    --metric cohens_kappa
 ```
 
 ## Data Collection
@@ -232,10 +226,10 @@ bead training compute-agreement \
 After deployment, collect responses from JATOS:
 
 ```bash
-bead training collect-data \
-    --server https://jatos.example.com \
-    --study-id 123 \
-    --output responses/raw_responses.jsonl
+bead training collect-data responses/raw_responses.jsonl \
+    --jatos-url https://jatos.example.com \
+    --api-token your-api-token \
+    --study-id 123
 ```
 
 The command downloads all responses and converts them to bead's JSONL format.
@@ -246,25 +240,24 @@ Complete training and convergence detection workflow:
 
 ```bash
 # 1. Collect data from JATOS
-bead training collect-data \
-    --server https://jatos.example.com \
-    --study-id 123 \
-    --output responses/collected_data.jsonl
+bead training collect-data responses/collected_data.jsonl \
+    --jatos-url https://jatos.example.com \
+    --api-token your-api-token \
+    --study-id 123
 
 # 2. Train GLMM model
 bead models train-model \
     --task-type forced_choice \
     --items items/2afc_pairs.jsonl \
-    --data responses/collected_data.jsonl \
+    --labels responses/labels.jsonl \
+    --participant-ids responses/participant_ids.txt \
     --model-name bert-base-uncased \
     --mixed-effects-mode random_intercepts \
-    --participant-intercept \
-    --item-intercept \
-    --output models/trained_model/
+    --output-dir models/trained_model/
 
 # 3. Generate predictions on test set
 bead models predict \
-    --model models/trained_model/ \
+    --model-dir models/trained_model/ \
     --items items/test_set.jsonl \
     --participant-ids test_participant_ids.txt \
     --output predictions/model_predictions.jsonl
@@ -278,8 +271,9 @@ bead active-learning check-convergence \
 
 # 5. Evaluate model performance
 bead training evaluate \
-    --model models/trained_model/ \
-    --test-data responses/test_set.jsonl \
+    --model-dir models/trained_model/ \
+    --test-items items/test_set.jsonl \
+    --test-labels responses/test_labels.jsonl \
     --metrics accuracy,f1,precision,recall \
     --output evaluation/metrics.json
 ```
