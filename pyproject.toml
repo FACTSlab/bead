@@ -34,6 +34,8 @@ dev = [
     "pytest-cov>=4.1.0",
     "pytest-mock>=3.11.0",
     "pytest-examples>=0.0.10",
+    "pytest-codeblocks>=0.17.0",
+    "pytest-env>=1.0.0",
     "ruff>=0.1.0",
     "pyright>=1.1.0",
     "pandas-stubs>=2.0.0",
@@ -54,6 +56,12 @@ bead = "bead.cli.main:cli"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = ["-ra", "--strict-markers", "--cov=bead", "--cov-report=term-missing"]
+
+[tool.pytest_env]
+# Prepend .venv/bin to PATH for CLI tests
+PATH = {value = ".venv/bin:{PATH}", transform = true}
+# Set BASH_ENV to cd into fixtures directory for codeblocks tests
+BASH_ENV = ".bash_setup"
 
 [tool.ruff]
 line-length = 88
