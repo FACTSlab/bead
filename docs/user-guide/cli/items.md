@@ -22,10 +22,10 @@ Create items where participants select from alternatives.
 ### Basic Forced Choice
 
 ```bash
-bead items create-forced-choice "Option A" "Option B" -o items/2afc.jsonl
+bead items create-forced-choice "Option A" "Option B" --output items/2afc.jsonl
 
 bead items create-forced-choice "The cat sleeps" "The cat slept" "The cats sleep" \
-    --metadata source=transitive \
+    --metadata "source=transitive" \
     --output items/3afc.jsonl
 ```
 
@@ -37,10 +37,11 @@ Creates a single forced-choice item from the provided options (2AFC, 3AFC, or N-
 bead items create-forced-choice-from-texts \
     --texts-file sentences.txt \
     --n-alternatives 2 \
+    --sample 20 \
     --output items/forced_choice.jsonl
 ```
 
-Creates all possible combinations of N alternatives from the text file. Each line in `sentences.txt` is a potential alternative.
+Creates 2-way forced-choice items from sentences. Randomly samples 20 items from all possible combinations.
 
 ### Sampling Combinations
 
@@ -48,11 +49,11 @@ Creates all possible combinations of N alternatives from the text file. Each lin
 bead items create-forced-choice-from-texts \
     --texts-file sentences.txt \
     --n-alternatives 3 \
-    --sample 100 \
+    --sample 10 \
     --output items/sampled.jsonl
 ```
 
-Randomly sample 100 items from all possible 3-way combinations.
+Randomly samples 10 items from all possible 3-way combinations.
 
 ## Ordinal Scale Items
 
@@ -63,12 +64,12 @@ Create rating tasks with Likert or slider scales.
 ```bash
 bead items create-likert-7 \
     --text "The cat sat on the mat" \
-    -o item.jsonl
+    --output items/likert_item1.jsonl
 
 bead items create-likert-7 \
     --text "Sentence text" \
     --prompt "How natural is this?" \
-    -o item.jsonl
+    --output items/likert_item2.jsonl
 ```
 
 Creates a single 7-point Likert scale item (1 = Strongly disagree, 7 = Strongly agree).
@@ -100,13 +101,12 @@ Create items with unordered category selection.
 
 ```bash
 bead items create-categorical \
-    --categories entailment,contradiction,neutral \
-    --premise-file premises.txt \
-    --hypothesis-file hypotheses.txt \
+    --text "The cat is sleeping" \
+    --categories "entailment,contradiction,neutral" \
     --output items/categorical.jsonl
 ```
 
-Pairs premises with hypotheses for Natural Language Inference tasks.
+Creates a categorical item with specified categories.
 
 ### NLI Items
 
@@ -199,13 +199,13 @@ Create fill-in-the-blank tasks from plain text.
 bead items create-simple-cloze \
     --text "The quick brown fox" \
     --blank-position 1 \
-    -o item.jsonl
+    --output items/cloze_item1.jsonl
 
 bead items create-simple-cloze \
     --text "The cat sat on the mat" \
     --blank-position 3 \
     --blank-label "preposition" \
-    -o item.jsonl
+    --output items/cloze_item2.jsonl
 ```
 
 Blanks out the specified position (zero-indexed). First example produces: "The ___ brown fox".
@@ -216,13 +216,11 @@ Verify items conform to task type requirements:
 
 ```bash
 # Validate structure
-bead items validate-for-task-type \
-    --items items/2afc.jsonl \
+bead items validate-for-task-type items/2afc.jsonl \
     --task-type forced_choice
 
 # Infer task type from structure
-bead items infer-task-type \
-    --items items/mystery.jsonl
+bead items infer-task-type items/2afc.jsonl
 
 # Get requirements for task type
 bead items get-task-requirements \
@@ -245,9 +243,8 @@ All item creation commands support `--metadata key=value` for adding custom fiel
 
 ```bash
 bead items create-forced-choice "Option A" "Option B" \
-    --metadata condition=experimental \
-    --metadata block=1 \
-    -o item.jsonl
+    --metadata "condition=experimental,block=1" \
+    --output items/metadata_item.jsonl
 ```
 
 Metadata flows through partitioning and deployment stages.
@@ -261,7 +258,7 @@ View item statistics:
 bead items list --directory items/
 
 # Show statistics for an items file
-bead items show-stats items/all.jsonl
+bead items show-stats items/forced_choice.jsonl
 ```
 
 Output includes:
@@ -282,7 +279,7 @@ Complete workflow from text files to experimental items:
 bead items create-forced-choice-from-texts \
     --texts-file sentences.txt \
     --n-alternatives 2 \
-    --sample 100 \
+    --sample 10 \
     --output items/forced_choice.jsonl
 
 # 2. Create Likert-7 items from same sentences
@@ -294,8 +291,7 @@ bead items create-ordinal-scale-from-texts \
     --output items/likert7.jsonl
 
 # 3. Validate items
-bead items validate-for-task-type \
-    --items items/forced_choice.jsonl \
+bead items validate-for-task-type items/forced_choice.jsonl \
     --task-type forced_choice
 
 # 4. View statistics
