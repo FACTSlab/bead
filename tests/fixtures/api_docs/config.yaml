@@ -1,0 +1,21 @@
+project:
+  name: "argument_structure"
+  language_code: "eng"
+
+paths:
+  lexicons_dir: "lexicons"
+  templates_dir: "templates"
+  filled_templates_dir: "filled_templates"
+  items_dir: "items"
+  lists_dir: "lists"
+
+template:
+  filling_strategy: "exhaustive"
+
+lists:
+  n_lists: 5
+  strategy: "balanced"
+
+deployment:
+  platform: "jatos"
+  distribution_strategy: "balanced"

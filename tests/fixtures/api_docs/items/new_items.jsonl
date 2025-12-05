@@ -1,0 +1,2 @@
+{"id": "01936d5a-9c25-7000-8000-000000000020", "rendered_elements": {"option_a": "New item A", "option_b": "New item B"}, "item_metadata": {"n_options": 2}, "created_at": "2025-01-01T00:00:00Z", "modified_at": "2025-01-01T00:00:00Z", "metadata": {}}
+{"id": "01936d5a-9c25-7000-8000-000000000021", "rendered_elements": {"option_a": "New item C", "option_b": "New item D"}, "item_metadata": {"n_options": 2}, "created_at": "2025-01-01T00:00:00Z", "modified_at": "2025-01-01T00:00:00Z", "metadata": {}}

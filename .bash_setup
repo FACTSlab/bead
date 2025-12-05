@@ -8,8 +8,18 @@ PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Add bead CLI to PATH using absolute path
 export PATH="${PROJECT_ROOT}/.venv/bin:${PATH}"
 
-# Change to fixtures directory (fail if it doesn't exist)
-cd "${PROJECT_ROOT}/tests/fixtures/cli_work" || {
-    echo "ERROR: tests/fixtures/cli_work directory does not exist" >&2
+# Create cli_work directory if it doesn't exist and copy fixtures
+FIXTURES_SRC="${PROJECT_ROOT}/tests/fixtures/api_docs"
+FIXTURES_WORK="${PROJECT_ROOT}/tests/fixtures/cli_work"
+
+if [ ! -d "${FIXTURES_WORK}" ]; then
+    echo "Setting up CLI test fixtures..." >&2
+    mkdir -p "${FIXTURES_WORK}"
+    cp -r "${FIXTURES_SRC}"/* "${FIXTURES_WORK}/"
+fi
+
+# Change to fixtures directory
+cd "${FIXTURES_WORK}" || {
+    echo "ERROR: Failed to cd to ${FIXTURES_WORK}" >&2
     exit 1
 }

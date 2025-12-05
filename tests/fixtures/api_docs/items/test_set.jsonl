@@ -1,0 +1,2 @@
+{"id": "01936d5a-9c25-7000-8000-000000000010", "rendered_elements": {"option_a": "Test item A", "option_b": "Test item B"}, "item_metadata": {"n_options": 2}, "created_at": "2025-01-01T00:00:00Z", "modified_at": "2025-01-01T00:00:00Z", "metadata": {}}
+{"id": "01936d5a-9c25-7000-8000-000000000011", "rendered_elements": {"option_a": "Test item C", "option_b": "Test item D"}, "item_metadata": {"n_options": 2}, "created_at": "2025-01-01T00:00:00Z", "modified_at": "2025-01-01T00:00:00Z", "metadata": {}}

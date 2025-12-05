@@ -43,21 +43,22 @@ bead resources import-verbnet \
   --output lexicons/verbnet_verbs.jsonl
 ```
 
-Create custom lexicon from list:
+Create custom lexicon from CSV:
 
 ```bash
-bead resources create-lexicon resources/nouns.txt lexicons/bleached_nouns.jsonl \
+bead resources create-lexicon lexicons/bleached_nouns.jsonl \
   --name bleached_nouns \
-  --language eng \
-  --pos NOUN
+  --from-csv resources/bleached_nouns.csv \
+  --language-code eng
 ```
 
 Generate templates from pattern:
 
 ```bash
-bead resources generate-template templates/transitive.jsonl \
+bead resources generate-templates templates/transitive.jsonl \
   --pattern "{det} {noun} {verb} {det2} {noun2}" \
-  --language eng \
+  --name transitive \
+  --language-code eng \
   --description "Basic transitive frame"
 ```
 
@@ -78,7 +79,7 @@ Create forced-choice items from filled templates:
 
 ```bash
 bead items create-forced-choice-from-texts \
-  filled_templates/all_combinations.jsonl \
+  --texts-file filled_templates/all_combinations.jsonl \
   --n-alternatives 2 \
   --sample 10 \
   --output items/2afc_pairs.jsonl
@@ -116,14 +117,19 @@ With constraints for balance and coverage:
 bead lists create-uniqueness \
   --property-expression "item['verb']" \
   --output constraints/unique_verbs.jsonl
+```
 
+```bash
 # Create batch coverage constraint
 bead lists create-batch-coverage \
   --property-expression "item['template_id']" \
   --target-values "0,1,2" \
   --min-coverage 1.0 \
   --output constraints/template_coverage.jsonl
+```
 
+<!--pytest.mark.skip(reason="requires items from previous pipeline stages")-->
+```bash
 # Partition with constraints
 bead lists partition items/2afc_pairs.jsonl lists/ \
   --n-lists 5 \
@@ -134,6 +140,7 @@ bead lists partition items/2afc_pairs.jsonl lists/ \
 
 View list statistics:
 
+<!--pytest.mark.skip(reason="requires lists from previous pipeline stages")-->
 ```bash
 bead lists show-stats lists/
 ```
@@ -142,6 +149,7 @@ bead lists show-stats lists/
 
 Generate jsPsych experiment:
 
+<!--pytest.mark.skip(reason="requires lists and items from previous pipeline stages")-->
 ```bash
 bead deployment generate lists/ items/2afc_pairs.jsonl deployment/local \
   --experiment-type forced_choice \
@@ -152,6 +160,7 @@ bead deployment generate lists/ items/2afc_pairs.jsonl deployment/local \
 
 Export to JATOS format:
 
+<!--pytest.mark.skip(reason="requires deployment from previous step")-->
 ```bash
 bead deployment export-jatos deployment/local deployment/study.jzip \
   --title "Argument Structure Judgments" \
@@ -162,10 +171,11 @@ bead deployment export-jatos deployment/local deployment/study.jzip \
 
 Collect data from JATOS:
 
+<!--pytest.mark.skip(reason="requires external JATOS server")-->
 ```bash
 bead training collect-data results.jsonl \
   --jatos-url https://jatos.example.com \
-  --api-token $JATOS_TOKEN \
+  --api-token your-api-token \
   --study-id 123
 ```
 
@@ -178,7 +188,8 @@ bead training show-data-stats results.jsonl
 Compute inter-annotator agreement:
 
 ```bash
-bead training compute-agreement results.jsonl \
+bead training compute-agreement \
+  --annotations results.jsonl \
   --metric krippendorff_alpha \
   --data-type ordinal
 ```
@@ -187,12 +198,14 @@ bead training compute-agreement results.jsonl \
 
 Run complete pipeline with one command:
 
+<!--pytest.mark.skip(reason="requires full project configuration")-->
 ```bash
 bead workflow run --config config.yaml
 ```
 
 Run specific stages:
 
+<!--pytest.mark.skip(reason="requires full project configuration")-->
 ```bash
 bead workflow run \
   --config config.yaml \
@@ -201,12 +214,14 @@ bead workflow run \
 
 Resume interrupted workflow:
 
+<!--pytest.mark.skip(reason="requires prior workflow state")-->
 ```bash
 bead workflow resume
 ```
 
 Check workflow status:
 
+<!--pytest.mark.skip(reason="requires prior workflow state")-->
 ```bash
 bead workflow status
 ```
@@ -241,6 +256,7 @@ deployment:
 
 Load configuration:
 
+<!--pytest.mark.skip(reason="requires full project configuration")-->
 ```bash
 bead --config-file config.yaml workflow run
 ```

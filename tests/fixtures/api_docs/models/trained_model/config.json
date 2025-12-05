@@ -1,0 +1,1 @@
+{"model_name": "bert-base-uncased", "task_type": "forced_choice", "mixed_effects_mode": "random_intercepts"}
