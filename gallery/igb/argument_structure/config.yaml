@@ -1,0 +1,585 @@
+# ============================================================================
+# Argument Structure Active Learning Pipeline Configuration
+# ============================================================================
+#
+# This configuration defines the complete pipeline for collecting acceptability
+# judgments on verb argument structure alternations using active learning with
+# human-in-the-loop until model performance converges to human inter-annotator
+# agreement.
+#
+# Design Principle: Test ALL verbs in ALL frame structures (full cross-product)
+# to enable both grammatical (verb licensed for frame) and ungrammatical (verb
+# not licensed) judgments.
+#
+# ============================================================================
+
+# Project Metadata
+# ============================================================================
+project:
+  name: "argument_structure"
+  language_code: "ibo" 
+  
+# Paths Configuration
+# ============================================================================
+paths:
+  # Base directories
+  data_dir: "."
+  output_dir: "."
+  cache_dir: ".cache"
+
+  # Specific paths
+  lexicons_dir: "lexicons"
+  templates_dir: "templates"
+  items_dir: "items"
+  lists_dir: "lists"
+  filled_templates_dir: "filled_templates"
+
+  # Output files
+  cross_product_items: "items/cross_product_items.jsonl"
+  2afc_pairs: "items/2afc_pairs.jsonl"
+  experiment_lists: "lists/experiment_lists.jsonl"
+
+# Resource Configuration
+# ============================================================================
+resources:
+  # Lexicons
+  lexicons:
+    - path: "lexicons/verbs.jsonl"
+      name: "verbs"
+      description: "Igbo active verbs in simplePast from Nkọwa okwu dataset" 
+
+    - path: "lexicons/bleached_nouns.jsonl"
+      name: "bleached_nouns"
+      description: "Semantically light nouns for filling argument slots"
+
+    - path: "lexicons/bleached_verbs.jsonl"
+      name: "bleached_verbs"
+      description: "Semantically light verbs for complex predicates"
+
+    - path: "lexicons/bleached_adjectives.jsonl"
+      name: "bleached_adjectives"
+      description: "Semantically light adjectives for result/state slots"
+
+    - path: "lexicons/prepositions.jsonl"
+      name: "prepositions"
+      description: "Prepositions for PP arguments (nà, bànyere, etc.)"
+
+    - path: "lexicons/determiners.jsonl"
+      name: "determiners"
+      description: "Determiners for NP arguments (ahụ̀ 'that')"
+
+
+  # Templates
+  templates:
+    - path: "templates/generic_frames.jsonl"
+      name: "generic_frames"
+      description: "Generic frame structures constructed manually"
+
+# Template Filling Strategy
+# ============================================================================
+template:
+  # Strategy type: "exhaustive", "mlm", or "mixed"
+  filling_strategy: "exhaustive"
+
+  # Output path for filled templates
+  output_path: "filled_templates/generic_frames_filled.jsonl"
+
+  # MLM (Masked Language Model) settings for smart filling
+  mlm:
+    model_name: "Davlan/afro-xlmr-large"
+    beam_size: 5
+    top_k: 10
+    device: "cpu"
+    cache_enabled: true
+
+  # Slot-specific strategies
+  # - exhaustive: Use all entries from lexicon (for cross-product design)
+  # - mlm: Use MLM to select contextually appropriate fillers
+  #   - max_fills: Limit to top-N items by MLM probability (after constraint filtering)
+  #   - enforce_unique: Ensure each beam hypothesis uses different items for this slot
+  #
+  # MLM used for all slots EXCEPT determiners and "be" forms
+  # Constraints from templates are preserved and used to filter MLM predictions
+  slot_strategies:
+    # ========================================================================
+    # DETERMINERS - EXHAUSTIVE
+    # ========================================================================
+    det_subj:
+      strategy: "exhaustive"
+      description: "All subject determiners"
+
+    det_dobj:
+      strategy: "exhaustive"
+      description: "All direct object determiners"
+
+    det_iobj:
+      strategy: "exhaustive"
+      description: "All indirect object determiners"
+
+    det_pobj:
+      strategy: "exhaustive"
+      description: "All prepositional object determiners"
+
+    # det_pobj2:
+    #   strategy: "exhaustive"
+    #   description: "All second prepositional object determiners"
+
+    # det_pobj3:
+    #   strategy: "exhaustive"
+    #   description: "All third prepositional object determiners"
+
+    # ========================================================================
+    # BE FORMS - EXHAUSTIVE (no MLM)
+    # Constraints enforce subject-verb agreement
+    # ========================================================================
+    # be:
+    #   strategy: "exhaustive"
+    #   description: "All forms of 'be' (am, is, are, was, were, been, being) with constraint-based agreement"
+
+    # aux:
+    #   strategy: "exhaustive"
+    #   description: "Igbo aspectual/auxiliary markers (nà-, gà-, etc.)"
+
+    # ========================================================================
+    # MAIN VERB - EXHAUSTIVE (no MLM)
+    # Critical: Must test ALL verbs in ALL frames for cross-product design
+    # This is the core experimental manipulation for argument structure alternations
+    # ========================================================================
+    verb:
+      strategy: "exhaustive"
+      description: "ALL active simplePast verbs (exhaustive cross-product with all frames)"
+
+    # comp_verb:
+    #   strategy: "mlm"
+    #   description: "MLM selection of complement clause verbs"
+    #   max_fills: 5
+    #   enforce_unique: true
+
+    # comp_verb_gerund:
+    #   strategy: "mlm"
+    #   description: "MLM selection of gerund verbs"
+    #   max_fills: 5
+    #   enforce_unique: true
+
+    # ========================================================================
+    # NOUNS - MLM with constraints
+    # Uses existing NOUN constraints from templates (bleached nouns)
+    # ========================================================================
+    noun_subj:
+      strategy: "exhaustive"
+      description: "MLM selection of subject nouns (from bleached nouns)"
+      max_fills: 5
+      enforce_unique: true
+
+    noun_dobj:
+      strategy: "exhaustive"
+      description: "MLM selection of direct object nouns"
+      max_fills: 5
+      enforce_unique: true
+
+    noun_iobj:
+      strategy: "exhaustive"
+      description: "MLM selection of indirect object nouns"
+      max_fills: 5
+      enforce_unique: true
+
+    noun_pobj:
+      strategy: "exhaustive"
+      description: "MLM selection of prepositional object nouns"
+      max_fills: 5
+      enforce_unique: true
+
+    # noun_pobj2:
+    #   strategy: "mlm"
+    #   description: "MLM selection of second prepositional object nouns"
+    #   max_fills: 5
+    #   enforce_unique: true
+
+    # comp_subj:
+    #   strategy: "mlm"
+    #   description: "MLM selection of  complement clause subjects"  
+    #   max_fills: 5
+    #   enforce_unique: true
+
+    # comp_obj:
+    #   strategy: "mlm"
+    #   description: "MLM selection of complement clause objects" 
+    #   max_fills: 5
+    #   enforce_unique: true
+
+    recipient:
+      strategy: "exhaustive"
+      description: "MLM selection of recipient nouns" 
+      max_fills: 5
+      enforce_unique: true
+    
+    # wh_noun:
+    #   strategy: "mlm"
+    #   description: "MLM selection of wh-clause nouns"
+    #   max_fills: 5
+    #   enforce_unique: true
+
+  # ========================================================================
+    # PREPOSITIONS - MLM with constraints
+    # ========================================================================
+    prep:
+      strategy: "exhaustive"
+      description: "MLM selection of prepositions (nà, bànyere, etc.)"
+      max_fills: 5
+      enforce_unique: true
+
+    # prep2:
+    #   strategy: "mlm"
+    #   description: "MLM selection of second preposition" 
+    #   max_fills: 5
+    #   enforce_unique: true
+
+    # ========================================================================
+    # ADJECTIVES - MLM without constraints (fully MLM-driven)
+    # ========================================================================
+    # adjective:
+    #   strategy: "mlm"
+    #   description: "MLM for contextually appropriate adjectives (unconstrained)"
+    #   beam_size: 3
+    #   max_fills: 5
+    #   enforce_unique: true
+      
+# Items Configuration
+# ============================================================================
+items:
+  # Judgment type: "forced_choice", "acceptability_rating", "inference"
+  judgment_type: "forced_choice"
+
+  # Number of alternatives in forced choice
+  n_alternatives: 2  # 2AFC
+
+  # Language models for scoring items
+  models:
+    - name: "Davlan/afro-xlmr-large"
+      provider: "huggingface"
+      device: "cpu"
+      use_for_scoring: true
+
+    # Optional: Additional models for comparison
+    # - name: "facebook/xlm-roberta-large" OR "Davlan/afro-xlmr-base"
+    #   provider: "huggingface"
+    #   device: "cpu"
+
+  # Item construction settings
+  construction:
+    # Create minimal pairs
+    create_minimal_pairs: true
+    pair_types:
+      - "same_verb"       # Same verb, different frames
+      - "different_verb"  # Different verbs, same frame
+
+    # Score-based filtering
+    score_filtering:
+      enabled: true
+      min_score_diff: 0.5  # Minimum LM score difference for interesting pairs
+
+  # Item metadata to preserve
+  preserve_metadata:
+    - "verb_lemma"
+    - "template_id"
+    - "template_name"
+    - "template_structure"
+    - "pair_type"
+    - "lm_score_diff"
+    - "quantile"
+
+# List Partitioning Configuration
+# ============================================================================
+lists:
+  # Partitioning strategy
+  strategy: "quantile_balanced_minimal_pairs"
+
+  # Number of experimental lists to create
+  n_lists: 16
+
+  # Items per list
+  items_per_list: 50
+
+  # Quantile settings for difficulty stratification
+  quantile_bins: 10
+  items_per_quantile: 10
+
+  # Constraints for list balancing
+  constraints:
+    # Balance pair types
+    - type: "balance"
+      property_expression: "item.metadata.pair_type"
+      target_counts:
+        same_verb: 50
+        different_verb: 50
+      description: "Equal numbers of same-verb and different-verb pairs"
+
+    # Ensure verb uniqueness within lists
+    - type: "uniqueness"
+      property_expression: "item.metadata.get('verb1', item.metadata.get('verb'))"
+      description: "No verb appears multiple times in same list"
+
+    # Stratify by LM score difference (grouped by pair type)
+    - type: "grouped_quantile"
+      property_expression: "item.metadata.lm_score_diff"
+      group_by_expression: "item.metadata.pair_type"
+      n_quantiles: 10
+      items_per_quantile: 5
+      description: "Stratified sampling of LM score differences by pair type"
+
+    # Template diversity
+    - type: "diversity"
+      property_expression: "item.metadata.template_id"
+      min_unique_values: 15
+      description: "Ensure diverse set of templates in each list"
+
+  # Batch-level constraints (apply across ALL lists)
+  batch_constraints:
+    # Ensure all 26 templates represented across all lists
+    - type: "coverage"
+      property_expression: "item['template_id']"
+      target_values: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25]  
+      description: "Require 100% of templates appear somewhere in the batch"
+
+    # Ensure balanced pair types across entire batch
+    - type: "balance"
+      property_expression: "item['pair_type']"
+      target_distribution:
+        same_verb: 0.5
+        different_verb: 0.5
+      tolerance: 0.05
+      description: "50/50 split of pair types across all lists combined"
+
+    # Ensure each quantile appears at least 50 times total
+    - type: "min_occurrence"
+      property_expression: "item['quantile']"
+      min_occurrences: 50
+      description: "Minimum representation of each quantile bin"
+
+    # Ensure no verb appears in more than 4 lists
+    - type: "diversity"
+      property_expression: "item.get('verb1', item.get('verb'))"
+      max_lists_per_value: 4
+      description: "Spread verbs across participants (max 4/8 lists per verb)"
+
+# Training Configuration
+# ============================================================================
+training:
+  # Convergence detection settings
+  convergence:
+    # Metric for human baseline agreement
+    # Options: "krippendorff_alpha", "fleiss_kappa", "cohens_kappa", "percentage_agreement"
+    metric: "krippendorff_alpha"
+
+    # Convergence threshold (how close to human agreement)
+    # Model is converged when: |model_accuracy - human_agreement| < threshold
+    threshold: 0.05
+
+    # Minimum iterations before checking convergence
+    min_iterations: 3
+
+    # Statistical significance level for convergence test
+    alpha: 0.05
+
+  # Model training settings
+  model:
+    # Model architecture (for future implementation)
+    architecture: "transformer"
+    model_name: "Davlan/afro-xlmr-large"
+
+    # Training hyperparameters
+    learning_rate: 2e-5
+    batch_size: 16
+    epochs_per_iteration: 3
+    warmup_steps: 100
+
+    device: "cpu"
+
+  # Data settings
+  data:
+    # Train/validation split
+    validation_split: 0.2
+
+    # Random seed for reproducibility
+    random_seed: 42
+
+    # Class balancing
+    balance_classes: true
+
+# Active Learning Configuration
+# ============================================================================
+active_learning:
+  # Selection strategy: "uncertainty_sampling", "query_by_committee", "random"
+  strategy: "uncertainty_sampling"
+
+  # Uncertainty method: "entropy", "least_confidence", "margin"
+  method: "entropy"
+
+  # Budget per iteration (items to select and annotate)
+  budget_per_iteration: 200
+
+  # Maximum iterations
+  max_iterations: 20
+
+  # Stopping criterion: "max_iterations", "performance_threshold", "convergence"
+  stopping_criterion: "convergence"
+
+  # Initial training set size
+  initial_training_size: 500
+
+  # Batch mode (select multiple items at once)
+  batch_mode: true
+
+  # Diversity promotion in batch selection
+  promote_diversity: true
+  diversity_lambda: 0.1
+
+# Evaluation Configuration
+# ============================================================================
+evaluation:
+  # Cross-validation settings
+  cross_validation:
+    # K-fold CV
+    k_folds: 5
+
+    # Stratification variable
+    stratify_by: "metadata.pair_type"
+
+    # Shuffle before splitting
+    shuffle: true
+    random_seed: 42
+
+  metrics:
+    - "accuracy"
+    - "precision"
+    - "recall"
+    - "f1"
+    - "confusion_matrix"
+
+  interannotator:
+    metrics:
+      - "krippendorff_alpha"
+      - "fleiss_kappa"
+      - "percentage_agreement"
+      - "pairwise_agreement"
+
+    # Minimum number of raters per item
+    min_raters_per_item: 3
+
+  # Model performance tracking
+  tracking:
+    # Save checkpoints
+    save_checkpoints: true
+    checkpoint_dir: "checkpoints"
+
+    # Tensorboard logging
+    use_tensorboard: true
+    log_dir: "logs"
+
+    # Metrics to track per iteration
+    track_metrics:
+      - "train_accuracy"
+      - "val_accuracy"
+      - "human_agreement"
+      - "convergence_gap"
+
+# Deployment Configuration (for human data collection)
+# ============================================================================
+deployment:
+  # Platform: "jatos", "prolific", "mturk"
+  platform: "jatos"
+
+  # List distribution strategy for batch experiments
+  # Strategies: random, sequential, balanced, latin_square, stratified, weighted_random, quota_based, metadata_based
+  distribution_strategy:
+    strategy_type: "balanced"  # Assign participants to least-used list
+    max_participants: 400  # Total across all lists (optional)
+    error_on_exhaustion: false  # Continue after max reached
+    debug_mode: false  # Set to true for testing (always assigns same list)
+    debug_list_index: 0  # List index to use in debug mode
+
+  # Number of lists to randomly select for deployment
+  n_lists_to_deploy: 20
+
+  # Random seed for reproducible list selection
+  random_seed: 42
+
+  # Output directory for deployment files
+  output_dir: "deployment"
+
+  # Experiment settings
+  experiment:
+    title: "Sentence Acceptability Judgments"
+    description: "Rate which sentence sounds more natural"
+    estimated_duration_minutes: 15
+
+  # jsPsych configuration
+  jspsych:
+    version: "8.0.0"  # Using jsPsych 8.x
+
+    # JATOS integration (recommended for Prolific)
+    use_jatos: true  # Enable JATOS integration (default: true)
+
+    # Prolific integration (optional)
+    # When deploying on Prolific via JATOS:
+    # 1. Set prolific_completion_code to the code from your Prolific study
+    # 2. The system will automatically generate the redirect URL
+    # 3. Prolific participant IDs (PROLIFIC_PID, STUDY_ID, SESSION_ID) will be captured
+    prolific_completion_code: null  # Set to your Prolific completion code when deploying
+    # Example: prolific_completion_code: "C1A2B3C4"
+    # This will auto-generate: https://app.prolific.co/submissions/complete?cc=C1A2B3C4
+
+    # Trial settings
+    trial:
+      type: "html-button-response"
+      stimulus_duration: null  # No time limit
+      trial_duration: null
+
+    # Button labels for 2AFC
+    choices:
+      - "Sentence A"
+      - "Sentence B"
+
+    # Randomization
+    randomize_order: true
+    randomize_choices: true
+
+  # Participant requirements
+  participants:
+    # Number of participants per list
+    n_per_list: 30
+
+    # Qualifications
+    qualifications:
+      - "Native English speaker"
+      - "Age 18+"
+      - "Approval rate > 95%"
+
+    # Compensation
+    payment_usd: 2.50
+    bonus_usd: 0.50  # For high-quality responses
+
+  # Server configuration for remote deployment
+  server:
+    host: null  # Will prompt if null
+    port: 22
+    username: null  # Will prompt if null
+    deploy_path: "/var/www/experiments"
+
+# Logging Configuration
+# ===========================================================================
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+  # Log files
+  file:
+    enabled: true
+    path: "pipeline.log"
+    max_bytes: 10485760  # 10 MB
+    backup_count: 5
+
+  # Console logging
+  console:
+    enabled: true
+    colored: true

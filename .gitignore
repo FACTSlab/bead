@@ -4,7 +4,7 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
-.venv/
+statenv/
 .coverage
 gallery/**/.cache
 gallery/**/lexicons/*.jsonl
@@ -12,6 +12,9 @@ gallery/**/templates/*.jsonl
 gallery/**/filled_templates/*.jsonl
 gallery/**/items/*.jsonl
 gallery/**/lists/*.jsonl
+gallery/**/resources/*.csv
+gallery/**/results/
+gallery/**/simulation_output/
 gallery/**/deployment/
 node_modules/
 coverage/
