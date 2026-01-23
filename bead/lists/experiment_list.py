@@ -14,7 +14,15 @@ The model supports:
 from __future__ import annotations
 
 import random
-from typing import Any
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from bead.items.item_template import MetadataValue
+else:
+    # Recursive type for metadata values
+    type MetadataValue = (
+        str | int | float | bool | None | dict[str, MetadataValue] | list[MetadataValue]
+    )
 from uuid import UUID
 
 from pydantic import Field, field_validator, model_validator
@@ -39,8 +47,8 @@ def _empty_uuid_bool_dict() -> dict[UUID, bool]:
     return {}
 
 
-def _empty_any_dict() -> dict[str, Any]:
-    """Return empty string-to-Any dict."""
+def _empty_metadata_dict() -> dict[str, MetadataValue]:
+    """Return empty metadata dictionary."""
     return {}
 
 
@@ -101,11 +109,11 @@ class ExperimentList(BeadBaseModel):
     presentation_order: list[UUID] | None = Field(
         default=None, description="Explicit presentation order"
     )
-    list_metadata: dict[str, Any] = Field(
-        default_factory=_empty_any_dict, description="List metadata"
+    list_metadata: dict[str, MetadataValue] = Field(
+        default_factory=_empty_metadata_dict, description="List metadata"
     )
-    balance_metrics: dict[str, Any] = Field(
-        default_factory=_empty_any_dict, description="Balance metrics"
+    balance_metrics: dict[str, MetadataValue] = Field(
+        default_factory=_empty_metadata_dict, description="Balance metrics"
     )
 
     @field_validator("name")

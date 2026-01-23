@@ -14,7 +14,6 @@ from uuid import UUID
 import numpy as np
 
 from bead.dsl.evaluator import DSLEvaluator
-from bead.lists import ExperimentList
 from bead.lists.balancer import QuantileBalancer
 from bead.lists.constraints import (
     BalanceConstraint,
@@ -28,12 +27,13 @@ from bead.lists.constraints import (
     SizeConstraint,
     UniquenessConstraint,
 )
+from bead.lists.experiment_list import ExperimentList, MetadataValue
 from bead.resources.constraints import ContextValue
 
 # Type aliases for clarity
 type ItemMetadata = dict[str, Any]  # Arbitrary item properties
 type MetadataDict = dict[UUID, ItemMetadata]  # Metadata indexed by UUID
-type BalanceMetrics = dict[str, int | float | list[float] | dict[str, int]]
+type BalanceMetrics = dict[str, MetadataValue]
 
 
 class ListPartitioner:

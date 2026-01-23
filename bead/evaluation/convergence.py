@@ -7,15 +7,51 @@ learning loops.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TypedDict
 
 import numpy as np
-from scipy.stats import binomtest  # type: ignore[import-untyped]
+from scipy.stats import binomtest, ttest_rel  # type: ignore[import-untyped]
 
 from bead.evaluation.interannotator import InterAnnotatorMetrics
 
 # Type alias for classification labels (categorical, ordinal, or numeric)
 type Label = int | str | float
+
+
+class ConvergenceReport(TypedDict):
+    """Convergence report structure.
+
+    Attributes
+    ----------
+    converged : bool
+        Whether model has converged.
+    model_accuracy : float
+        Model's current accuracy.
+    human_agreement : float
+        Human agreement score.
+    gap : float
+        Difference between human agreement and model accuracy.
+    required_accuracy : float
+        Minimum accuracy required for convergence.
+    threshold : float
+        Convergence threshold.
+    iteration : int
+        Current iteration number.
+    meets_min_iterations : bool
+        Whether minimum iterations requirement is met.
+    min_iterations_required : int
+        Minimum iterations required before checking convergence.
+    """
+
+    converged: bool
+    model_accuracy: float
+    human_agreement: float
+    gap: float
+    required_accuracy: float
+    threshold: float
+    iteration: int
+    meets_min_iterations: bool
+    min_iterations_required: int
 
 
 class ConvergenceDetector:
@@ -147,7 +183,7 @@ class ConvergenceDetector:
     def compute_human_baseline(
         self,
         human_ratings: dict[str, list[Label | None]],
-        **kwargs: Any,
+        **kwargs: str | int | float | bool | None,
     ) -> float:
         """Compute human inter-rater agreement baseline.
 
@@ -157,7 +193,7 @@ class ConvergenceDetector:
             Dictionary mapping human rater IDs to their ratings.
             For example: {'rater1': [1, 0, 1, ...], 'rater2': [1, 1, 1, ...]}.
             Missing ratings can be represented as None.
-        **kwargs : Any
+        **kwargs : str | int | float | bool | None
             Additional arguments passed to agreement metric function.
             For example, metric='nominal' for Krippendorff's alpha.
 
@@ -191,8 +227,12 @@ class ConvergenceDetector:
 
         # Compute agreement using specified metric
         if self.human_agreement_metric == "krippendorff_alpha":
+            # Extract metric parameter, defaulting to 'nominal'
+            metric = kwargs.get("metric", "nominal")
+            if not isinstance(metric, str):
+                metric = "nominal"
             agreement = InterAnnotatorMetrics.krippendorff_alpha(
-                human_ratings, **kwargs
+                human_ratings, metric=metric
             )
         elif self.human_agreement_metric == "percentage_agreement":
             # Use mean of pairwise percentage agreements
@@ -362,14 +402,24 @@ class ConvergenceDetector:
             }
 
         elif test_type == "ttest":
-            # Paired t-test (requires multiple samples or ratings)
-            # For binary predictions, we can use accuracy on subsamples
-
-            # This is a simplified version - in practice you'd need
-            # multiple evaluation runs or bootstrap samples
-            raise NotImplementedError(
-                "ttest not yet fully implemented. Use 'mcnemar' instead."
+            # Paired t-test comparing model predictions to human consensus
+            # Convert predictions to correctness scores (1 if match, 0 if not)
+            model_scores = np.array(
+                [
+                    1.0 if mp == hc else 0.0
+                    for mp, hc in zip(model_predictions, human_consensus, strict=True)
+                ]
             )
+            # Human consensus is always "correct" (1.0) by definition
+            human_scores = np.ones(len(human_consensus), dtype=float)
+
+            # Paired t-test: test if model scores differ from human scores
+            statistic, p_value = ttest_rel(model_scores, human_scores)
+
+            return {
+                "statistic": float(statistic),
+                "p_value": float(p_value),
+            }
 
         else:
             raise ValueError(
@@ -381,7 +431,7 @@ class ConvergenceDetector:
         model_accuracy: float,
         iteration: int,
         human_agreement: float | None = None,
-    ) -> dict[str, Any]:
+    ) -> ConvergenceReport:
         """Generate convergence report with status and metrics.
 
         Parameters
@@ -395,15 +445,8 @@ class ConvergenceDetector:
 
         Returns
         -------
-        dict[str, Any]
-            Report with keys:
-            - 'converged': bool
-            - 'model_accuracy': float
-            - 'human_agreement': float
-            - 'gap': float (human_agreement - model_accuracy)
-            - 'required_accuracy': float
-            - 'iteration': int
-            - 'meets_min_iterations': bool
+        ConvergenceReport
+            Report with convergence status and metrics.
 
         Examples
         --------

@@ -9,12 +9,12 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from datetime import UTC, datetime
-from typing import Any
 from uuid import UUID
 
 import numpy as np
 
 from bead.dsl.ast import (
+    ASTNode,
     AttributeAccess,
     BinaryOp,
     FunctionCall,
@@ -273,8 +273,8 @@ class ItemConstructor:
         return model_outputs
 
     def _extract_model_calls(
-        self, ast_node: Any, rendered_elements: dict[str, str]
-    ) -> list[dict[str, Any]]:
+        self, ast_node: ASTNode, rendered_elements: dict[str, str]
+    ) -> list[dict[str, str | int | float | bool | None]]:
         """Extract model function calls from AST.
 
         Recursively traverse AST to find calls to model functions
@@ -282,17 +282,17 @@ class ItemConstructor:
 
         Parameters
         ----------
-        ast_node : Any
+        ast_node : ASTNode
             AST node to traverse.
         rendered_elements : dict[str, str]
             Rendered elements for variable resolution.
 
         Returns
         -------
-        list[dict[str, Any]]
+        list[dict[str, str | int | float | bool | None]]
             List of model call specifications with function name and arguments.
         """
-        calls: list[dict[str, Any]] = []
+        calls: list[dict[str, str | int | float | bool | None]] = []
 
         if isinstance(ast_node, FunctionCall):
             # Check if this is a model function call
@@ -336,15 +336,18 @@ class ItemConstructor:
         return calls
 
     def _extract_call_args(
-        self, func_name: str, args: list[Any], rendered_elements: dict[str, str]
-    ) -> dict[str, Any] | None:
+        self,
+        func_name: str,
+        args: list[ASTNode],
+        rendered_elements: dict[str, str],
+    ) -> dict[str, str | int | float | bool | None] | None:
         """Extract arguments from a model function call.
 
         Parameters
         ----------
         func_name : str
             Name of the function.
-        args : list[Any]
+        args : list[ASTNode]
             AST nodes representing function arguments.
         rendered_elements : dict[str, str]
             Rendered elements for variable resolution.
@@ -355,7 +358,7 @@ class ItemConstructor:
             Call specification with function, args, and model name.
         """
         # Resolve literal values and variables
-        resolved_args: list[Any] = []
+        resolved_args: list[str | int | float | bool | None] = []
         for arg in args:
             if isinstance(arg, Literal):
                 resolved_args.append(arg.value)
@@ -437,12 +440,14 @@ class ItemConstructor:
 
         return None
 
-    def _execute_model_call(self, call_spec: dict[str, object]) -> ModelOutput | None:
+    def _execute_model_call(
+        self, call_spec: dict[str, str | int | float | bool | None]
+    ) -> ModelOutput | None:
         """Execute a single model call and return ModelOutput.
 
         Parameters
         ----------
-        call_spec : dict[str, object]
+        call_spec : dict[str, str | int | float | bool | None]
             Call specification with function, args, and model.
 
         Returns
@@ -469,7 +474,7 @@ class ItemConstructor:
             raise ValueError(f"Unknown operation: {operation}")
 
         # Check cache first
-        cache_key_args: dict[str, object] = {}
+        cache_key_args: dict[str, str | int | float | bool | None] = {}
         if operation in {"log_probability", "perplexity"}:
             cache_key_args = {"text": call_spec["text"]}
         elif operation == "nli":

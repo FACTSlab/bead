@@ -2,15 +2,22 @@
 
 This module provides inter-annotator agreement metrics for assessing
 reliability and consistency across multiple human annotators.
-Supports Cohen's kappa (2 raters), Fleiss' kappa (multiple raters), and
-Krippendorff's alpha (most general).
+Uses sklearn.metrics for Cohen's kappa, statsmodels for Fleiss' kappa,
+and krippendorff package for Krippendorff's alpha.
 """
 
 from __future__ import annotations
 
 from itertools import combinations
+from typing import Literal
 
 import numpy as np
+from krippendorff import alpha as krippendorff_alpha
+from sklearn.metrics import cohen_kappa_score
+from statsmodels.stats.inter_rater import fleiss_kappa as statsmodels_fleiss_kappa
+
+# Type alias for krippendorff metric levels
+type KrippendorffMetric = Literal["nominal", "ordinal", "interval", "ratio"]
 
 # Type alias for rating values (categorical, ordinal, interval, or ratio)
 type Label = int | str | float
@@ -44,9 +51,9 @@ class InterAnnotatorMetrics:
 
         Parameters
         ----------
-        rater1 : list[Any]
+        rater1 : list[Label]
             Ratings from first rater.
-        rater2 : list[Any]
+        rater2 : list[Label]
             Ratings from second rater.
 
         Returns
@@ -87,9 +94,9 @@ class InterAnnotatorMetrics:
 
         Parameters
         ----------
-        rater1 : list[Any]
+        rater1 : list[Label]
             Ratings from first rater.
-        rater2 : list[Any]
+        rater2 : list[Label]
             Ratings from second rater.
 
         Returns
@@ -124,39 +131,16 @@ class InterAnnotatorMetrics:
         if not rater1:
             raise ValueError("Rater lists cannot be empty")
 
-        # Convert to numpy arrays
-        r1 = np.array(rater1)
-        r2 = np.array(rater2)
+        # Check for single category case (sklearn returns NaN)
+        unique_values = set(rater1) | set(rater2)
+        if len(unique_values) == 1:
+            return 1.0  # Perfect agreement by definition
 
-        # Get all categories
-        categories = sorted(set(r1) | set(r2))
-        n_categories = len(categories)
-        n = len(r1)
-
-        # Create confusion matrix
-        confusion = np.zeros((n_categories, n_categories))
-
-        for i, cat1 in enumerate(categories):
-            for j, cat2 in enumerate(categories):
-                confusion[i, j] = np.sum((r1 == cat1) & (r2 == cat2))  # type: ignore[call-overload]
-
-        # Observed agreement
-        p_o = np.trace(confusion) / n
-
-        # Expected agreement by chance
-        p_e = 0.0
-        for i in range(n_categories):
-            p_e += (confusion[i, :].sum() / n) * (  # type: ignore[operator]
-                confusion[:, i].sum() / n  # type: ignore[operator]
-            )
-
-        # Cohen's kappa
-        if p_e == 1.0:
-            # All items in one category
+        result = cohen_kappa_score(rater1, rater2)
+        # Handle NaN case (can happen with extreme distributions)
+        if np.isnan(result):
             return 1.0
-
-        kappa = (p_o - p_e) / (1.0 - p_e)
-        return float(kappa)
+        return float(result)
 
     @staticmethod
     def fleiss_kappa(ratings_matrix: np.ndarray[int, np.dtype[np.int_]]) -> float:  # type: ignore[type-arg]
@@ -181,6 +165,8 @@ class InterAnnotatorMetrics:
         ------
         ValueError
             If matrix is empty or has wrong shape.
+        ImportError
+            If statsmodels is not installed.
 
         Examples
         --------
@@ -196,6 +182,10 @@ class InterAnnotatorMetrics:
         >>> 0.0 <= kappa <= 1.0
         True
         """
+        if statsmodels_fleiss_kappa is None:
+            msg = "statsmodels required for Fleiss' kappa. pip install statsmodels"
+            raise ImportError(msg)
+
         if ratings_matrix.size == 0:
             raise ValueError("Ratings matrix cannot be empty")
 
@@ -204,34 +194,15 @@ class InterAnnotatorMetrics:
         if n_items == 0 or n_categories == 0:
             raise ValueError(f"Invalid matrix shape: ({n_items}, {n_categories})")
 
-        # Number of raters per item (assuming constant)
-        n_raters = ratings_matrix.sum(axis=1)[0]  # type: ignore[index, operator]
+        # Check that all items have the same number of raters
+        rater_counts = ratings_matrix.sum(axis=1)
+        if not np.allclose(rater_counts, rater_counts[0]):
+            raise ValueError(
+                "All items must have same number of raters. "
+                f"Got counts: {rater_counts.tolist()}"
+            )
 
-        # Check that all items have same number of raters
-        if not np.allclose(ratings_matrix.sum(axis=1), n_raters):  # type: ignore[operator]
-            raise ValueError("All items must have same number of raters")
-
-        # Proportion of all assignments to each category
-        p_j = ratings_matrix.sum(axis=0) / (n_items * n_raters)  # type: ignore[operator]
-
-        # Observed agreement for each item
-        p_i = (
-            np.sum(ratings_matrix * (ratings_matrix - 1), axis=1)  # type: ignore[call-overload]
-            / (n_raters * (n_raters - 1))
-        )
-
-        # Mean observed agreement
-        p_bar = p_i.mean()
-
-        # Expected agreement by chance
-        p_e = np.sum(p_j**2)  # type: ignore[call-overload]
-
-        # Fleiss' kappa
-        if p_e == 1.0:
-            return 1.0
-
-        kappa = (p_bar - p_e) / (1.0 - p_e)
-        return float(kappa)
+        return float(statsmodels_fleiss_kappa(ratings_matrix))
 
     @staticmethod
     def krippendorff_alpha(
@@ -248,7 +219,7 @@ class InterAnnotatorMetrics:
 
         Parameters
         ----------
-        reliability_data : dict[str, list[Any]]
+        reliability_data : dict[str, list[Label | None]]
             Dictionary mapping rater IDs to their ratings. Each rater's
             ratings list must have same length (use None for missing values).
         metric : str, default="nominal"
@@ -296,97 +267,70 @@ class InterAnnotatorMetrics:
                     f"{rater_id} has {len(ratings)}, expected {n_items}"
                 )
 
-        # Build reliability matrix
-        reliability_matrix_list: list[list[Label | None]] = []
+        # Convert to format expected by krippendorff package
+        # Format: rows are coders/raters, columns are units/items
+        # Missing values should be np.nan
+        reliability_matrix: list[list[float]] = []
+        all_values: list[Label] = []
         for rater_id in rater_ids:
-            reliability_matrix_list.append(reliability_data[rater_id])
+            rater_ratings: list[float] = []
+            for rating in reliability_data[rater_id]:
+                if rating is None:
+                    rater_ratings.append(np.nan)
+                else:
+                    is_numeric = isinstance(rating, (int, float))
+                    val = float(rating) if is_numeric else hash(rating)
+                    rater_ratings.append(val)
+                    all_values.append(rating)
+            reliability_matrix.append(rater_ratings)
 
-        reliability_matrix = np.array(reliability_matrix_list, dtype=object)  # type: ignore[assignment]
+        # Handle edge cases that krippendorff package doesn't handle
+        if len(all_values) == 0:
+            # All missing data
+            return 0.0
 
-        # Compute distance function based on metric
-        if metric == "nominal":
+        # Check if there are any pairwise comparisons possible
+        # (at least one item must have ratings from at least 2 raters)
+        comparisons_possible = False
+        for item_idx in range(n_items):
+            n_raters_for_item = sum(
+                1
+                for rater_id in rater_ids
+                if reliability_data[rater_id][item_idx] is not None
+            )
+            if n_raters_for_item >= 2:
+                comparisons_possible = True
+                break
 
-            def distance_fn(a: Label, b: Label) -> float:
-                return 0.0 if a == b else 1.0
+        if not comparisons_possible:
+            # No pairwise comparisons possible
+            return 0.0
 
-        elif metric == "ordinal":
-            # For ordinal, use rank-based distance
-            def ordinal_distance(a: Label, b: Label) -> float:
-                # Get unique values and rank them
-                values = [v for row in reliability_matrix for v in row if v is not None]
-                unique_values = sorted(set(values))
-                value_to_rank = {v: i for i, v in enumerate(unique_values)}
+        unique_values = set(all_values)
+        if len(unique_values) <= 1:
+            # All same value - perfect agreement by definition
+            return 1.0
 
-                rank_a = value_to_rank[a]
-                rank_b = value_to_rank[b]
-                return (rank_a - rank_b) ** 2
+        # Map metric names to krippendorff package names
+        metric_map: dict[str, KrippendorffMetric] = {
+            "nominal": "nominal",
+            "ordinal": "ordinal",
+            "interval": "interval",
+            "ratio": "ratio",
+        }
 
-            distance_fn = ordinal_distance
-        elif metric in ("interval", "ratio"):
-
-            def distance_fn(a: Label, b: Label) -> float:
-                return (float(a) - float(b)) ** 2
-
-        else:
+        if metric not in metric_map:
             raise ValueError(
                 f"Unknown metric: {metric}. Must be one of: "
                 "'nominal', 'ordinal', 'interval', 'ratio'"
             )
 
-        # Compute observed disagreement
-        observed_disagreement = 0.0
-        n_comparisons = 0
-
-        for item_idx in range(n_items):
-            # Get all non-missing ratings for this item
-            item_ratings: list[Label] = [
-                reliability_matrix[rater_idx, item_idx]  # type: ignore[misc, index]
-                for rater_idx in range(len(rater_ids))
-                if reliability_matrix[rater_idx, item_idx] is not None  # type: ignore[index]
-            ]
-
-            # Count pairwise disagreements for this item
-            for val1, val2 in combinations(item_ratings, 2):
-                observed_disagreement += distance_fn(val1, val2)  # type: ignore[arg-type]
-                n_comparisons += 1
-
-        if n_comparisons == 0:
-            # No comparisons possible (all missing data)
-            return 0.0
-
-        observed_disagreement /= n_comparisons
-
-        # Compute expected disagreement (chance)
-        all_values: list[Label] = []
-        for rater_idx in range(len(rater_ids)):
-            for item_idx in range(n_items):
-                val = reliability_matrix[rater_idx, item_idx]  # type: ignore[misc, index]
-                if val is not None:
-                    all_values.append(val)  # type: ignore[arg-type]
-
-        if len(all_values) < 2:
-            return 0.0
-
-        # Expected disagreement from all possible pairs
-        expected_disagreement = 0.0
-        n_possible = 0
-
-        for val1, val2 in combinations(all_values, 2):
-            expected_disagreement += distance_fn(val1, val2)  # type: ignore[arg-type]
-            n_possible += 1
-
-        if n_possible == 0:
-            return 0.0
-
-        expected_disagreement /= n_possible
-
-        # Krippendorff's alpha
-        if expected_disagreement == 0.0:
-            # No disagreement possible (all values identical)
-            return 1.0
-
-        alpha = 1.0 - (observed_disagreement / expected_disagreement)
-        return float(alpha)
+        return float(
+            krippendorff_alpha(
+                reliability_matrix,
+                level_of_measurement=metric_map[metric],
+            )
+        )
 
     @staticmethod
     def pairwise_agreement(
@@ -396,7 +340,7 @@ class InterAnnotatorMetrics:
 
         Parameters
         ----------
-        ratings : dict[str, list[Any]]
+        ratings : dict[str, list[Label]]
             Dictionary mapping rater IDs to their ratings.
 
         Returns

@@ -12,13 +12,30 @@ The model supports:
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, TypedDict
 from uuid import UUID
 
 from pydantic import Field, field_validator
 
 from bead.data.base import BeadBaseModel
 from bead.lists.experiment_list import ExperimentList
+
+if TYPE_CHECKING:
+    from bead.items.item_template import MetadataValue
+else:
+    # Recursive type for metadata values
+    type MetadataValue = (
+        str | int | float | bool | None | dict[str, MetadataValue] | list[MetadataValue]
+    )
+
+
+class CoverageValidationResult(TypedDict):
+    """Result of coverage validation."""
+
+    valid: bool
+    missing_items: list[UUID]
+    duplicate_items: list[UUID]
+    total_assigned: int
 
 
 # Factory functions for default values
@@ -27,8 +44,8 @@ def _empty_experiment_list_list() -> list[ExperimentList]:
     return []
 
 
-def _empty_any_dict() -> dict[str, Any]:
-    """Return empty string-to-Any dict."""
+def _empty_metadata_dict() -> dict[str, MetadataValue]:
+    """Return empty metadata dictionary."""
     return {}
 
 
@@ -73,11 +90,11 @@ class ListCollection(BeadBaseModel):
         default_factory=_empty_experiment_list_list, description="Experimental lists"
     )
     partitioning_strategy: str = Field(..., description="Partitioning strategy used")
-    partitioning_config: dict[str, Any] = Field(
-        default_factory=_empty_any_dict, description="Partitioning configuration"
+    partitioning_config: dict[str, MetadataValue] = Field(
+        default_factory=_empty_metadata_dict, description="Partitioning configuration"
     )
-    partitioning_stats: dict[str, Any] = Field(
-        default_factory=_empty_any_dict, description="Partitioning statistics"
+    partitioning_stats: dict[str, MetadataValue] = Field(
+        default_factory=_empty_metadata_dict, description="Partitioning statistics"
     )
 
     @field_validator("name", "partitioning_strategy")
@@ -220,7 +237,7 @@ class ListCollection(BeadBaseModel):
             all_refs.update(exp_list.item_refs)
         return list(all_refs)
 
-    def validate_coverage(self, all_item_ids: set[UUID]) -> dict[str, Any]:
+    def validate_coverage(self, all_item_ids: set[UUID]) -> CoverageValidationResult:
         """Check that all items are assigned exactly once.
 
         Validates that:
@@ -234,7 +251,7 @@ class ListCollection(BeadBaseModel):
 
         Returns
         -------
-        dict[str, Any]
+        CoverageValidationResult
             Validation report with keys:
             - "valid": bool - Whether validation passed
             - "missing_items": list[UUID] - Items not assigned to any list
