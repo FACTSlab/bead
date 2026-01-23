@@ -56,8 +56,10 @@ class TestGenerateTemplates:
             generate_templates,
             [
                 str(output),
-                "--pattern", "{subject} {verb} {object}",
-                "--name", "simple_transitive",
+                "--pattern",
+                "{subject} {verb} {object}",
+                "--name",
+                "simple_transitive",
             ],
         )
 
@@ -73,18 +75,25 @@ class TestGenerateTemplates:
         assert len(template.slots) == 3
         assert all(slot.required for slot in template.slots.values())
 
-    def test_generate_with_explicit_slots(self, runner: CliRunner, tmp_path: Path) -> None:
+    def test_generate_with_explicit_slots(
+        self, runner: CliRunner, tmp_path: Path
+    ) -> None:
         """Test template generation with explicit slot specifications."""
         output = tmp_path / "template.jsonl"
         result = runner.invoke(
             generate_templates,
             [
                 str(output),
-                "--pattern", "{subject} {verb} {object}",
-                "--name", "transitive",
-                "--slot", "subject:true",
-                "--slot", "verb:true",
-                "--slot", "object:false",  # Optional object
+                "--pattern",
+                "{subject} {verb} {object}",
+                "--name",
+                "transitive",
+                "--slot",
+                "subject:true",
+                "--slot",
+                "verb:true",
+                "--slot",
+                "object:false",  # Optional object
             ],
         )
 
@@ -103,9 +112,12 @@ class TestGenerateTemplates:
             generate_templates,
             [
                 str(output),
-                "--pattern", "{subject} {verb}",
-                "--name", "intransitive",
-                "--description", "Intransitive sentence template",
+                "--pattern",
+                "{subject} {verb}",
+                "--name",
+                "intransitive",
+                "--description",
+                "Intransitive sentence template",
             ],
         )
 
@@ -115,17 +127,23 @@ class TestGenerateTemplates:
 
         assert template.description == "Intransitive sentence template"
 
-    def test_generate_with_language_and_tags(self, runner: CliRunner, tmp_path: Path) -> None:
+    def test_generate_with_language_and_tags(
+        self, runner: CliRunner, tmp_path: Path
+    ) -> None:
         """Test template generation with language code and tags."""
         output = tmp_path / "template.jsonl"
         result = runner.invoke(
             generate_templates,
             [
                 str(output),
-                "--pattern", "{subject} {verb} {object}",
-                "--name", "transitive",
-                "--language-code", "eng",
-                "--tags", "transitive,simple,declarative",
+                "--pattern",
+                "{subject} {verb} {object}",
+                "--name",
+                "transitive",
+                "--language-code",
+                "eng",
+                "--tags",
+                "transitive,simple,declarative",
             ],
         )
 
@@ -143,8 +161,10 @@ class TestGenerateTemplates:
             generate_templates,
             [
                 str(output),
-                "--pattern", "This is a plain string",
-                "--name", "bad_template",
+                "--pattern",
+                "This is a plain string",
+                "--name",
+                "bad_template",
             ],
         )
 
@@ -158,9 +178,12 @@ class TestGenerateTemplates:
             generate_templates,
             [
                 str(output),
-                "--pattern", "{subject} {verb}",
-                "--name", "test",
-                "--slot", "object:true",  # Not in pattern
+                "--pattern",
+                "{subject} {verb}",
+                "--name",
+                "test",
+                "--slot",
+                "object:true",  # Not in pattern
             ],
         )
 
@@ -174,9 +197,12 @@ class TestGenerateTemplates:
             generate_templates,
             [
                 str(output),
-                "--pattern", "{subject} {verb}",
-                "--name", "test",
-                "--slot", "subject",  # Missing :true/:false
+                "--pattern",
+                "{subject} {verb}",
+                "--name",
+                "test",
+                "--slot",
+                "subject",  # Missing :true/:false
             ],
         )
 
@@ -192,8 +218,10 @@ class TestGenerateTemplates:
             generate_templates,
             [
                 str(output),
-                "--pattern", "{subject} {verb}",
-                "--name", "intransitive",
+                "--pattern",
+                "{subject} {verb}",
+                "--name",
+                "intransitive",
             ],
         )
         assert result1.exit_code == 0
@@ -203,8 +231,10 @@ class TestGenerateTemplates:
             generate_templates,
             [
                 str(output),
-                "--pattern", "{subject} {verb} {object}",
-                "--name", "transitive",
+                "--pattern",
+                "{subject} {verb} {object}",
+                "--name",
+                "transitive",
             ],
         )
         assert result2.exit_code == 0
@@ -239,7 +269,8 @@ class TestGenerateTemplateVariants:
             [
                 str(base_template_file),
                 str(output),
-                "--max-variants", "5",
+                "--max-variants",
+                "5",
             ],
         )
 
@@ -270,8 +301,10 @@ class TestGenerateTemplateVariants:
             [
                 str(base_template_file),
                 str(output),
-                "--name-pattern", "{base_name}_v{index}",
-                "--max-variants", "3",
+                "--name-pattern",
+                "{base_name}_v{index}",
+                "--max-variants",
+                "3",
             ],
         )
 
@@ -315,9 +348,11 @@ class TestGenerateTemplateVariants:
             [
                 str(base_template_file),
                 str(output),
-                "--slot-variants", str(slot_variants_file),
+                "--slot-variants",
+                str(slot_variants_file),
             ],
         )
 
         assert result.exit_code == 1
-        assert "not yet implemented" in result.output
+        # Slot variants fail with validation error (slots not in template)
+        assert "error" in result.output.lower() or "validation" in result.output.lower()

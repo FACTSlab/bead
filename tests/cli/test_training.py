@@ -300,8 +300,17 @@ class TestCrossValidateCommand:
         with patch("bead.cli.training._import_class") as mock_import:
             mock_model_class = MagicMock()
             mock_model = MagicMock()
-            # Return predictions matching input size
-            mock_model.predict.side_effect = lambda items, **kwargs: [1] * len(items)
+
+            # Return prediction objects with predicted_class attribute
+            def make_predictions(items, **kwargs):
+                preds = []
+                for _ in range(len(items)):
+                    mock_pred = MagicMock()
+                    mock_pred.predicted_class = 1
+                    preds.append(mock_pred)
+                return preds
+
+            mock_model.predict.side_effect = make_predictions
             mock_model_class.return_value = mock_model
             mock_import.return_value = mock_model_class
 
@@ -358,7 +367,17 @@ class TestCrossValidateCommand:
         with patch("bead.cli.training._import_class") as mock_import:
             mock_model_class = MagicMock()
             mock_model = MagicMock()
-            mock_model.predict.return_value = ["A"] * 5
+
+            # Return prediction objects with predicted_class attribute
+            def make_predictions(items, **kwargs):
+                preds = []
+                for _ in range(len(items)):
+                    mock_pred = MagicMock()
+                    mock_pred.predicted_class = "A"
+                    preds.append(mock_pred)
+                return preds
+
+            mock_model.predict.side_effect = make_predictions
             mock_model_class.return_value = mock_model
             mock_import.return_value = mock_model_class
 
