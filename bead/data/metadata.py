@@ -7,12 +7,11 @@ for all bead objects. This enables full traceability of data transformations.
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
 from uuid import UUID
 
 from pydantic import Field
 
-from bead.data.base import BeadBaseModel
+from bead.data.base import BeadBaseModel, JsonValue
 from bead.data.timestamps import now_iso8601
 
 
@@ -74,7 +73,7 @@ class ProcessingRecord(BeadBaseModel):
     ----------
     operation : str
         Name of the operation (e.g., "fill_template", "apply_constraint", "filter")
-    parameters : dict[str, Any]
+    parameters : dict[str, JsonValue]
         Parameters passed to the operation (default: empty dict)
     timestamp : datetime
         When the operation was performed (UTC with timezone)
@@ -98,7 +97,7 @@ class ProcessingRecord(BeadBaseModel):
     """
 
     operation: str
-    parameters: dict[str, Any] = Field(default_factory=dict)
+    parameters: dict[str, JsonValue] = Field(default_factory=dict)
     timestamp: datetime = Field(default_factory=now_iso8601)
     operator: str | None = None
 
@@ -115,7 +114,7 @@ class MetadataTracker(BeadBaseModel):
         Chain of provenance relationships (default: empty list)
     processing_history : list[ProcessingRecord]
         History of processing operations (default: empty list)
-    custom_metadata : dict[str, Any]
+    custom_metadata : dict[str, JsonValue]
         Custom metadata fields (default: empty dict)
 
     Examples
@@ -138,7 +137,7 @@ class MetadataTracker(BeadBaseModel):
     processing_history: list[ProcessingRecord] = Field(
         default_factory=_empty_processing_list
     )
-    custom_metadata: dict[str, Any] = Field(default_factory=dict)
+    custom_metadata: dict[str, JsonValue] = Field(default_factory=dict)
 
     def add_provenance(
         self, parent_id: UUID, parent_type: str, relationship: str
@@ -176,7 +175,7 @@ class MetadataTracker(BeadBaseModel):
     def add_processing(
         self,
         operation: str,
-        parameters: dict[str, Any] | None = None,
+        parameters: dict[str, JsonValue] | None = None,
         operator: str | None = None,
     ) -> None:
         """Add a processing record to the history.
@@ -188,7 +187,7 @@ class MetadataTracker(BeadBaseModel):
         ----------
         operation : str
             Name of the operation performed
-        parameters : dict[str, Any] | None, optional
+        parameters : dict[str, JsonValue] | None, optional
             Parameters passed to the operation (default: None, which creates empty dict)
         operator : str | None, optional
             Who/what performed the operation (default: None)

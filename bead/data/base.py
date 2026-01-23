@@ -8,13 +8,17 @@ timestamp tracking, and versioning.
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from bead.data.identifiers import generate_uuid
 from bead.data.timestamps import now_iso8601
+
+# Type alias for JSON-serializable values (recursive type)
+type JsonValue = (
+    str | int | float | bool | None | list[JsonValue] | dict[str, JsonValue]
+)
 
 
 class BeadBaseModel(BaseModel):
@@ -34,7 +38,7 @@ class BeadBaseModel(BaseModel):
         UTC timestamp when object was last modified
     version : str
         Version string for schema versioning (default: "1.0.0")
-    metadata : dict[str, Any]
+    metadata : dict[str, JsonValue]
         Optional metadata dictionary for arbitrary key-value pairs
 
     Examples
@@ -62,7 +66,7 @@ class BeadBaseModel(BaseModel):
     created_at: datetime = Field(default_factory=now_iso8601)
     modified_at: datetime = Field(default_factory=now_iso8601)
     version: str = Field(default="1.0.0")
-    metadata: dict[str, Any] = Field(default_factory=dict)
+    metadata: dict[str, JsonValue] = Field(default_factory=dict)
 
     def update_modified_time(self) -> None:
         """Update the modified_at timestamp to current UTC time.
