@@ -22,6 +22,7 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
+from bead.evaluation.model_metrics import ModelMetrics
 
 from bead.active_learning.loop import ActiveLearningLoop
 from bead.active_learning.models.forced_choice import ForcedChoiceModel
@@ -34,7 +35,6 @@ from bead.config.active_learning import (
 from bead.config.simulation import NoiseModelConfig, SimulatedAnnotatorConfig
 from bead.evaluation.convergence import ConvergenceDetector
 from bead.evaluation.interannotator import InterAnnotatorMetrics
-from bead.evaluation.model_metrics import ModelMetrics
 from bead.items.item import Item
 from bead.items.item_template import ItemTemplate, PresentationSpec, TaskSpec
 from bead.simulation.annotators.base import SimulatedAnnotator
@@ -262,7 +262,7 @@ def run_simulation(
         max_iterations=max_iterations,
         budget_per_iteration=budget_per_iteration,
     )
-    loop = ActiveLearningLoop(
+    ActiveLearningLoop(
         item_selector=item_selector,
         config=loop_config,
     )
@@ -409,7 +409,7 @@ def run_simulation(
     return results
 
 
-def main():
+def main() -> None:
     """CLI entry point."""
     parser = argparse.ArgumentParser(
         description="Simulate active learning pipeline with synthetic judgments"

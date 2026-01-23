@@ -23,7 +23,7 @@ from bead.resources.lexicon import Lexicon
 from bead.resources.loaders import from_csv  # NEW: Use bead loader utilities
 
 
-def main(verb_limit: int | None = None):
+def main(verb_limit: int | None = None) -> None:
     # Set up paths
     base_dir = Path(__file__).parent
     lexicons_dir = base_dir / "lexicons"
@@ -214,6 +214,7 @@ def main(verb_limit: int | None = None):
     csv_path = resources_dir / "be_forms.csv"
 
     import pandas as pd
+
     df = pd.read_csv(csv_path)
 
     be_items: dict[str, LexicalItem] = {}

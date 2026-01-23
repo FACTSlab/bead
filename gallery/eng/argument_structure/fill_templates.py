@@ -13,6 +13,7 @@ import logging
 from pathlib import Path
 
 import yaml
+from utils.renderers import OtherNounRenderer
 
 from bead.data.serialization import write_jsonlines
 from bead.resources.lexicon import Lexicon
@@ -22,8 +23,6 @@ from bead.templates.adapters.huggingface import HuggingFaceMLMAdapter
 from bead.templates.filler import FilledTemplate
 from bead.templates.resolver import ConstraintResolver
 from bead.templates.strategies import MixedFillingStrategy
-
-from utils.renderers import OtherNounRenderer
 
 logger = logging.getLogger(__name__)
 
@@ -82,17 +81,25 @@ def main() -> None:
     # Apply dry-run mode: select specific templates
     templates = list(template_collection.templates.values())
     if args.dry_run:
-        logger.info("DRY RUN MODE: Selecting 1 simple + 1 progressive template with 3 noun slots")
+        logger.info(
+            "DRY RUN MODE: Selecting 1 simple + 1 progressive template with 3 noun slots"
+        )
 
         # Find templates with 3 noun slots
         def count_noun_slots(template):
-            return sum(1 for slot_name in template.slots if slot_name.startswith('noun_'))
+            return sum(
+                1 for slot_name in template.slots if slot_name.startswith("noun_")
+            )
 
         templates_with_3_nouns = [t for t in templates if count_noun_slots(t) == 3]
 
         # Separate simple and progressive
-        simple_templates = [t for t in templates_with_3_nouns if 'progressive' not in t.name]
-        progressive_templates = [t for t in templates_with_3_nouns if 'progressive' in t.name]
+        simple_templates = [
+            t for t in templates_with_3_nouns if "progressive" not in t.name
+        ]
+        progressive_templates = [
+            t for t in templates_with_3_nouns if "progressive" in t.name
+        ]
 
         # Select one of each
         selected = []

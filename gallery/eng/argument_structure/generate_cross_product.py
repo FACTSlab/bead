@@ -69,7 +69,7 @@ def main(
     console.print(f"[green]✓[/green] Loaded {len(verb_lexicon.items)} verb forms")
 
     # Get unique verb lemmas (we only need base forms for cross-product)
-    verb_lemmas = sorted(set(item.lemma for item in verb_lexicon.items.values()))
+    verb_lemmas = sorted({item.lemma for item in verb_lexicon.items.values()})
     console.print(f"[green]✓[/green] Found {len(verb_lemmas)} unique verb lemmas\n")
 
     # Generate cross-product

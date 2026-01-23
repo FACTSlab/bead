@@ -20,7 +20,6 @@ from bead.resources.template import Slot, Template
 
 from .clausal_frames import ClausalTemplate, map_verbnet_to_clausal_templates
 from .constraint_builder import (
-    build_be_participle_constraint,
     build_determiner_constraint,
     build_subject_verb_agreement_constraint,
 )
@@ -272,7 +271,7 @@ class TemplateGenerator:
             elif slot_type.startswith("verb"):
                 constraints = [
                     Constraint(expression="self.features.get('pos') == 'V'"),
-                    Constraint(expression="self.features.get('verb_form') != 'V.PTCP'")
+                    Constraint(expression="self.features.get('verb_form') != 'V.PTCP'"),
                 ]
                 # Add form constraints for specific verb forms
                 if slot_type == "verb_past":
@@ -328,7 +327,7 @@ class TemplateGenerator:
         slot_names = list(clausal_template.slots.keys())
 
         # Pattern: det + noun combinations
-        for i, slot_name in enumerate(slot_names):
+        for _i, slot_name in enumerate(slot_names):
             if slot_name.endswith("_det") or slot_name == "det":
                 # Find corresponding noun
                 noun_slot = slot_name.replace("_det", "_noun")
@@ -365,9 +364,7 @@ class TemplateGenerator:
                 noun_slot = f"noun_{suffix}"
                 # Only add constraint if matching noun slot exists
                 if noun_slot in slot_names:
-                    det_constraint = build_determiner_constraint(
-                        slot_name, noun_slot
-                    )
+                    det_constraint = build_determiner_constraint(slot_name, noun_slot)
                     constraints.append(det_constraint)
 
         # Add subject-verb agreement if we have subject and verb
@@ -398,7 +395,7 @@ class TemplateGenerator:
             Slots dict and template string
         """
         # Simple heuristic mapping
-        frame_lower = frame_primary.lower()
+        frame_primary.lower()
         slots = {}
         template_parts = []
 
@@ -481,7 +478,9 @@ class TemplateGenerator:
                     description="Main verb",
                     constraints=[
                         Constraint(expression="self.features.get('pos') == 'V'"),
-                        Constraint(expression="self.features.get('verb_form') != 'V.PTCP'")
+                        Constraint(
+                            expression="self.features.get('verb_form') != 'V.PTCP'"
+                        ),
                     ],
                     required=True,
                 )

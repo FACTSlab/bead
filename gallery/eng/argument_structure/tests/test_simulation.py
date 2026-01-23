@@ -28,7 +28,7 @@ from simulate_pipeline import (
 class TestGetForcedChoiceTemplate:
     """Test suite for get_forced_choice_template function."""
 
-    def test_returns_valid_template(self):
+    def test_returns_valid_template(self) -> None:
         """Test that function returns valid ItemTemplate."""
         template = get_forced_choice_template()
 
@@ -36,14 +36,14 @@ class TestGetForcedChoiceTemplate:
         assert template.task_type == "forced_choice"
         assert template.judgment_type == "preference"
 
-    def test_template_has_required_task_spec(self):
+    def test_template_has_required_task_spec(self) -> None:
         """Test that template has proper task spec with options."""
         template = get_forced_choice_template()
 
         assert template.task_spec.prompt == "Which sentence sounds more natural?"
         assert template.task_spec.options == ["option_a", "option_b"]
 
-    def test_template_presentation_spec(self):
+    def test_template_presentation_spec(self) -> None:
         """Test that template has static presentation mode."""
         template = get_forced_choice_template()
 
@@ -53,7 +53,7 @@ class TestGetForcedChoiceTemplate:
 class TestLoad2AFCPairs:
     """Test suite for load_2afc_pairs function."""
 
-    def test_load_with_limit(self):
+    def test_load_with_limit(self) -> None:
         """Test loading with limit parameter."""
         # Create temporary JSONL file
         with tempfile.NamedTemporaryFile(mode="w", suffix=".jsonl", delete=False) as f:
@@ -77,7 +77,7 @@ class TestLoad2AFCPairs:
         finally:
             temp_path.unlink()
 
-    def test_load_with_skip(self):
+    def test_load_with_skip(self) -> None:
         """Test loading with skip parameter."""
         # Create temporary JSONL file
         with tempfile.NamedTemporaryFile(mode="w", suffix=".jsonl", delete=False) as f:
@@ -144,7 +144,7 @@ class TestRunSimulation:
             # Restore original directory
             os.chdir(original_dir)
 
-    def test_simulation_completes(self, temp_items_dir):
+    def test_simulation_completes(self, temp_items_dir) -> None:
         """Test that simulation runs to completion."""
         output_dir = temp_items_dir / "simulation_output"
 
@@ -169,7 +169,7 @@ class TestRunSimulation:
         assert len(results["iterations"]) <= 3
         assert results["total_annotations"] >= 20
 
-    def test_simulation_creates_output_file(self, temp_items_dir):
+    def test_simulation_creates_output_file(self, temp_items_dir) -> None:
         """Test that simulation creates output JSON file."""
         output_dir = temp_items_dir / "simulation_output"
 
@@ -191,7 +191,7 @@ class TestRunSimulation:
             assert "config" in data
             assert "iterations" in data
 
-    def test_simulation_reproducible(self, temp_items_dir):
+    def test_simulation_reproducible(self, temp_items_dir) -> None:
         """Test that simulation is reproducible with seed."""
         output_dir1 = temp_items_dir / "output1"
         output_dir2 = temp_items_dir / "output2"

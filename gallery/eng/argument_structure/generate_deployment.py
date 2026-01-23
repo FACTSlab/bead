@@ -183,7 +183,9 @@ def main() -> None:
 
     base_config_dict = {
         "experiment_type": "forced_choice",
-        "title": experiment_config_dict.get("title", "Sentence Acceptability Judgments"),
+        "title": experiment_config_dict.get(
+            "title", "Sentence Acceptability Judgments"
+        ),
         "description": experiment_config_dict.get(
             "description", "Rate which sentence sounds more natural"
         ),
@@ -203,12 +205,14 @@ def main() -> None:
 
     # Generate TWO versions: local (standalone) and jatos (deployment)
     versions = [
-        ("local", False),   # Standalone version for local testing
-        ("jatos", True),    # JATOS version for deployment
+        ("local", False),  # Standalone version for local testing
+        ("jatos", True),  # JATOS version for deployment
     ]
 
     for version_name, use_jatos in versions:
-        console.print(f"\n[bold]Generating {version_name} version (use_jatos={use_jatos})[/bold]")
+        console.print(
+            f"\n[bold]Generating {version_name} version (use_jatos={use_jatos})[/bold]"
+        )
 
         # Create version-specific config
         experiment_config = ExperimentConfig(
@@ -240,13 +244,17 @@ def main() -> None:
                     templates=templates_dict,
                 )
             except Exception as e:
-                console.print(f"[red]✗[/red] Error generating {version_name} list {i + 1}: {e}")
+                console.print(
+                    f"[red]✗[/red] Error generating {version_name} list {i + 1}: {e}"
+                )
                 import traceback
 
                 traceback.print_exc()
                 sys.exit(1)
 
-        console.print(f"[green]✓[/green] Generated {n_lists} {version_name} experiments")
+        console.print(
+            f"[green]✓[/green] Generated {n_lists} {version_name} experiments"
+        )
 
     console.print()
 
@@ -292,7 +300,7 @@ def main() -> None:
     console.rule("[bold]Deployment Summary[/bold]")
     table = Table(show_header=False, box=None, padding=(0, 2))
     table.add_row("Lists generated:", f"[cyan]{n_lists}[/cyan]")
-    table.add_row("Versions:", f"[cyan]local (standalone) + jatos (deployment)[/cyan]")
+    table.add_row("Versions:", "[cyan]local (standalone) + jatos (deployment)[/cyan]")
     table.add_row("Output directory:", f"[cyan]{base_dir / args.output_dir}[/cyan]")
     table.add_row(
         "Total items deployed:",
@@ -305,7 +313,10 @@ def main() -> None:
 
     if not args.no_jatos:
         table.add_row("", "")
-        table.add_row("JATOS packages:", f"[cyan]{base_dir / args.output_dir / 'jatos'}/*.jzip[/cyan]")
+        table.add_row(
+            "JATOS packages:",
+            f"[cyan]{base_dir / args.output_dir / 'jatos'}/*.jzip[/cyan]",
+        )
 
     console.print(table)
 

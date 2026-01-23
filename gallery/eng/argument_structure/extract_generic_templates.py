@@ -15,15 +15,13 @@ from collections import defaultdict
 from pathlib import Path
 
 from rich.console import Console
-
-from bead.resources.constraints import Constraint
-from bead.resources.template import Slot, Template
-
 from utils.constraint_builder import (
     build_be_participle_constraint,
     build_be_subject_agreement_constraint,
-    build_subject_verb_agreement_constraint,
 )
+
+from bead.resources.constraints import Constraint
+from bead.resources.template import Slot, Template
 
 console = Console()
 
@@ -55,11 +53,15 @@ def create_progressive_variant(base_template: Template, tense: str) -> Template:
 
     # Add be slot with tense constraint
     if tense == "present":
-        be_constraint_expr = "self.lemma == 'be' and self.features.get('tense') == 'PRS'"
+        be_constraint_expr = (
+            "self.lemma == 'be' and self.features.get('tense') == 'PRS'"
+        )
         variant_name = "present_progressive"
         description_tense = "present progressive"
     else:  # past
-        be_constraint_expr = "self.lemma == 'be' and self.features.get('tense') == 'PST'"
+        be_constraint_expr = (
+            "self.lemma == 'be' and self.features.get('tense') == 'PST'"
+        )
         variant_name = "past_progressive"
         description_tense = "past progressive"
 
@@ -201,7 +203,9 @@ def main(input_file: str = "templates/verbnet_frames.jsonl") -> None:
             name=template_name,
             template_string=template_string,
             slots=prototype["slots"],  # Reuse slots structure
-            constraints=prototype.get("constraints", []),  # Reuse multi-slot constraints
+            constraints=prototype.get(
+                "constraints", []
+            ),  # Reuse multi-slot constraints
             description=f"Generic frame structure: {template_string}",
             language_code="eng",
             tags=["verbnet", "generic_frame"],
