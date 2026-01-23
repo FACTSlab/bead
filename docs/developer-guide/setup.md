@@ -71,19 +71,21 @@ bead/
 
 ## Virtual Environment
 
-Create an isolated Python environment for development.
+**IMPORTANT**: This project requires Python 3.13 and uses a virtual environment (`.venv`) for all development and testing. Always activate the venv before running any Python commands.
 
 ### Create Virtual Environment
 
 ```bash
-# Create .venv directory
+# Create .venv directory with Python 3.13
 python3.13 -m venv .venv
 ```
 
-This creates a .venv/ directory containing:
+This creates a `.venv/` directory containing:
 - Python 3.13 interpreter
 - pip package manager
 - Isolated site-packages/
+
+**Note**: The `.venv/` directory is already in `.gitignore` and should not be committed.
 
 ### Activate Virtual Environment
 
@@ -117,7 +119,13 @@ where python  # Windows: should show C:\path\to\bead\.venv\Scripts\python.exe
 python --version  # Should show Python 3.13.x
 ```
 
-**Important**: Always activate .venv before running bead commands, tests, or installing packages. Otherwise you'll pollute your system Python.
+**Critical**: Always activate `.venv` before:
+- Running tests: `pytest tests/`
+- Running bead CLI: `bead --help`
+- Installing packages: `pip install ...`
+- Running any Python scripts
+
+Otherwise you'll pollute your system Python or encounter version compatibility issues.
 
 ### Deactivate (when done)
 
@@ -386,11 +394,18 @@ alias bead-lint="ruff check bead/ && ruff format bead/ && pyright bead/"
 
 ## Running Tests
 
-Verify your development environment works by running the test suite.
+**IMPORTANT**: Always activate the `.venv` before running tests. Tests require Python 3.13.
+
+```bash
+source .venv/bin/activate  # Activate venv first
+pytest tests/
+```
 
 ### Run All Tests
 
 ```bash
+# Ensure venv is activated
+source .venv/bin/activate
 pytest tests/
 ```
 

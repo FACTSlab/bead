@@ -46,6 +46,14 @@ plugins:
             line_length: 75
           inventories:
             - https://docs.pydantic.dev/latest/objects.inv
+            - https://numpy.org/doc/stable/objects.inv
+            - https://docs.scipy.org/doc/scipy/objects.inv
+            - https://scikit-learn.org/stable/objects.inv
+            - https://huggingface.co/docs/transformers/objects.inv
+            - https://huggingface.co/docs/datasets/objects.inv
+            - https://huggingface.co/docs/evaluate/objects.inv
+            - https://huggingface.co/docs/accelerate/objects.inv
+            - https://huggingface.co/docs/peft/objects.inv
           paths: [bead]
 
 markdown_extensions:

@@ -25,7 +25,7 @@ A comprehensive Python framework for constructing, deploying, and analyzing larg
 
 ### Why bead?
 
-The name "bead" refers to the small, decorative elements that form part of window glazing — a play on the [glazing](https://github.com/aaronstevenwhite/glazing) package (which provides access to VerbNet, PropBank, and FrameNet). Just as beads add structure and detail to a window, `bead` provides:
+The name "bead" refers to the small, decorative elements that form part of window glazing, a play on the [glazing](https://github.com/aaronstevenwhite/glazing) package (which provides access to VerbNet, PropBank, and FrameNet). Just as beads add structure and detail to a window, `bead` provides:
 
 - **Reproducibility**: Full provenance tracking and deterministic pipelines
 - **Scalability**: Handles combinatorial explosion with streaming and sampling strategies
