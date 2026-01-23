@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from unittest.mock import MagicMock, patch
 
 from click.testing import CliRunner
 
@@ -23,7 +22,13 @@ class TestWorkflowInit:
 
         result = cli_runner.invoke(
             workflow,
-            ["init", "acceptability-study", "--output-dir", str(project_dir), "--force"],
+            [
+                "init",
+                "acceptability-study",
+                "--output-dir",
+                str(project_dir),
+                "--force",
+            ],
         )
 
         assert result.exit_code == 0, f"Output: {result.output}"
@@ -144,7 +149,14 @@ paths:
 
         result = cli_runner.invoke(
             workflow,
-            ["run", "--config", str(config_file), "--stages", "resources,templates", "--dry-run"],
+            [
+                "run",
+                "--config",
+                str(config_file),
+                "--stages",
+                "resources,templates",
+                "--dry-run",
+            ],
         )
 
         # Dry run should succeed even without actual files
@@ -210,8 +222,14 @@ class TestWorkflowStatus:
         state_file = state_dir / "workflow_state.json"
         state_data = {
             "stages": {
-                "resources": {"status": "completed", "timestamp": "2025-01-01T00:00:00"},
-                "templates": {"status": "completed", "timestamp": "2025-01-01T00:01:00"},
+                "resources": {
+                    "status": "completed",
+                    "timestamp": "2025-01-01T00:00:00",
+                },
+                "templates": {
+                    "status": "completed",
+                    "timestamp": "2025-01-01T00:01:00",
+                },
             },
             "last_run": "2025-01-01T00:01:00",
         }
@@ -259,7 +277,10 @@ class TestWorkflowResume:
         state_file = state_dir / "workflow_state.json"
         state_data = {
             "stages": {
-                "resources": {"status": "completed", "timestamp": "2025-01-01T00:00:00"},
+                "resources": {
+                    "status": "completed",
+                    "timestamp": "2025-01-01T00:00:00",
+                },
             },
             "last_run": "2025-01-01T00:00:00",
         }
@@ -310,9 +331,7 @@ class TestWorkflowRollback:
 
         assert result.exit_code == 0 or "rollback" in result.output.lower()
 
-    def test_rollback_with_dry_run(
-        self, cli_runner: CliRunner, tmp_path: Path
-    ) -> None:
+    def test_rollback_with_dry_run(self, cli_runner: CliRunner, tmp_path: Path) -> None:
         """Test rollback with --dry-run flag."""
         project_dir = tmp_path / "dry-rollback"
         project_dir.mkdir()
@@ -405,7 +424,7 @@ class TestWorkflowStateManagement:
 
     def test_state_file_creation(self, tmp_path: Path) -> None:
         """Test state file is created in correct location."""
-        from bead.cli.workflow import get_state_file
+        from bead.cli.workflow import get_state_file  # noqa: PLC0415
 
         project_dir = tmp_path / "state-test"
         project_dir.mkdir()
@@ -417,7 +436,7 @@ class TestWorkflowStateManagement:
 
     def test_load_empty_state(self, tmp_path: Path) -> None:
         """Test loading state when no file exists."""
-        from bead.cli.workflow import load_state
+        from bead.cli.workflow import load_state  # noqa: PLC0415
 
         project_dir = tmp_path / "empty"
         project_dir.mkdir()
@@ -430,7 +449,7 @@ class TestWorkflowStateManagement:
 
     def test_save_and_load_state(self, tmp_path: Path) -> None:
         """Test saving and loading state."""
-        from bead.cli.workflow import load_state, save_state
+        from bead.cli.workflow import load_state, save_state  # noqa: PLC0415
 
         project_dir = tmp_path / "save-load"
         project_dir.mkdir()
@@ -450,7 +469,7 @@ class TestWorkflowStateManagement:
 
     def test_update_stage_state(self, tmp_path: Path) -> None:
         """Test updating stage status in state."""
-        from bead.cli.workflow import load_state, update_stage_state
+        from bead.cli.workflow import load_state, update_stage_state  # noqa: PLC0415
 
         project_dir = tmp_path / "update"
         project_dir.mkdir()

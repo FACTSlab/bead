@@ -85,7 +85,14 @@ class TestForcedChoice:
         output = tmp_path / "item.jsonl"
         result = runner.invoke(
             create_forced_choice,
-            ["A", "B", "--metadata", "contrast=subject,condition=control", "-o", str(output)],
+            [
+                "A",
+                "B",
+                "--metadata",
+                "contrast=subject,condition=control",
+                "-o",
+                str(output),
+            ],
         )
 
         assert result.exit_code == 0
@@ -104,9 +111,12 @@ class TestForcedChoice:
         result = runner.invoke(
             create_forced_choice_from_texts,
             [
-                "--texts-file", str(sample_texts_file),
-                "--n-alternatives", "2",
-                "-o", str(output),
+                "--texts-file",
+                str(sample_texts_file),
+                "--n-alternatives",
+                "2",
+                "-o",
+                str(output),
             ],
         )
 
@@ -114,7 +124,10 @@ class TestForcedChoice:
         assert output.exists()
 
         # Should create 3 items (3 choose 2)
-        items = [Item.model_validate_json(line) for line in output.read_text().strip().split("\n")]
+        items = [
+            Item.model_validate_json(line)
+            for line in output.read_text().strip().split("\n")
+        ]
         assert len(items) == 3
         assert all(item.item_metadata["n_options"] == 2 for item in items)
 
@@ -142,8 +155,10 @@ class TestOrdinalScale:
         result = runner.invoke(
             create_likert_7,
             [
-                "--text", "The cat sat on the mat.",
-                "-o", str(output),
+                "--text",
+                "The cat sat on the mat.",
+                "-o",
+                str(output),
             ],
         )
 
@@ -164,15 +179,22 @@ class TestOrdinalScale:
         result = runner.invoke(
             create_ordinal_scale_from_texts,
             [
-                "--texts-file", str(sample_texts_file),
-                "--scale-min", "1",
-                "--scale-max", "5",
-                "-o", str(output),
+                "--texts-file",
+                str(sample_texts_file),
+                "--scale-min",
+                "1",
+                "--scale-max",
+                "5",
+                "-o",
+                str(output),
             ],
         )
 
         assert result.exit_code == 0
-        items = [Item.model_validate_json(line) for line in output.read_text().strip().split("\n")]
+        items = [
+            Item.model_validate_json(line)
+            for line in output.read_text().strip().split("\n")
+        ]
         assert len(items) == 3
         assert all(item.item_metadata["scale_min"] == 1 for item in items)
         assert all(item.item_metadata["scale_max"] == 5 for item in items)
@@ -188,10 +210,14 @@ class TestOrdinalScale:
         result = runner.invoke(
             create_ordinal_scale_from_texts,
             [
-                "--texts-file", str(sample_texts_file),
-                "--scale-min", "7",
-                "--scale-max", "1",  # Invalid: min > max
-                "-o", str(output),
+                "--texts-file",
+                str(sample_texts_file),
+                "--scale-min",
+                "7",
+                "--scale-max",
+                "1",  # Invalid: min > max
+                "-o",
+                str(output),
             ],
         )
 
@@ -212,16 +238,23 @@ class TestCategorical:
         result = runner.invoke(
             create_categorical,
             [
-                "--text", "The cat sat on the mat.",
-                "--categories", "entailment,neutral,contradiction",
-                "-o", str(output),
+                "--text",
+                "The cat sat on the mat.",
+                "--categories",
+                "entailment,neutral,contradiction",
+                "-o",
+                str(output),
             ],
         )
 
         assert result.exit_code == 0
         item = Item.model_validate_json(output.read_text())
         assert item.rendered_elements["text"] == "The cat sat on the mat."
-        assert item.item_metadata["categories"] == ["entailment", "neutral", "contradiction"]
+        assert item.item_metadata["categories"] == [
+            "entailment",
+            "neutral",
+            "contradiction",
+        ]
 
     def test_create_nli(self, runner: CliRunner, tmp_path: Path) -> None:
         """Test NLI item creation."""
@@ -229,9 +262,12 @@ class TestCategorical:
         result = runner.invoke(
             create_nli,
             [
-                "--premise", "All dogs bark.",
-                "--hypothesis", "Some dogs bark.",
-                "-o", str(output),
+                "--premise",
+                "All dogs bark.",
+                "--hypothesis",
+                "Some dogs bark.",
+                "-o",
+                str(output),
             ],
         )
 
@@ -242,7 +278,11 @@ class TestCategorical:
         assert "Hypothesis: Some dogs bark." in item.rendered_elements["text"]
         assert item.item_metadata["premise"] == "All dogs bark."
         assert item.item_metadata["hypothesis"] == "Some dogs bark."
-        assert item.item_metadata["categories"] == ["entailment", "neutral", "contradiction"]
+        assert item.item_metadata["categories"] == [
+            "entailment",
+            "neutral",
+            "contradiction",
+        ]
 
 
 # ==================== Binary Tests ====================
@@ -262,16 +302,24 @@ class TestBinary:
         result = runner.invoke(
             create_binary_from_texts,
             [
-                "--texts-file", str(sample_texts_file),
-                "--prompt", "Is this grammatical?",
-                "-o", str(output),
+                "--texts-file",
+                str(sample_texts_file),
+                "--prompt",
+                "Is this grammatical?",
+                "-o",
+                str(output),
             ],
         )
 
         assert result.exit_code == 0
-        items = [Item.model_validate_json(line) for line in output.read_text().strip().split("\n")]
+        items = [
+            Item.model_validate_json(line)
+            for line in output.read_text().strip().split("\n")
+        ]
         assert len(items) == 3
-        assert all(item.rendered_elements["prompt"] == "Is this grammatical?" for item in items)
+        assert all(
+            item.rendered_elements["prompt"] == "Is this grammatical?" for item in items
+        )
 
 
 # ==================== Multi-Select Tests ====================
@@ -291,16 +339,24 @@ class TestMultiSelect:
         result = runner.invoke(
             create_multi_select_from_texts,
             [
-                "--texts-file", str(sample_texts_file),
-                "--options", "Option A,Option B,Option C",
-                "--min-selections", "1",
-                "--max-selections", "2",
-                "-o", str(output),
+                "--texts-file",
+                str(sample_texts_file),
+                "--options",
+                "Option A,Option B,Option C",
+                "--min-selections",
+                "1",
+                "--max-selections",
+                "2",
+                "-o",
+                str(output),
             ],
         )
 
         assert result.exit_code == 0
-        items = [Item.model_validate_json(line) for line in output.read_text().strip().split("\n")]
+        items = [
+            Item.model_validate_json(line)
+            for line in output.read_text().strip().split("\n")
+        ]
         assert len(items) == 3
         # Options are in rendered_elements, not metadata
         assert all("option_a" in item.rendered_elements for item in items)
@@ -326,14 +382,20 @@ class TestMagnitude:
         result = runner.invoke(
             create_magnitude_from_texts,
             [
-                "--texts-file", str(sample_texts_file),
-                "--measure", "Reading time (ms)",
-                "-o", str(output),
+                "--texts-file",
+                str(sample_texts_file),
+                "--measure",
+                "Reading time (ms)",
+                "-o",
+                str(output),
             ],
         )
 
         assert result.exit_code == 0
-        items = [Item.model_validate_json(line) for line in output.read_text().strip().split("\n")]
+        items = [
+            Item.model_validate_json(line)
+            for line in output.read_text().strip().split("\n")
+        ]
         assert len(items) == 3
         # CLI passes --measure as unit parameter to underlying function
         assert all(item.item_metadata["unit"] == "Reading time (ms)" for item in items)
@@ -356,16 +418,25 @@ class TestFreeText:
         result = runner.invoke(
             create_free_text_from_texts,
             [
-                "--texts-file", str(sample_texts_file),
-                "--prompt", "Paraphrase this sentence:",
-                "-o", str(output),
+                "--texts-file",
+                str(sample_texts_file),
+                "--prompt",
+                "Paraphrase this sentence:",
+                "-o",
+                str(output),
             ],
         )
 
         assert result.exit_code == 0
-        items = [Item.model_validate_json(line) for line in output.read_text().strip().split("\n")]
+        items = [
+            Item.model_validate_json(line)
+            for line in output.read_text().strip().split("\n")
+        ]
         assert len(items) == 3
-        assert all(item.rendered_elements["prompt"] == "Paraphrase this sentence:" for item in items)
+        assert all(
+            item.rendered_elements["prompt"] == "Paraphrase this sentence:"
+            for item in items
+        )
 
 
 # ==================== Cloze Tests ====================
@@ -380,10 +451,14 @@ class TestCloze:
         result = runner.invoke(
             create_simple_cloze,
             [
-                "--text", "The quick brown fox",
-                "--blank-position", "1",
-                "--blank-label", "adjective",
-                "-o", str(output),
+                "--text",
+                "The quick brown fox",
+                "--blank-position",
+                "1",
+                "--blank-label",
+                "adjective",
+                "-o",
+                str(output),
             ],
         )
 

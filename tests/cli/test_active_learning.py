@@ -17,7 +17,7 @@ from pathlib import Path
 import pytest
 from click.testing import CliRunner
 
-from bead.cli.active_learning import active_learning, check_convergence
+from bead.cli.active_learning import active_learning
 
 
 @pytest.fixture
@@ -228,7 +228,11 @@ class TestCheckConvergence:
         )
 
         assert result.exit_code == 1
-        assert "Missing required field" in result.output or "KeyError" in result.output or "failed" in result.output.lower()
+        assert (
+            "Missing required field" in result.output
+            or "KeyError" in result.output
+            or "failed" in result.output.lower()
+        )
 
 
 class TestActiveLearnHelpCommand:
@@ -241,8 +245,8 @@ class TestActiveLearnHelpCommand:
         assert result.exit_code == 0
         assert "Active learning commands" in result.output
         assert "check-convergence" in result.output
-        # Should mention deferred commands
-        assert "DEFERRED" in result.output or "deferred" in result.output.lower()
+        assert "select-items" in result.output
+        assert "run" in result.output
 
     def test_check_convergence_help(self, runner: CliRunner) -> None:
         """Test check-convergence help text."""

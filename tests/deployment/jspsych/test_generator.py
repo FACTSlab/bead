@@ -282,7 +282,7 @@ class TestValidation:
         # Add a non-existent item to the list
         sample_experiment_list.add_item(uuid4())
 
-        with pytest.raises(ValueError, match="not found in items dictionary"):
+        with pytest.raises(ValueError, match="not found in items"):
             generator.generate(
                 lists=[sample_experiment_list],
                 items=sample_items,
@@ -314,7 +314,7 @@ class TestValidation:
         sample_items[bad_item_id] = bad_item
         sample_experiment_list.add_item(bad_item_id)
 
-        with pytest.raises(ValueError, match="not found in templates dictionary"):
+        with pytest.raises(ValueError, match="not found in templates"):
             generator.generate(
                 lists=[sample_experiment_list],
                 items=sample_items,
@@ -360,3 +360,158 @@ class TestMultipleLists:
 
         assert len(loaded_lists) == 3
         assert {lst.name for lst in loaded_lists} == {"list_0", "list_1", "list_2"}
+
+
+class TestListDistributorGeneration:
+    """Tests for list_distributor.js generation and content."""
+
+    def test_list_distributor_js_exists(
+        self,
+        sample_experiment_config: ExperimentConfig,
+        sample_experiment_list: ExperimentList,
+        sample_items: dict,
+        sample_templates: dict,
+        tmp_output_dir: Path,
+    ) -> None:
+        """Test that list_distributor.js is generated."""
+        generator = JsPsychExperimentGenerator(
+            config=sample_experiment_config,
+            output_dir=tmp_output_dir,
+        )
+
+        generator.generate(
+            lists=[sample_experiment_list],
+            items=sample_items,
+            templates=sample_templates,
+        )
+
+        list_distributor_path = tmp_output_dir / "js" / "list_distributor.js"
+        assert list_distributor_path.exists()
+
+    def test_list_distributor_contains_queue_functions(
+        self,
+        sample_experiment_config: ExperimentConfig,
+        sample_experiment_list: ExperimentList,
+        sample_items: dict,
+        sample_templates: dict,
+        tmp_output_dir: Path,
+    ) -> None:
+        """Test that list_distributor.js contains new queue initialization functions."""
+        generator = JsPsychExperimentGenerator(
+            config=sample_experiment_config,
+            output_dir=tmp_output_dir,
+        )
+
+        generator.generate(
+            lists=[sample_experiment_list],
+            items=sample_items,
+            templates=sample_templates,
+        )
+
+        list_distributor_path = tmp_output_dir / "js" / "list_distributor.js"
+        content = list_distributor_path.read_text()
+
+        # Check for new queue initialization functions
+        assert "function initializeRandom" in content
+        assert "function initializeSequential" in content
+        assert "function initializeLatinSquare" in content
+        assert "function initializeQuotaBased" in content
+        assert "function shuffleArray" in content
+
+    def test_list_distributor_contains_atomic_functions(
+        self,
+        sample_experiment_config: ExperimentConfig,
+        sample_experiment_list: ExperimentList,
+        sample_items: dict,
+        sample_templates: dict,
+        tmp_output_dir: Path,
+    ) -> None:
+        """Test that list_distributor.js contains atomic update functions."""
+        generator = JsPsychExperimentGenerator(
+            config=sample_experiment_config,
+            output_dir=tmp_output_dir,
+        )
+
+        generator.generate(
+            lists=[sample_experiment_list],
+            items=sample_items,
+            templates=sample_templates,
+        )
+
+        list_distributor_path = tmp_output_dir / "js" / "list_distributor.js"
+        content = list_distributor_path.read_text()
+
+        # Check for atomic update functions
+        assert "function updateQueueAtomically" in content
+        assert "function updateStatisticsAtomically" in content
+        assert "function updateSequentialAtomically" in content
+        assert "function updateLatinSquareAtomically" in content
+        assert "function updateQuotaAtomically" in content
+
+    def test_list_distributor_contains_all_strategies(
+        self,
+        sample_experiment_config: ExperimentConfig,
+        sample_experiment_list: ExperimentList,
+        sample_items: dict,
+        sample_templates: dict,
+        tmp_output_dir: Path,
+    ) -> None:
+        """Test list_distributor.js contains all 8 strategy functions."""
+        generator = JsPsychExperimentGenerator(
+            config=sample_experiment_config,
+            output_dir=tmp_output_dir,
+        )
+
+        generator.generate(
+            lists=[sample_experiment_list],
+            items=sample_items,
+            templates=sample_templates,
+        )
+
+        list_distributor_path = tmp_output_dir / "js" / "list_distributor.js"
+        content = list_distributor_path.read_text()
+
+        # Check for all strategy assignment functions (async versions)
+        assert "async function assignRandom" in content
+        assert "async function assignSequential" in content
+        assert "async function assignBalanced" in content
+        assert "async function assignLatinSquare" in content
+        assert "async function assignStratified" in content
+        assert "async function assignWeightedRandom" in content
+        assert "async function assignQuotaBased" in content
+        assert "async function assignMetadataBased" in content
+
+    def test_list_distributor_contains_unified_assignment(
+        self,
+        sample_experiment_config: ExperimentConfig,
+        sample_experiment_list: ExperimentList,
+        sample_items: dict,
+        sample_templates: dict,
+        tmp_output_dir: Path,
+    ) -> None:
+        """Test that list_distributor.js contains unified assignList function."""
+        generator = JsPsychExperimentGenerator(
+            config=sample_experiment_config,
+            output_dir=tmp_output_dir,
+        )
+
+        generator.generate(
+            lists=[sample_experiment_list],
+            items=sample_items,
+            templates=sample_templates,
+        )
+
+        list_distributor_path = tmp_output_dir / "js" / "list_distributor.js"
+        content = list_distributor_path.read_text()
+
+        # Check for unified assignment function
+        assert "async function assignList" in content
+        # Check it routes to all strategies
+        assert "case 'random':" in content
+        assert "case 'sequential':" in content
+        assert "case 'balanced':" in content
+        assert "case 'latin_square':" in content
+        assert "case 'stratified':" in content
+        assert "case 'weighted_random':" in content
+        assert "case 'quota_based':" in content
+        assert "case 'metadata_based':" in content

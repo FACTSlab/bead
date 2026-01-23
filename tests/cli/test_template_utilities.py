@@ -39,7 +39,7 @@ def runner() -> CliRunner:
 @pytest.fixture
 def sample_filled_file(tmp_path: Path) -> Path:
     """Create sample filled templates file."""
-    from bead.resources.lexical_item import LexicalItem
+    from bead.resources.lexical_item import LexicalItem  # noqa: PLC0415
 
     filled_templates = [
         FilledTemplate(
@@ -80,7 +80,7 @@ def sample_filled_file(tmp_path: Path) -> Path:
 def sample_lexicon_file(tmp_path: Path) -> Path:
     """Create sample lexicon file."""
     lexicon = Lexicon(name="test_lexicon")
-    from bead.resources.lexical_item import LexicalItem
+    from bead.resources.lexical_item import LexicalItem  # noqa: PLC0415
 
     items = [
         LexicalItem(lemma="walk", language_code="eng"),
@@ -132,7 +132,8 @@ class TestFilterFilled:
             [
                 str(sample_filled_file),
                 str(output),
-                "--min-length", "15",
+                "--min-length",
+                "15",
             ],
         )
 
@@ -163,7 +164,8 @@ class TestFilterFilled:
             [
                 str(sample_filled_file),
                 str(output),
-                "--max-length", "15",
+                "--max-length",
+                "15",
             ],
         )
 
@@ -184,7 +186,8 @@ class TestFilterFilled:
             [
                 str(sample_filled_file),
                 str(output),
-                "--template-name", "template1",
+                "--template-name",
+                "template1",
             ],
         )
 
@@ -209,7 +212,8 @@ class TestFilterFilled:
             [
                 str(sample_filled_file),
                 str(output),
-                "--strategy", "random",
+                "--strategy",
+                "random",
             ],
         )
 
@@ -233,8 +237,10 @@ class TestFilterFilled:
             [
                 str(sample_filled_file),
                 str(output),
-                "--min-length", "10",
-                "--template-name", "template1",
+                "--min-length",
+                "10",
+                "--template-name",
+                "template1",
             ],
         )
 
@@ -458,7 +464,8 @@ class TestSampleCombinations:
                 str(sample_template_file),
                 str(sample_lexicon_file),
                 str(output),
-                "--n-samples", "2",
+                "--n-samples",
+                "2",
             ],
         )
 
@@ -490,8 +497,10 @@ class TestSampleCombinations:
                 str(sample_template_file),
                 str(sample_lexicon_file),
                 str(output1),
-                "--n-samples", "3",
-                "--seed", "42",
+                "--n-samples",
+                "3",
+                "--seed",
+                "42",
             ],
         )
 
@@ -501,8 +510,10 @@ class TestSampleCombinations:
                 str(sample_template_file),
                 str(sample_lexicon_file),
                 str(output2),
-                "--n-samples", "3",
-                "--seed", "42",
+                "--n-samples",
+                "3",
+                "--seed",
+                "42",
             ],
         )
 
@@ -533,8 +544,10 @@ class TestSampleCombinations:
                 str(sample_template_file),
                 str(sample_lexicon_file),
                 str(output),
-                "--n-samples", "2",
-                "--language-code", "eng",
+                "--n-samples",
+                "2",
+                "--language-code",
+                "eng",
             ],
         )
 

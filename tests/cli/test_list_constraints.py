@@ -58,8 +58,10 @@ class TestUniquenessConstraint:
         result = runner.invoke(
             create_uniqueness,
             [
-                "--property-expression", "item.metadata.verb",
-                "-o", str(output),
+                "--property-expression",
+                "item.metadata.verb",
+                "-o",
+                str(output),
             ],
         )
 
@@ -78,9 +80,12 @@ class TestUniquenessConstraint:
         result = runner.invoke(
             create_uniqueness,
             [
-                "--property-expression", "item.metadata.target",
-                "--priority", "10",
-                "-o", str(output),
+                "--property-expression",
+                "item.metadata.target",
+                "--priority",
+                "10",
+                "-o",
+                str(output),
             ],
         )
 
@@ -109,8 +114,10 @@ class TestBalanceConstraint:
         result = runner.invoke(
             create_balance,
             [
-                "--property-expression", "item.metadata.condition",
-                "-o", str(output),
+                "--property-expression",
+                "item.metadata.condition",
+                "-o",
+                str(output),
             ],
         )
 
@@ -126,10 +133,14 @@ class TestBalanceConstraint:
         result = runner.invoke(
             create_balance,
             [
-                "--property-expression", "item.metadata.condition",
-                "--target-counts", "control=20,experimental=10",
-                "--tolerance", "0.05",
-                "-o", str(output),
+                "--property-expression",
+                "item.metadata.condition",
+                "--target-counts",
+                "control=20,experimental=10",
+                "--tolerance",
+                "0.05",
+                "-o",
+                str(output),
             ],
         )
 
@@ -144,9 +155,12 @@ class TestBalanceConstraint:
         result = runner.invoke(
             create_balance,
             [
-                "--property-expression", "item.metadata.condition",
-                "--target-counts", "invalid_format",  # Missing =
-                "-o", str(output),
+                "--property-expression",
+                "item.metadata.condition",
+                "--target-counts",
+                "invalid_format",  # Missing =
+                "-o",
+                str(output),
             ],
         )
 
@@ -164,9 +178,12 @@ class TestQuantileConstraint:
         result = runner.invoke(
             create_quantile,
             [
-                "--property-expression", "item.metadata.word_length",
-                "--n-quantiles", "4",
-                "-o", str(output),
+                "--property-expression",
+                "item.metadata.word_length",
+                "--n-quantiles",
+                "4",
+                "-o",
+                str(output),
             ],
         )
 
@@ -181,9 +198,12 @@ class TestQuantileConstraint:
         result = runner.invoke(
             create_quantile,
             [
-                "--property-expression", "item.metadata.value",
-                "--n-quantiles", "0",
-                "-o", str(output),
+                "--property-expression",
+                "item.metadata.value",
+                "--n-quantiles",
+                "0",
+                "-o",
+                str(output),
             ],
         )
 
@@ -200,10 +220,14 @@ class TestGroupedQuantileConstraint:
         result = runner.invoke(
             create_grouped_quantile,
             [
-                "--property-expression", "item.metadata.frequency",
-                "--group-by-expression", "item.metadata.condition",
-                "--n-quantiles", "3",
-                "-o", str(output),
+                "--property-expression",
+                "item.metadata.frequency",
+                "--group-by-expression",
+                "item.metadata.condition",
+                "--n-quantiles",
+                "3",
+                "-o",
+                str(output),
             ],
         )
 
@@ -223,9 +247,12 @@ class TestDiversityConstraint:
         result = runner.invoke(
             create_diversity,
             [
-                "--property-expression", "item.metadata.verb_class",
-                "--min-unique", "10",
-                "-o", str(output),
+                "--property-expression",
+                "item.metadata.verb_class",
+                "--min-unique",
+                "10",
+                "-o",
+                str(output),
             ],
         )
 
@@ -244,9 +271,12 @@ class TestSizeConstraint:
         result = runner.invoke(
             create_size,
             [
-                "--exact-size", "40",
-                "--priority", "10",
-                "-o", str(output),
+                "--exact-size",
+                "40",
+                "--priority",
+                "10",
+                "-o",
+                str(output),
             ],
         )
 
@@ -263,9 +293,12 @@ class TestSizeConstraint:
         result = runner.invoke(
             create_size,
             [
-                "--min-size", "30",
-                "--max-size", "50",
-                "-o", str(output),
+                "--min-size",
+                "30",
+                "--max-size",
+                "50",
+                "-o",
+                str(output),
             ],
         )
 
@@ -281,9 +314,12 @@ class TestSizeConstraint:
         result = runner.invoke(
             create_size,
             [
-                "--exact-size", "40",
-                "--min-size", "30",  # Should conflict
-                "-o", str(output),
+                "--exact-size",
+                "40",
+                "--min-size",
+                "30",  # Should conflict
+                "-o",
+                str(output),
             ],
         )
 
@@ -304,10 +340,14 @@ class TestBatchCoverageConstraint:
         result = runner.invoke(
             create_batch_coverage,
             [
-                "--property-expression", "item.metadata.template_id",
-                "--target-values", "0,1,2,3,4,5",
-                "--min-coverage", "1.0",
-                "-o", str(output),
+                "--property-expression",
+                "item.metadata.template_id",
+                "--target-values",
+                "0,1,2,3,4,5",
+                "--min-coverage",
+                "1.0",
+                "-o",
+                str(output),
             ],
         )
 
@@ -327,10 +367,14 @@ class TestBatchBalanceConstraint:
         result = runner.invoke(
             create_batch_balance,
             [
-                "--property-expression", "item.metadata.condition",
-                "--target-distribution", "control=0.5,experimental=0.5",
-                "--tolerance", "0.05",
-                "-o", str(output),
+                "--property-expression",
+                "item.metadata.condition",
+                "--target-distribution",
+                "control=0.5,experimental=0.5",
+                "--tolerance",
+                "0.05",
+                "-o",
+                str(output),
             ],
         )
 
@@ -350,9 +394,12 @@ class TestBatchDiversityConstraint:
         result = runner.invoke(
             create_batch_diversity,
             [
-                "--property-expression", "item.metadata.target_word",
-                "--max-lists-per-value", "3",
-                "-o", str(output),
+                "--property-expression",
+                "item.metadata.target_word",
+                "--max-lists-per-value",
+                "3",
+                "-o",
+                str(output),
             ],
         )
 
@@ -371,14 +418,19 @@ class TestBatchMinOccurrenceConstraint:
         result = runner.invoke(
             create_batch_min_occurrence,
             [
-                "--property-expression", "item.metadata.construction",
-                "--min-occurrences", "5",
-                "-o", str(output),
+                "--property-expression",
+                "item.metadata.construction",
+                "--min-occurrences",
+                "5",
+                "-o",
+                str(output),
             ],
         )
 
         assert result.exit_code == 0
-        constraint = BatchMinOccurrenceConstraint.model_validate_json(output.read_text())
+        constraint = BatchMinOccurrenceConstraint.model_validate_json(
+            output.read_text()
+        )
         assert constraint.property_expression == "item.metadata.construction"
         assert constraint.min_occurrences == 5
 
@@ -389,14 +441,18 @@ class TestBatchMinOccurrenceConstraint:
 class TestOutputFormat:
     """Test constraint output format and composition."""
 
-    def test_constraint_output_is_jsonl(self, runner: CliRunner, tmp_path: Path) -> None:
+    def test_constraint_output_is_jsonl(
+        self, runner: CliRunner, tmp_path: Path
+    ) -> None:
         """Test that constraints are written as JSONL (one line)."""
         output = tmp_path / "constraint.jsonl"
         runner.invoke(
             create_uniqueness,
             [
-                "--property-expression", "item.metadata.verb",
-                "-o", str(output),
+                "--property-expression",
+                "item.metadata.verb",
+                "-o",
+                str(output),
             ],
         )
 
@@ -405,7 +461,9 @@ class TestOutputFormat:
         assert len(lines) == 1  # Single line
         assert lines[0].strip()  # Non-empty
 
-    def test_multiple_constraints_can_be_combined(self, runner: CliRunner, tmp_path: Path) -> None:
+    def test_multiple_constraints_can_be_combined(
+        self, runner: CliRunner, tmp_path: Path
+    ) -> None:
         """Test that multiple constraint files can be combined."""
         constraint1 = tmp_path / "constraint1.jsonl"
         constraint2 = tmp_path / "constraint2.jsonl"
@@ -417,9 +475,12 @@ class TestOutputFormat:
         runner.invoke(
             create_balance,
             [
-                "--property-expression", "item.metadata.condition",
-                "--target-counts", "a=10,b=10",
-                "-o", str(constraint2),
+                "--property-expression",
+                "item.metadata.condition",
+                "--target-counts",
+                "a=10,b=10",
+                "-o",
+                str(constraint2),
             ],
         )
 

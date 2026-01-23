@@ -512,7 +512,7 @@ def test_runner_output_saving(forced_choice_template, forced_choice_items, tmp_p
     assert output_path.exists()
 
     # Verify content
-    import json
+    import json  # noqa: PLC0415
 
     with open(output_path) as f:
         saved_results = json.load(f)

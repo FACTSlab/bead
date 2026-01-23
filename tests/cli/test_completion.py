@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-import json
 import os
-import subprocess
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -114,7 +112,10 @@ class TestCompletionInstall:
                     result = cli_runner.invoke(completion, ["install"])
 
         assert result.exit_code == 0
-        assert "Detected shell: bash" in result.output or "Installed bash completion" in result.output
+        assert (
+            "Detected shell: bash" in result.output
+            or "Installed bash completion" in result.output
+        )
 
     def test_install_zsh(self, cli_runner: CliRunner, tmp_path: Path) -> None:
         """Test installing zsh completion."""
@@ -130,7 +131,10 @@ class TestCompletionInstall:
                     result = cli_runner.invoke(completion, ["install"])
 
         assert result.exit_code == 0
-        assert "Detected shell: zsh" in result.output or "Installed zsh completion" in result.output
+        assert (
+            "Detected shell: zsh" in result.output
+            or "Installed zsh completion" in result.output
+        )
 
     def test_install_fish(self, cli_runner: CliRunner, tmp_path: Path) -> None:
         """Test installing fish completion."""
@@ -146,7 +150,10 @@ class TestCompletionInstall:
                     result = cli_runner.invoke(completion, ["install"])
 
         assert result.exit_code == 0
-        assert "Detected shell: fish" in result.output or "Installed fish completion" in result.output
+        assert (
+            "Detected shell: fish" in result.output
+            or "Installed fish completion" in result.output
+        )
 
     def test_install_no_shell(self, cli_runner: CliRunner) -> None:
         """Test install fails without SHELL environment variable."""
@@ -216,7 +223,7 @@ class TestCompletionInstallHelpers:
 
     def test_install_bash_creates_directory(self, tmp_path: Path) -> None:
         """Test bash installation creates completion directory."""
-        from bead.cli.completion import _install_bash
+        from bead.cli.completion import _install_bash  # noqa: PLC0415
 
         with patch("bead.cli.completion.Path.home") as mock_home:
             mock_home.return_value = tmp_path
@@ -236,7 +243,7 @@ class TestCompletionInstallHelpers:
 
     def test_install_zsh_creates_directory(self, tmp_path: Path) -> None:
         """Test zsh installation creates completion directory."""
-        from bead.cli.completion import _install_zsh
+        from bead.cli.completion import _install_zsh  # noqa: PLC0415
 
         with patch("bead.cli.completion.Path.home") as mock_home:
             mock_home.return_value = tmp_path
@@ -256,7 +263,7 @@ class TestCompletionInstallHelpers:
 
     def test_install_fish_creates_directory(self, tmp_path: Path) -> None:
         """Test fish installation creates completion directory."""
-        from bead.cli.completion import _install_fish
+        from bead.cli.completion import _install_fish  # noqa: PLC0415
 
         with patch("bead.cli.completion.Path.home") as mock_home:
             mock_home.return_value = tmp_path

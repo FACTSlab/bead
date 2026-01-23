@@ -279,14 +279,17 @@ class TestStatisticalTest:
         # Should have low p-value (significant difference from 1.0)
         assert result["p_value"] < 0.05
 
-    def test_ttest_not_implemented(self):
-        """Test that t-test raises NotImplementedError."""
+    def test_ttest_works(self):
+        """Test that t-test returns valid results."""
         detector = ConvergenceDetector()
 
-        with pytest.raises(
-            NotImplementedError, match="ttest not yet fully implemented"
-        ):
-            detector.compute_statistical_test([1, 1, 0], [1, 0, 0], test_type="ttest")
+        result = detector.compute_statistical_test(
+            [1, 1, 0], [1, 0, 0], test_type="ttest"
+        )
+        assert "statistic" in result
+        assert "p_value" in result
+        assert isinstance(result["statistic"], float)
+        assert isinstance(result["p_value"], float)
 
     def test_invalid_test_type(self):
         """Test with invalid test type."""
@@ -494,7 +497,7 @@ class TestEdgeCases:
         detector = ConvergenceDetector(min_iterations=1, convergence_threshold=0.50)
         detector.human_baseline = 0.80
 
-        # Required accuracy = 0.80 - 0.50 = 0.30 (use slightly above to avoid floating point issues)
+        # Required accuracy = 0.80 - 0.50 = 0.30 (slightly above for fp)
         assert detector.check_convergence(0.301, iteration=1) is True
         assert detector.check_convergence(0.29, iteration=1) is False
 

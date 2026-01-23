@@ -102,8 +102,8 @@ def test_mixed_strategy_initialization():
         }
     )
     assert strategy.name == "mixed"
-    assert len(strategy.phase1_slots) == 3
-    assert len(strategy.phase2_slots) == 0
+    assert len(strategy.non_mlm_slots) == 3
+    assert len(strategy.mlm_slots) == 0
 
 
 def test_mixed_strategy_with_mlm_slots():
@@ -124,9 +124,9 @@ def test_mixed_strategy_with_mlm_slots():
             "adjective": ("mlm", mlm_config),
         }
     )
-    assert len(strategy.phase1_slots) == 2
-    assert len(strategy.phase2_slots) == 1
-    assert "adjective" in strategy.phase2_slots
+    assert len(strategy.non_mlm_slots) == 2
+    assert len(strategy.mlm_slots) == 1
+    assert "adjective" in strategy.mlm_slots
 
 
 def test_mixed_strategy_only_exhaustive(simple_lexicon: Lexicon):
@@ -225,10 +225,10 @@ def test_mixed_strategy_instantiate_strategies():
     )
 
     # Check that strategies were instantiated correctly
-    assert "noun" in strategy.phase1_strategies
-    assert "verb" in strategy.phase1_strategies
-    assert isinstance(strategy.phase1_strategies["noun"], ExhaustiveStrategy)
-    assert isinstance(strategy.phase1_strategies["verb"], RandomStrategy)
+    assert "noun" in strategy.non_mlm_strategies
+    assert "verb" in strategy.non_mlm_strategies
+    assert isinstance(strategy.non_mlm_strategies["noun"], ExhaustiveStrategy)
+    assert isinstance(strategy.non_mlm_strategies["verb"], RandomStrategy)
 
 
 def test_mixed_strategy_unknown_strategy_raises():
@@ -316,7 +316,7 @@ def test_mixed_strategy_single_slot():
 
 def test_config_validation():
     """Test that configuration validation works."""
-    from bead.config.template import TemplateConfig
+    from bead.config.template import TemplateConfig  # noqa: PLC0415
 
     # Valid mixed configuration
     config = TemplateConfig(

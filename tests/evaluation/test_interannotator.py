@@ -359,7 +359,7 @@ class TestPairwiseAgreement:
         assert "cohens_kappa" in result
 
         # Check all pairs computed
-        raters = list(multi_rater_data.keys())
+        list(multi_rater_data.keys())
         expected_pairs = [
             ("rater1", "rater2"),
             ("rater1", "rater3"),

@@ -71,9 +71,7 @@ class TestImportVerbNet:
         """Test basic VerbNet import."""
         output_file = tmp_path / "verbnet_verbs.jsonl"
 
-        with patch(
-            "bead.cli.resource_loaders.GlazingAdapter"
-        ) as mock_adapter_class:
+        with patch("bead.cli.resource_loaders.GlazingAdapter") as mock_adapter_class:
             mock_adapter = MagicMock()
             mock_adapter.fetch_items.return_value = mock_verbnet_items
             mock_adapter_class.return_value = mock_adapter
@@ -101,9 +99,7 @@ class TestImportVerbNet:
         """Test VerbNet import with limit."""
         output_file = tmp_path / "verbnet_verbs.jsonl"
 
-        with patch(
-            "bead.cli.resource_loaders.GlazingAdapter"
-        ) as mock_adapter_class:
+        with patch("bead.cli.resource_loaders.GlazingAdapter") as mock_adapter_class:
             mock_adapter = MagicMock()
             mock_adapter.fetch_items.return_value = mock_verbnet_items
             mock_adapter_class.return_value = mock_adapter
@@ -131,9 +127,7 @@ class TestImportVerbNet:
         """Test VerbNet import with frames."""
         output_file = tmp_path / "verbnet_verbs.jsonl"
 
-        with patch(
-            "bead.cli.resource_loaders.GlazingAdapter"
-        ) as mock_adapter_class:
+        with patch("bead.cli.resource_loaders.GlazingAdapter") as mock_adapter_class:
             mock_adapter = MagicMock()
             mock_adapter.fetch_items.return_value = mock_verbnet_items
             mock_adapter_class.return_value = mock_adapter
@@ -168,9 +162,7 @@ class TestImportUniMorph:
         """Test basic UniMorph import."""
         output_file = tmp_path / "unimorph_forms.jsonl"
 
-        with patch(
-            "bead.cli.resource_loaders.UniMorphAdapter"
-        ) as mock_adapter_class:
+        with patch("bead.cli.resource_loaders.UniMorphAdapter") as mock_adapter_class:
             mock_adapter = MagicMock()
             mock_adapter.fetch_items.return_value = mock_unimorph_items
             mock_adapter_class.return_value = mock_adapter
@@ -200,9 +192,7 @@ class TestImportUniMorph:
         """Test UniMorph import with POS filter."""
         output_file = tmp_path / "unimorph_verbs.jsonl"
 
-        with patch(
-            "bead.cli.resource_loaders.UniMorphAdapter"
-        ) as mock_adapter_class:
+        with patch("bead.cli.resource_loaders.UniMorphAdapter") as mock_adapter_class:
             mock_adapter = MagicMock()
             mock_adapter.fetch_items.return_value = mock_unimorph_items
             mock_adapter_class.return_value = mock_adapter
@@ -233,9 +223,7 @@ class TestImportUniMorph:
         """Test UniMorph import with features filter."""
         output_file = tmp_path / "unimorph_past.jsonl"
 
-        with patch(
-            "bead.cli.resource_loaders.UniMorphAdapter"
-        ) as mock_adapter_class:
+        with patch("bead.cli.resource_loaders.UniMorphAdapter") as mock_adapter_class:
             mock_adapter = MagicMock()
             mock_adapter.fetch_items.return_value = [mock_unimorph_items[0]]
             mock_adapter_class.return_value = mock_adapter
@@ -277,9 +265,7 @@ class TestImportPropBank:
             ),
         ]
 
-        with patch(
-            "bead.cli.resource_loaders.GlazingAdapter"
-        ) as mock_adapter_class:
+        with patch("bead.cli.resource_loaders.GlazingAdapter") as mock_adapter_class:
             mock_adapter = MagicMock()
             mock_adapter.fetch_items.return_value = mock_items
             mock_adapter_class.return_value = mock_adapter
@@ -318,9 +304,7 @@ class TestImportFrameNet:
             ),
         ]
 
-        with patch(
-            "bead.cli.resource_loaders.GlazingAdapter"
-        ) as mock_adapter_class:
+        with patch("bead.cli.resource_loaders.GlazingAdapter") as mock_adapter_class:
             mock_adapter = MagicMock()
             mock_adapter.fetch_items.return_value = mock_items
             mock_adapter_class.return_value = mock_adapter
@@ -355,9 +339,7 @@ class TestImportFrameNet:
             ),
         ]
 
-        with patch(
-            "bead.cli.resource_loaders.GlazingAdapter"
-        ) as mock_adapter_class:
+        with patch("bead.cli.resource_loaders.GlazingAdapter") as mock_adapter_class:
             mock_adapter = MagicMock()
             mock_adapter.fetch_items.return_value = mock_items
             mock_adapter_class.return_value = mock_adapter

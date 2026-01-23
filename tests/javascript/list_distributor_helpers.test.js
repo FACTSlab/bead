@@ -202,6 +202,71 @@ function assignQuota(lists, config, state) {
     return available[Math.floor(Math.random() * available.length)];
 }
 
+function assignMetadataBased(lists, config, state) {
+    const hasFilter = config.strategy_config.filter_expression;
+    const hasRank = config.strategy_config.rank_expression;
+
+    if (!hasFilter && !hasRank) {
+        throw new Error(
+            `MetadataBasedConfig requires at least one of 'filter_expression' or 'rank_expression'. ` +
+            `Got: ${JSON.stringify(config.strategy_config)}. ` +
+            `Add 'filter_expression' (e.g., "list_metadata.difficulty === 'easy'") ` +
+            `or 'rank_expression' (e.g., "list_metadata.priority || 0").`
+        );
+    }
+
+    // Filter lists
+    let available = lists.map((list, idx) => ({list, idx}));
+
+    if (hasFilter) {
+        const filterExpr = config.strategy_config.filter_expression;
+        available = available.filter(item => {
+            const list_metadata = item.list.list_metadata || {};
+            try {
+                return eval(filterExpr);
+            } catch (error) {
+                throw new Error(
+                    `Failed to evaluate filter_expression '${filterExpr}' for list ${item.list.name}: ${error.message}. ` +
+                    `Check your expression syntax.`
+                );
+            }
+        });
+
+        if (available.length === 0) {
+            throw new Error(
+                `No lists match filter_expression: '${filterExpr}'. ` +
+                `All ${lists.length} lists were filtered out. ` +
+                `Check your filter expression or list metadata.`
+            );
+        }
+    }
+
+    // Rank lists
+    if (hasRank) {
+        const rankExpr = config.strategy_config.rank_expression;
+        const ascending = config.strategy_config.rank_ascending !== false;
+
+        available = available.map(item => {
+            const list_metadata = item.list.list_metadata || {};
+            let score;
+            try {
+                score = eval(rankExpr);
+            } catch (error) {
+                throw new Error(
+                    `Failed to evaluate rank_expression '${rankExpr}' for list ${item.list.name}: ${error.message}. ` +
+                    `Check your expression syntax.`
+                );
+            }
+            return {...item, score};
+        });
+
+        available.sort((a, b) => ascending ? a.score - b.score : b.score - a.score);
+    }
+
+    // Return top-ranked
+    return available[0].idx;
+}
+
 function selectListForAssignment(config, lists, state) {
     switch(config.strategy_type) {
         case 'random':
@@ -219,7 +284,7 @@ function selectListForAssignment(config, lists, state) {
         case 'quota_based':
             return assignQuota(lists, config, state);
         case 'metadata_based':
-            throw new Error('metadata_based not yet implemented in tests');
+            return assignMetadataBased(lists, config, state);
         default:
             throw new Error(
                 `Unknown strategy type: '${config.strategy_type}'. ` +
@@ -228,6 +293,65 @@ function selectListForAssignment(config, lists, state) {
                 `Check your distribution.json config.`
             );
     }
+}
+
+// Queue initialization functions (new)
+function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+}
+
+function initializeRandom(config, lists, maxParticipants) {
+    const queue = [];
+    const perList = Math.ceil((maxParticipants || 1000) / lists.length);
+    for (let i = 0; i < lists.length; i++) {
+        for (let j = 0; j < perList; j++) {
+            queue.push({list_index: i, list_id: lists[i].id});
+        }
+    }
+    shuffleArray(queue);
+    return queue;
+}
+
+function initializeSequential(config, lists, maxParticipants) {
+    const queue = [];
+    for (let i = 0; i < (maxParticipants || 1000); i++) {
+        const listIndex = i % lists.length;
+        queue.push({list_index: listIndex, list_id: lists[listIndex].id});
+    }
+    return queue;
+}
+
+function initializeLatinSquare(config, lists) {
+    const matrix = generateBalancedLatinSquare(lists.length);
+    const queue = [];
+    
+    for (let row = 0; row < matrix.length; row++) {
+        for (let col = 0; col < matrix[row].length; col++) {
+            const listIndex = matrix[row][col];
+            queue.push({list_index: listIndex, list_id: lists[listIndex].id});
+        }
+    }
+    
+    return {queue, matrix};
+}
+
+function initializeQuotaBased(config, lists) {
+    const quota = config.strategy_config.participants_per_list;
+    const quotas = {};
+    const queue = [];
+    
+    for (let i = 0; i < lists.length; i++) {
+        quotas[i] = quota;
+        for (let j = 0; j < quota; j++) {
+            queue.push({list_index: i, list_id: lists[i].id});
+        }
+    }
+    
+    shuffleArray(queue);
+    return {queue, quotas};
 }
 
 // Tests
@@ -660,6 +784,89 @@ describe('assignQuota', () => {
     });
 });
 
+describe('assignMetadataBased', () => {
+    test('filters lists by metadata expression', () => {
+        const lists = [
+            { name: 'easy', list_metadata: { difficulty: 'easy' } },
+            { name: 'hard', list_metadata: { difficulty: 'hard' } },
+            { name: 'medium', list_metadata: { difficulty: 'medium' } }
+        ];
+
+        const config = {
+            strategy_config: {
+                filter_expression: "list_metadata.difficulty === 'easy'"
+            }
+        };
+
+        const state = {};
+
+        expect(assignMetadataBased(lists, config, state)).toBe(0);
+    });
+
+    test('ranks lists by metadata expression', () => {
+        const lists = [
+            { name: 'low', list_metadata: { priority: 1 } },
+            { name: 'high', list_metadata: { priority: 10 } },
+            { name: 'medium', list_metadata: { priority: 5 } }
+        ];
+
+        const config = {
+            strategy_config: {
+                rank_expression: 'list_metadata.priority || 0',
+                rank_ascending: false  // Highest first
+            }
+        };
+
+        const state = {};
+
+        expect(assignMetadataBased(lists, config, state)).toBe(1);  // High priority
+    });
+
+    test('filters then ranks lists', () => {
+        const lists = [
+            { name: 'easy_low', list_metadata: { difficulty: 'easy', priority: 1 } },
+            { name: 'easy_high', list_metadata: { difficulty: 'easy', priority: 10 } },
+            { name: 'hard', list_metadata: { difficulty: 'hard', priority: 5 } }
+        ];
+
+        const config = {
+            strategy_config: {
+                filter_expression: "list_metadata.difficulty === 'easy'",
+                rank_expression: 'list_metadata.priority || 0',
+                rank_ascending: false
+            }
+        };
+
+        const state = {};
+
+        expect(assignMetadataBased(lists, config, state)).toBe(1);  // easy_high
+    });
+
+    test('throws error if neither filter nor rank specified', () => {
+        const lists = [{ name: 'list' }];
+        const config = { strategy_config: {} };
+        const state = {};
+
+        expect(() => assignMetadataBased(lists, config, state)).toThrow(/requires at least one/);
+    });
+
+    test('throws error if filter excludes all lists', () => {
+        const lists = [
+            { name: 'easy', list_metadata: { difficulty: 'easy' } }
+        ];
+
+        const config = {
+            strategy_config: {
+                filter_expression: "list_metadata.difficulty === 'hard'"
+            }
+        };
+
+        const state = {};
+
+        expect(() => assignMetadataBased(lists, config, state)).toThrow(/No lists match/);
+    });
+});
+
 describe('selectListForAssignment', () => {
     test('dispatches to correct strategy function', () => {
         const lists = [{ name: 'list_1' }];
@@ -685,5 +892,152 @@ describe('selectListForAssignment', () => {
 
         expect(() => selectListForAssignment(config, lists, state)).toThrow(/Unknown strategy type/);
         expect(() => selectListForAssignment(config, lists, state)).toThrow(/invalid_strategy/);
+    });
+});
+
+describe('initializeRandom', () => {
+    test('generates queue with equal entries per list', () => {
+        const lists = [
+            { id: 'list_1' },
+            { id: 'list_2' },
+            { id: 'list_3' }
+        ];
+        const config = {};
+        const maxParticipants = 30;
+
+        const queue = initializeRandom(config, lists, maxParticipants);
+
+        expect(queue.length).toBe(30);
+        // Count entries per list
+        const counts = [0, 0, 0];
+        for (const entry of queue) {
+            counts[entry.list_index]++;
+        }
+        // Should be roughly equal (10 each)
+        expect(counts[0]).toBeGreaterThanOrEqual(9);
+        expect(counts[0]).toBeLessThanOrEqual(11);
+    });
+
+    test('uses default maxParticipants if not provided', () => {
+        const lists = [{ id: 'list_1' }];
+        const config = {};
+
+        const queue = initializeRandom(config, lists, undefined);
+
+        expect(queue.length).toBeGreaterThan(0);
+    });
+});
+
+describe('initializeSequential', () => {
+    test('generates sequential queue with round-robin', () => {
+        const lists = [
+            { id: 'list_1' },
+            { id: 'list_2' },
+            { id: 'list_3' }
+        ];
+        const config = {};
+        const maxParticipants = 10;
+
+        const queue = initializeSequential(config, lists, maxParticipants);
+
+        expect(queue.length).toBe(10);
+        expect(queue[0].list_index).toBe(0);
+        expect(queue[1].list_index).toBe(1);
+        expect(queue[2].list_index).toBe(2);
+        expect(queue[3].list_index).toBe(0);  // Wraps around (3 % 3 = 0)
+        expect(queue[4].list_index).toBe(1);   // 4 % 3 = 1
+        expect(queue[9].list_index).toBe(0);   // 9 % 3 = 0
+    });
+
+    test('uses default maxParticipants if not provided', () => {
+        const lists = [{ id: 'list_1' }];
+        const config = {};
+
+        const queue = initializeSequential(config, lists, undefined);
+
+        expect(queue.length).toBeGreaterThan(0);
+    });
+});
+
+describe('initializeLatinSquare', () => {
+    test('generates queue from Latin square matrix', () => {
+        const lists = [
+            { id: 'list_1' },
+            { id: 'list_2' },
+            { id: 'list_3' }
+        ];
+        const config = {};
+
+        const {queue, matrix} = initializeLatinSquare(config, lists);
+
+        expect(matrix).toHaveLength(3);
+        expect(queue.length).toBe(9);  // 3x3 matrix
+        // Verify queue entries match matrix
+        let queueIndex = 0;
+        for (let row = 0; row < matrix.length; row++) {
+            for (let col = 0; col < matrix[row].length; col++) {
+                expect(queue[queueIndex].list_index).toBe(matrix[row][col]);
+                queueIndex++;
+            }
+        }
+    });
+
+    test('includes both queue and matrix in result', () => {
+        const lists = [{ id: 'list_1' }, { id: 'list_2' }];
+        const config = {};
+
+        const result = initializeLatinSquare(config, lists);
+
+        expect(result).toHaveProperty('queue');
+        expect(result).toHaveProperty('matrix');
+        expect(Array.isArray(result.queue)).toBe(true);
+        expect(Array.isArray(result.matrix)).toBe(true);
+    });
+});
+
+describe('initializeQuotaBased', () => {
+    test('generates queue and quotas correctly', () => {
+        const lists = [
+            { id: 'list_1' },
+            { id: 'list_2' },
+            { id: 'list_3' }
+        ];
+        const config = {
+            strategy_config: {
+                participants_per_list: 5
+            }
+        };
+
+        const {queue, quotas} = initializeQuotaBased(config, lists);
+
+        expect(queue.length).toBe(15);  // 3 lists * 5 participants
+        expect(quotas[0]).toBe(5);
+        expect(quotas[1]).toBe(5);
+        expect(quotas[2]).toBe(5);
+        
+        // Count entries per list
+        const counts = [0, 0, 0];
+        for (const entry of queue) {
+            counts[entry.list_index]++;
+        }
+        expect(counts[0]).toBe(5);
+        expect(counts[1]).toBe(5);
+        expect(counts[2]).toBe(5);
+    });
+
+    test('includes both queue and quotas in result', () => {
+        const lists = [{ id: 'list_1' }];
+        const config = {
+            strategy_config: {
+                participants_per_list: 10
+            }
+        };
+
+        const result = initializeQuotaBased(config, lists);
+
+        expect(result).toHaveProperty('queue');
+        expect(result).toHaveProperty('quotas');
+        expect(Array.isArray(result.queue)).toBe(true);
+        expect(typeof result.quotas).toBe('object');
     });
 });

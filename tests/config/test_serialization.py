@@ -274,7 +274,7 @@ class TestDistributionStrategyYAML:
 
     def test_distribution_strategy_serializes_to_yaml(self) -> None:
         """Test that distribution strategy serializes correctly to YAML."""
-        from bead.deployment.distribution import (
+        from bead.deployment.distribution import (  # noqa: PLC0415
             DistributionStrategyType,
             ListDistributionStrategy,
         )
@@ -292,12 +292,15 @@ class TestDistributionStrategyYAML:
         # Should contain deployment section with distribution strategy
         assert "deployment" in parsed
         assert "distribution_strategy" in parsed["deployment"]
-        assert parsed["deployment"]["distribution_strategy"]["strategy_type"] == "quota_based"
+        assert (
+            parsed["deployment"]["distribution_strategy"]["strategy_type"]
+            == "quota_based"
+        )
         assert parsed["deployment"]["distribution_strategy"]["max_participants"] == 400
 
     def test_distribution_strategy_roundtrip(self) -> None:
         """Test YAML roundtrip for distribution strategy."""
-        from bead.deployment.distribution import (
+        from bead.deployment.distribution import (  # noqa: PLC0415
             DistributionStrategyType,
             ListDistributionStrategy,
         )
@@ -320,12 +323,20 @@ class TestDistributionStrategyYAML:
         new_config = BeadConfig(**parsed)
 
         # Verify it matches
-        assert new_config.deployment.distribution_strategy.strategy_type == DistributionStrategyType.WEIGHTED_RANDOM
-        assert new_config.deployment.distribution_strategy.strategy_config["weight_expression"] == "list_metadata.priority || 1.0"
+        assert (
+            new_config.deployment.distribution_strategy.strategy_type
+            == DistributionStrategyType.WEIGHTED_RANDOM
+        )
+        assert (
+            new_config.deployment.distribution_strategy.strategy_config[
+                "weight_expression"
+            ]
+            == "list_metadata.priority || 1.0"
+        )
 
     def test_all_strategy_types_serialize(self) -> None:
         """Test that all 8 strategy types can be serialized."""
-        from bead.deployment.distribution import (
+        from bead.deployment.distribution import (  # noqa: PLC0415
             DistributionStrategyType,
             ListDistributionStrategy,
         )
@@ -366,4 +377,7 @@ class TestDistributionStrategyYAML:
 
             # Should deserialize without error
             new_config = BeadConfig(**parsed)
-            assert new_config.deployment.distribution_strategy.strategy_type == strategy_type
+            assert (
+                new_config.deployment.distribution_strategy.strategy_type
+                == strategy_type
+            )

@@ -30,7 +30,7 @@ def setup_test_environment():
     3. Adds gallery to sys.path for imports
     4. Cleans up after all tests complete
     """
-    import shutil
+    import shutil  # noqa: PLC0415
 
     # Add gallery to sys.path so we can import utils
     if str(GALLERY_DIR) not in sys.path:
@@ -83,10 +83,12 @@ def test_api_docs_code_blocks(example: CodeExample, eval_example: EvalExample) -
     eval_example : EvalExample
         The evaluator fixture provided by pytest-examples
     """
-    # Ignore D100 (module docstrings), D102 (method docstrings), F821 (undefined names),
-    # F401 (unused imports), E402 (imports not at top), I001 (import sorting) - these are
+    # Ignore D100 (module docstrings), D102 (method docstrings), F821 (undefined),
+    # F401 (unused imports), E402 (imports not at top), I001 (import sorting) -
     # isolated documentation snippets showing specific concepts, not complete scripts
-    eval_example.set_config(ruff_ignore=["D100", "D102", "F821", "F401", "E402", "I001"])
+    eval_example.set_config(
+        ruff_ignore=["D100", "D102", "F821", "F401", "E402", "I001"]
+    )
 
     # When --update-examples is passed, format and update print statements
     # Otherwise, lint and execute to verify the code actually runs

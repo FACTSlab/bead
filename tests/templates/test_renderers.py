@@ -43,13 +43,19 @@ def test_default_renderer_with_forms() -> None:
     template_string = "{subject} {verb} {object}"
     slot_fillers = {
         "subject": LexicalItem(
-            lemma="cat", form="cats", language_code="eng"  # Plural form
+            lemma="cat",
+            form="cats",
+            language_code="eng",  # Plural form
         ),
         "verb": LexicalItem(
-            lemma="chase", form="chased", language_code="eng"  # Past tense
+            lemma="chase",
+            form="chased",
+            language_code="eng",  # Past tense
         ),
         "object": LexicalItem(
-            lemma="mouse", form="mice", language_code="eng"  # Plural form
+            lemma="mouse",
+            form="mice",
+            language_code="eng",  # Plural form
         ),
     }
     template_slots = {
@@ -71,13 +77,19 @@ def test_default_renderer_mixed_forms_and_lemmas() -> None:
     template_string = "{det} {noun} {verb}"
     slot_fillers = {
         "det": LexicalItem(
-            lemma="the", form=None, language_code="eng"  # No form, use lemma
+            lemma="the",
+            form=None,
+            language_code="eng",  # No form, use lemma
         ),
         "noun": LexicalItem(
-            lemma="cat", form="cats", language_code="eng"  # Has form
+            lemma="cat",
+            form="cats",
+            language_code="eng",  # Has form
         ),
         "verb": LexicalItem(
-            lemma="run", form=None, language_code="eng"  # No form, use lemma
+            lemma="run",
+            form=None,
+            language_code="eng",  # No form, use lemma
         ),
     }
     template_slots = {
@@ -249,9 +261,7 @@ def test_default_renderer_with_special_characters() -> None:
     slot_fillers = {
         "subject": LexicalItem(lemma="O'Brien", language_code="eng"),
         "verb": LexicalItem(lemma="say", form="says", language_code="eng"),
-        "object": LexicalItem(
-            lemma='quote', form='"Hello!"', language_code="eng"
-        ),
+        "object": LexicalItem(lemma="quote", form='"Hello!"', language_code="eng"),
     }
     template_slots = {
         "subject": Slot(name="subject"),

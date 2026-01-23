@@ -275,7 +275,9 @@ class TestConcreteMapperImplementation:
             def generate_constraints(self, frame_data, slots):
                 # Simple example: subject-verb agreement
                 constraint = Constraint(
-                    expression="subject.features.get('number') == verb.features.get('number')",
+                    expression=(
+                        "subject.features.get('number') == verb.features.get('number')"
+                    ),
                     description="Subject-verb number agreement",
                 )
                 return [constraint]

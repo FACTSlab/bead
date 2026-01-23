@@ -39,17 +39,23 @@ def values_file(tmp_path: Path) -> Path:
 class TestExtensionalConstraints:
     """Test extensional constraint creation."""
 
-    def test_create_from_file(self, runner: CliRunner, tmp_path: Path, values_file: Path) -> None:
+    def test_create_from_file(
+        self, runner: CliRunner, tmp_path: Path, values_file: Path
+    ) -> None:
         """Test extensional constraint creation from values file."""
         output = tmp_path / "constraint.jsonl"
         result = runner.invoke(
             create_constraint,
             [
                 str(output),
-                "--type", "extensional",
-                "--slot", "verb",
-                "--values-file", str(values_file),
-                "--description", "Motion verbs",
+                "--type",
+                "extensional",
+                "--slot",
+                "verb",
+                "--values-file",
+                str(values_file),
+                "--description",
+                "Motion verbs",
             ],
         )
 
@@ -62,19 +68,29 @@ class TestExtensionalConstraints:
 
         assert "self.lemma in allowed_values" in constraint.expression
         # Sets are serialized as lists in JSON
-        assert set(constraint.context["allowed_values"]) == {"walk", "run", "jump", "swim"}
+        assert set(constraint.context["allowed_values"]) == {
+            "walk",
+            "run",
+            "jump",
+            "swim",
+        }
         assert constraint.description == "Motion verbs"
 
-    def test_create_from_comma_separated(self, runner: CliRunner, tmp_path: Path) -> None:
+    def test_create_from_comma_separated(
+        self, runner: CliRunner, tmp_path: Path
+    ) -> None:
         """Test extensional constraint from comma-separated values."""
         output = tmp_path / "constraint.jsonl"
         result = runner.invoke(
             create_constraint,
             [
                 str(output),
-                "--type", "extensional",
-                "--slot", "noun",
-                "--values", "cat,dog,bird",
+                "--type",
+                "extensional",
+                "--slot",
+                "noun",
+                "--values",
+                "cat,dog,bird",
             ],
         )
 
@@ -92,10 +108,14 @@ class TestExtensionalConstraints:
             create_constraint,
             [
                 str(output),
-                "--type", "extensional",
-                "--slot", "verb",
-                "--values", "V,N,ADJ",
-                "--property", "pos",
+                "--type",
+                "extensional",
+                "--slot",
+                "verb",
+                "--values",
+                "V,N,ADJ",
+                "--prop-name",
+                "pos",
             ],
         )
 
@@ -112,8 +132,10 @@ class TestExtensionalConstraints:
             create_constraint,
             [
                 str(output),
-                "--type", "extensional",
-                "--slot", "verb",
+                "--type",
+                "extensional",
+                "--slot",
+                "verb",
             ],
         )
 
@@ -127,8 +149,10 @@ class TestExtensionalConstraints:
             create_constraint,
             [
                 str(output),
-                "--type", "extensional",
-                "--values", "cat,dog",
+                "--type",
+                "extensional",
+                "--values",
+                "cat,dog",
             ],
         )
 
@@ -149,10 +173,14 @@ class TestIntensionalConstraints:
             create_constraint,
             [
                 str(output),
-                "--type", "intensional",
-                "--slot", "verb",
-                "--expression", "self.pos == 'VERB' and self.features.tense == 'past'",
-                "--description", "Past tense verbs",
+                "--type",
+                "intensional",
+                "--slot",
+                "verb",
+                "--expression",
+                "self.pos == 'VERB' and self.features.tense == 'past'",
+                "--description",
+                "Past tense verbs",
             ],
         )
 
@@ -162,7 +190,10 @@ class TestIntensionalConstraints:
         constraint_data = json.loads(output.read_text())
         constraint = Constraint(**constraint_data)
 
-        assert constraint.expression == "self.pos == 'VERB' and self.features.tense == 'past'"
+        assert (
+            constraint.expression
+            == "self.pos == 'VERB' and self.features.tense == 'past'"
+        )
         assert constraint.description == "Past tense verbs"
         assert constraint.context == {}
 
@@ -173,8 +204,10 @@ class TestIntensionalConstraints:
             create_constraint,
             [
                 str(output),
-                "--type", "intensional",
-                "--expression", "self.pos == 'NOUN'",
+                "--type",
+                "intensional",
+                "--expression",
+                "self.pos == 'NOUN'",
             ],
         )
 
@@ -188,8 +221,10 @@ class TestIntensionalConstraints:
             create_constraint,
             [
                 str(output),
-                "--type", "intensional",
-                "--slot", "verb",
+                "--type",
+                "intensional",
+                "--slot",
+                "verb",
             ],
         )
 
@@ -203,9 +238,12 @@ class TestIntensionalConstraints:
             create_constraint,
             [
                 str(output),
-                "--type", "intensional",
-                "--slot", "verb",
-                "--expression", "pos == 'VERB'",  # Missing 'self.'
+                "--type",
+                "intensional",
+                "--slot",
+                "verb",
+                "--expression",
+                "pos == 'VERB'",  # Missing 'self.'
             ],
         )
 
@@ -226,9 +264,12 @@ class TestRelationalConstraints:
             create_constraint,
             [
                 str(output),
-                "--type", "relational",
-                "--relation", "subject.features.number == verb.features.number",
-                "--description", "Subject-verb agreement",
+                "--type",
+                "relational",
+                "--relation",
+                "subject.features.number == verb.features.number",
+                "--description",
+                "Subject-verb agreement",
             ],
         )
 
@@ -238,7 +279,9 @@ class TestRelationalConstraints:
         constraint_data = json.loads(output.read_text())
         constraint = Constraint(**constraint_data)
 
-        assert constraint.expression == "subject.features.number == verb.features.number"
+        assert (
+            constraint.expression == "subject.features.number == verb.features.number"
+        )
         assert constraint.description == "Subject-verb agreement"
 
     def test_create_if_then(self, runner: CliRunner, tmp_path: Path) -> None:
@@ -248,8 +291,10 @@ class TestRelationalConstraints:
             create_constraint,
             [
                 str(output),
-                "--type", "relational",
-                "--relation", "det.lemma != 'a' or noun.features.number == 'singular'",
+                "--type",
+                "relational",
+                "--relation",
+                "det.lemma != 'a' or noun.features.number == 'singular'",
             ],
         )
 
@@ -262,7 +307,8 @@ class TestRelationalConstraints:
             create_constraint,
             [
                 str(output),
-                "--type", "relational",
+                "--type",
+                "relational",
             ],
         )
 
@@ -276,13 +322,15 @@ class TestRelationalConstraints:
             create_constraint,
             [
                 str(output),
-                "--type", "relational",
-                "--relation", "self.pos == 'VERB'",
+                "--type",
+                "relational",
+                "--relation",
+                "self.pos == 'VERB'",
             ],
         )
 
         assert result.exit_code == 1
-        assert "should not use 'self.'" in result.output
+        assert "do not use 'self.'" in result.output
 
 
 # ==================== Output File Tests ====================
@@ -300,9 +348,12 @@ class TestOutputFile:
             create_constraint,
             [
                 str(output),
-                "--type", "extensional",
-                "--slot", "verb",
-                "--values", "walk,run",
+                "--type",
+                "extensional",
+                "--slot",
+                "verb",
+                "--values",
+                "walk,run",
             ],
         )
         assert result1.exit_code == 0
@@ -312,9 +363,12 @@ class TestOutputFile:
             create_constraint,
             [
                 str(output),
-                "--type", "intensional",
-                "--slot", "noun",
-                "--expression", "self.pos == 'NOUN'",
+                "--type",
+                "intensional",
+                "--slot",
+                "noun",
+                "--expression",
+                "self.pos == 'NOUN'",
             ],
         )
         assert result2.exit_code == 0
@@ -336,9 +390,12 @@ class TestOutputFile:
             create_constraint,
             [
                 str(output),
-                "--type", "extensional",
-                "--slot", "verb",
-                "--values", "walk",
+                "--type",
+                "extensional",
+                "--slot",
+                "verb",
+                "--values",
+                "walk",
             ],
         )
 
