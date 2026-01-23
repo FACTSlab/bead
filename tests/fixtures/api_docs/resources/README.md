@@ -34,7 +34,7 @@ These CSV files are read by `generate_lexicons.py` to create the JSONLines lexic
 
 ```python
 import csv
-from bead.resources.models import LexicalItem
+from bead.resources import LexicalItem
 
 with open("resources/bleached_nouns.csv") as f:
     reader = csv.DictReader(f)
