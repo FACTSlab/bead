@@ -37,7 +37,7 @@ console = Console()
 )
 @click.option(
     "--relation",
-    help="DSL expression for relational constraints (e.g., \"subject.number == verb.number\")",
+    help='DSL expression for relational constraints (e.g., "a.number == b.number")',
 )
 @click.option(
     "--values-file",
@@ -58,7 +58,7 @@ console = Console()
     help="Human-readable description of the constraint",
 )
 @click.option(
-    "--property",
+    "--prop-name",
     default="lemma",
     help="Property to check for extensional constraints (default: lemma)",
 )
@@ -74,7 +74,7 @@ def create_constraint(
     values: str | None,
     context_var_name: str,
     description: str | None,
-    property: str,
+    prop_name: str,
 ) -> None:
     r"""Create a constraint for template slot filling.
 
@@ -125,7 +125,7 @@ def create_constraint(
         Context variable name for extensional constraints.
     description : str | None
         Description of the constraint.
-    property : str
+    prop_name : str
         Property to check for extensional constraints.
 
     Examples
@@ -142,7 +142,7 @@ def create_constraint(
         --type extensional \\
         --slot noun \\
         --values "cat,dog,bird" \\
-        --property lemma
+        --prop-name lemma
 
     # Intensional constraint
     $ bead resources create-constraint constraints.jsonl \\
@@ -162,9 +162,7 @@ def create_constraint(
         if constraint_type == "extensional":
             # Validate required parameters
             if not values_file and not values:
-                print_error(
-                    "Extensional constraints require --values-file or --values"
-                )
+                print_error("Extensional constraints require --values-file or --values")
                 ctx.exit(1)
 
             if not slot:
@@ -187,15 +185,16 @@ def create_constraint(
 
             # Create constraint
             # Expression uses 'self' for single-slot constraints
-            expr = f"self.{property} in {context_var_name}"
+            expr = f"self.{prop_name} in {context_var_name}"
             constraint = Constraint(
                 expression=expr,
                 context={context_var_name: value_set},
                 description=description
-                or f"Allowed {property} values for {slot}: {len(value_set)} values",
+                or f"Allowed {prop_name} values for {slot}: {len(value_set)} values",
             )
             print_success(
-                f"Created extensional constraint for slot '{slot}' with {len(value_set)} allowed values"
+                f"Created extensional constraint for '{slot}' "
+                f"with {len(value_set)} values"
             )
 
         elif constraint_type == "intensional":
@@ -224,7 +223,7 @@ def create_constraint(
                 description=description or f"Intensional constraint: {expression}",
             )
             print_success(
-                f"Created intensional constraint{f' for slot ' + slot if slot else ''}"
+                f"Created intensional constraint{' for slot ' + slot if slot else ''}"
             )
 
         elif constraint_type == "relational":
@@ -236,7 +235,7 @@ def create_constraint(
             # Validate expression does NOT start with 'self.' (multi-slot)
             if relation.startswith("self."):
                 print_error(
-                    "Relational constraints are multi-slot and should not use 'self.'.\n\n"
+                    "Relational constraints are multi-slot; do not use 'self.'.\n\n"
                     "Use slot names as variables instead.\n\n"
                     "Example: subject.features.number == verb.features.number"
                 )
@@ -274,12 +273,10 @@ def create_constraint(
             console.print("\n[cyan]Usage in template:[/cyan]")
             if slot:
                 console.print(
-                    f"  Add to Slot(name='{slot}', constraints=[...loaded from file...])"
+                    f"  Add to Slot(name='{slot}', constraints=[...from file...])"
                 )
             else:
-                console.print(
-                    "  Add to Template.constraints=[...loaded from file...]"
-                )
+                console.print("  Add to Template.constraints=[...loaded from file...]")
         elif constraint_type == "relational":
             console.print("\n[cyan]Usage in template:[/cyan]")
             console.print("  Add to Template.constraints=[...loaded from file...]")

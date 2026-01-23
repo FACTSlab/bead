@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, cast
+from typing import cast
 from uuid import UUID
 
 import click
@@ -17,6 +17,7 @@ from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
 from bead.cli.utils import print_error, print_info, print_success
+from bead.data.base import JsonValue
 from bead.deployment.distribution import (
     DistributionStrategyType,
     ListDistributionStrategy,
@@ -202,7 +203,7 @@ def generate(
     """
     try:
         # Parse distribution config if provided
-        strategy_config_dict: dict[str, Any] = {}
+        strategy_config_dict: dict[str, JsonValue] = {}
         if distribution_config:
             try:
                 strategy_config_dict = json.loads(distribution_config)
@@ -295,14 +296,18 @@ def generate(
             console.print(f"  [dim]Output directory:[/dim] {output_dir}")
             console.print(f"  [dim]Experiment type:[/dim] {experiment_type}")
             console.print(f"  [dim]Title:[/dim] {title}")
-            console.print(f"  [dim]Distribution strategy:[/dim] {distribution_strategy}")
+            console.print(
+                f"  [dim]Distribution strategy:[/dim] {distribution_strategy}"
+            )
             console.print(f"  [dim]Number of lists:[/dim] {len(experiment_lists)}")
             console.print(f"  [dim]Number of items:[/dim] {len(items_dict)}")
             console.print(f"  [dim]Number of templates:[/dim] {len(templates_dict)}")
             if max_participants:
                 console.print(f"  [dim]Max participants:[/dim] {max_participants}")
             if debug_mode:
-                console.print(f"  [dim]Debug mode:[/dim] Enabled (list index: {debug_list_index})")
+                console.print(
+                    f"  [dim]Debug mode:[/dim] Enabled (list index: {debug_list_index})"
+                )
             print_info("[DRY RUN] Files that would be created:")
             console.print(f"  [dim]{output_dir}/index.html[/dim]")
             console.print(f"  [dim]{output_dir}/js/experiment.js[/dim]")
@@ -585,10 +590,10 @@ def validate(
 
         # Validate distribution.json
         dist_file = experiment_dir / "data" / "distribution.json"
-        dist_data: dict[str, Any] | None = None
+        dist_data: dict[str, JsonValue] | None = None
         if dist_file.exists():
             with open(dist_file, encoding="utf-8") as f:
-                dist_data_obj: object = json.load(f)
+                dist_data_obj: JsonValue = json.load(f)
                 if isinstance(dist_data_obj, dict):
                     dist_data = dist_data_obj  # type: ignore[assignment]
 
@@ -646,7 +651,7 @@ def validate(
 
 
 def _validate_distribution_config(
-    dist_data: dict[str, Any],
+    dist_data: dict[str, JsonValue],
     errors: list[str],
     warnings: list[str],
 ) -> None:
@@ -654,7 +659,7 @@ def _validate_distribution_config(
 
     Parameters
     ----------
-    dist_data : dict[str, Any]
+    dist_data : dict[str, JsonValue]
         Distribution configuration data.
     errors : list[str]
         List to append errors to.
@@ -683,7 +688,10 @@ def _validate_distribution_config(
         return
 
     # Validate strategy-specific configuration
-    strategy_config = dist_data.get("strategy_config")
+    strategy_config_raw = dist_data.get("strategy_config")
+    strategy_config: dict[str, JsonValue] | None = (
+        strategy_config_raw if isinstance(strategy_config_raw, dict) else None
+    )
 
     if strategy_type == "quota_based":
         if not strategy_config:
@@ -746,13 +754,13 @@ def _validate_trial_configs(
 
     for config_file in trial_configs:
         try:
-            config_data: object = json.loads(config_file.read_text(encoding="utf-8"))
+            config_data: JsonValue = json.loads(config_file.read_text(encoding="utf-8"))
 
             if not isinstance(config_data, dict):
                 errors.append(f"Trial config {config_file.name} must be a JSON object")
                 continue
 
-            config_dict: dict[str, Any] = config_data  # type: ignore[assignment]
+            config_dict: dict[str, JsonValue] = config_data  # type: ignore[assignment]
 
             # Validate config type
             config_type = config_dict.get("type")
@@ -781,8 +789,8 @@ def _validate_trial_configs(
 
 
 def _validate_data_structure(
-    items_data: list[dict[str, Any]],
-    lists_data: list[dict[str, Any]],
+    items_data: list[dict[str, JsonValue]],
+    lists_data: list[dict[str, JsonValue]],
     errors: list[str],
     warnings: list[str],
 ) -> None:
@@ -790,9 +798,9 @@ def _validate_data_structure(
 
     Parameters
     ----------
-    items_data : list[dict[str, Any]]
+    items_data : list[dict[str, JsonValue]]
         Items data from items.jsonl.
-    lists_data : list[dict[str, Any]]
+    lists_data : list[dict[str, JsonValue]]
         Lists data from lists.jsonl.
     errors : list[str]
         List to append errors to.

@@ -581,9 +581,7 @@ def predict(
                 "Model config missing 'task_type' field. "
                 "This model may have been trained with an older version of bead."
             )
-            print_info(
-                "Valid task types: " + ", ".join(TASK_TYPE_MODELS.keys())
-            )
+            print_info("Valid task types: " + ", ".join(TASK_TYPE_MODELS.keys()))
             ctx.exit(1)
 
         task_type = config_dict["task_type"]
@@ -768,9 +766,7 @@ def predict_proba(
                 "Model config missing 'task_type' field. "
                 "This model may have been trained with an older version of bead."
             )
-            print_info(
-                "Valid task types: " + ", ".join(TASK_TYPE_MODELS.keys())
-            )
+            print_info("Valid task types: " + ", ".join(TASK_TYPE_MODELS.keys()))
             ctx.exit(1)
 
         task_type = config_dict["task_type"]

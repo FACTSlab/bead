@@ -18,6 +18,7 @@ from rich.table import Table
 from bead.cli.utils import print_error, print_info, print_success
 from bead.items.item import Item
 from bead.lists import ExperimentList
+from bead.lists.constraints import BatchConstraint, ListConstraint
 from bead.lists.partitioner import ListPartitioner
 
 console = Console()
@@ -182,8 +183,6 @@ def partition(
         # Load list constraints if provided
         list_constraints = []
         if list_constraint_files:
-            from bead.lists.constraints import ListConstraint
-
             print_info(f"Loading {len(list_constraint_files)} list constraint file(s)")
             for constraint_file in list_constraint_files:
                 with open(constraint_file, encoding="utf-8") as f:
@@ -199,9 +198,9 @@ def partition(
         # Load batch constraints if provided
         batch_constraints = []
         if batch_constraint_files:
-            from bead.lists.constraints import BatchConstraint
-
-            print_info(f"Loading {len(batch_constraint_files)} batch constraint file(s)")
+            print_info(
+                f"Loading {len(batch_constraint_files)} batch constraint file(s)"
+            )
             for constraint_file in batch_constraint_files:
                 with open(constraint_file, encoding="utf-8") as f:
                     for line in f:
@@ -252,8 +251,12 @@ def partition(
             print_info("[DRY RUN] Would create the following files:")
             for exp_list in experiment_lists:
                 list_file = output_dir / f"list_{exp_list.list_number}.jsonl"
-                console.print(f"  [dim]{list_file}[/dim] ({len(exp_list.item_refs)} items)")
-            print_info(f"[DRY RUN] Total: {len(experiment_lists)} lists with {len(items)} items")
+                console.print(
+                    f"  [dim]{list_file}[/dim] ({len(exp_list.item_refs)} items)"
+                )
+            print_info(
+                f"[DRY RUN] Total: {len(experiment_lists)} lists, {len(items)} items"
+            )
         else:
             output_dir.mkdir(parents=True, exist_ok=True)
             for exp_list in experiment_lists:

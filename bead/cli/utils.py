@@ -8,9 +8,11 @@ from __future__ import annotations
 
 import json
 import sys
+from datetime import date, datetime
 from io import StringIO
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal, cast
+from typing import TYPE_CHECKING, Literal, cast
+from uuid import UUID
 
 import click
 import yaml
@@ -20,10 +22,8 @@ from rich.table import Table
 if TYPE_CHECKING:
     from bead.config import BeadConfig
 
-# Type alias for JSON values (recursive type)
-type JsonValue = (
-    str | int | float | bool | None | list[JsonValue] | dict[str, JsonValue]
-)
+from bead.config import load_config
+from bead.data.base import JsonValue
 
 console = Console()
 
@@ -56,9 +56,6 @@ def load_config_for_cli(
     ValidationError
         If configuration is invalid.
     """
-    # Lazy import to avoid circular import
-    from bead.config import load_config
-
     config_path = Path(config_file) if config_file else None
 
     try:
@@ -106,26 +103,34 @@ def format_output(
     if format_type == "yaml":
         return yaml.dump(data, default_flow_style=False, sort_keys=False)
     elif format_type == "json":
-        # Convert Path objects to strings for JSON serialization
-        def convert_paths(obj: JsonValue | Path) -> JsonValue:
+        # Convert Path, UUID, and datetime objects to strings for JSON serialization
+        def convert_non_serializable(
+            obj: JsonValue | Path | UUID | datetime | date,
+        ) -> JsonValue:
             if isinstance(obj, Path):
                 return str(obj)
+            elif isinstance(obj, UUID):
+                return str(obj)
+            elif isinstance(obj, datetime):
+                return obj.isoformat()
+            elif isinstance(obj, date):
+                return obj.isoformat()
             elif isinstance(obj, dict):
                 result: dict[str, JsonValue] = {}
                 k: str
                 v: JsonValue
                 for k, v in obj.items():
-                    result[str(k)] = convert_paths(v)
+                    result[str(k)] = convert_non_serializable(v)
                 return result
             elif isinstance(obj, list):
                 converted_list: list[JsonValue] = []
                 item: JsonValue
                 for item in obj:
-                    converted_list.append(convert_paths(item))
+                    converted_list.append(convert_non_serializable(item))
                 return converted_list
             return obj
 
-        converted_data: JsonValue = convert_paths(data)
+        converted_data: JsonValue = convert_non_serializable(data)
         return json.dumps(converted_data, indent=2)
     elif format_type == "table":
         if not isinstance(data, dict):
@@ -376,7 +381,7 @@ def parse_json_option(
             raise ValueError(
                 f"{option_name} must be a JSON object (dictionary), "
                 f"not {type(result).__name__}. "
-                f"Wrap your JSON in curly braces: '{{\"key\": \"value\"}}'"
+                f'Wrap your JSON in curly braces: \'{{"key": "value"}}\''
             )
         # At this point, we've validated result is a dict
         # Cast to the proper return type
@@ -385,7 +390,7 @@ def parse_json_option(
         raise ValueError(
             f"Invalid JSON in {option_name}: {e}\n"
             f"Provided: {json_str}\n"
-            f"Example: '{{\"key\": \"value\"}}'"
+            f'Example: \'{{"key": "value"}}\''
         ) from e
 
 

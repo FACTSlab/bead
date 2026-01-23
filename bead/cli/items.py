@@ -865,9 +865,7 @@ def infer_task_type(
                 try:
                     task_type_val: str = infer_task_type_from_item(item)
                     # task_type is already a string (Literal type), not enum
-                    type_counts[task_type_val] = (
-                        type_counts.get(task_type_val, 0) + 1
-                    )
+                    type_counts[task_type_val] = type_counts.get(task_type_val, 0) + 1
                     result_item: dict[str, str] = {
                         "item_id": str(item.id),
                         "task_type": task_type_val,

@@ -171,9 +171,7 @@ def import_verbnet(
         output_file.parent.mkdir(parents=True, exist_ok=True)
         lexicon.to_jsonl(str(output_file))
 
-        print_success(
-            f"Imported {len(items)} verbs from VerbNet: {output_file}"
-        )
+        print_success(f"Imported {len(items)} verbs from VerbNet: {output_file}")
 
     except ValidationError as e:
         print_error(f"Validation error: {e}")
@@ -463,9 +461,7 @@ def import_propbank(
         output_file.parent.mkdir(parents=True, exist_ok=True)
         lexicon.to_jsonl(str(output_file))
 
-        print_success(
-            f"Imported {len(items)} predicates from PropBank: {output_file}"
-        )
+        print_success(f"Imported {len(items)} predicates from PropBank: {output_file}")
 
     except ValidationError as e:
         print_error(f"Validation error: {e}")
@@ -608,9 +604,7 @@ def import_framenet(
         output_file.parent.mkdir(parents=True, exist_ok=True)
         lexicon.to_jsonl(str(output_file))
 
-        print_success(
-            f"Imported {len(items)} frames from FrameNet: {output_file}"
-        )
+        print_success(f"Imported {len(items)} frames from FrameNet: {output_file}")
 
     except ValidationError as e:
         print_error(f"Validation error: {e}")

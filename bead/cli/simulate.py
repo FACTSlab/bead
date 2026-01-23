@@ -661,7 +661,8 @@ def analyze(
                 # Type: ignore needed because InterAnnotatorMetrics expects
                 # specific Label type but annotations vary by task type
                 alpha = InterAnnotatorMetrics.krippendorff_alpha(
-                    rater_data, metric="nominal"  # type: ignore[arg-type]
+                    rater_data,
+                    metric="nominal",  # type: ignore[arg-type]
                 )
 
                 agreement_table = Table(title="Inter-Annotator Agreement")

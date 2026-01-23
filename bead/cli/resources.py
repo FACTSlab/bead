@@ -9,6 +9,7 @@ from __future__ import annotations
 import csv
 import json
 import re
+from itertools import product
 from pathlib import Path
 from typing import Any, cast
 
@@ -25,15 +26,11 @@ from bead.cli.resource_loaders import (
     import_verbnet,
 )
 from bead.cli.utils import print_error, print_info, print_success
+from bead.data.base import JsonValue
 from bead.resources.lexical_item import LexicalItem
 from bead.resources.lexicon import Lexicon
 from bead.resources.template import Slot, Template
 from bead.resources.template_collection import TemplateCollection
-
-# Type alias for JSON values (Python 3.13+)
-type JsonValue = (
-    dict[str, JsonValue] | list[JsonValue] | str | int | float | bool | None
-)
 
 console = Console()
 
@@ -692,7 +689,7 @@ def validate_template(ctx: click.Context, template_file: Path) -> None:
 @click.option(
     "--pattern",
     required=True,
-    help="Template pattern with {slot_name} placeholders (e.g., '{subject} {verb} {object}')",
+    help="Template pattern with {slot_name} placeholders (e.g., '{subj} {verb}')",
 )
 @click.option(
     "--name",
@@ -783,7 +780,7 @@ def generate_templates(
             print_error(
                 "No slot placeholders found in pattern.\n\n"
                 "Pattern must contain {slot_name} placeholders.\n\n"
-                f"Example: '{{subject}} {{verb}} {{object}}'"
+                "Example: '{subject} {verb} {object}'"
             )
             ctx.exit(1)
 
@@ -845,7 +842,11 @@ def generate_templates(
         # Show slot details
         console.print("\n[cyan]Slots:[/cyan]")
         for slot_name, slot in sorted(slot_dict.items()):
-            required_str = "[green]required[/green]" if slot.required else "[yellow]optional[/yellow]"
+            required_str = (
+                "[green]required[/green]"
+                if slot.required
+                else "[yellow]optional[/yellow]"
+            )
             console.print(f"  • {slot_name}: {required_str}")
 
     except ValidationError as e:
@@ -861,7 +862,7 @@ def generate_templates(
 @click.argument("output_file", type=click.Path(path_type=Path))
 @click.option(
     "--slot-variants",
-    help="JSON file with slot variant specifications: {slot_name: [variant1, variant2, ...]}",
+    help="JSON file with slot variant specs: {slot_name: [variant1, variant2]}",
     type=click.Path(exists=True, path_type=Path),
 )
 @click.option(
@@ -942,8 +943,6 @@ def generate_template_variants(
                 variant_spec = json.load(f)
 
             # Generate all combinations of slot substitutions
-            from itertools import product
-
             slot_names = list(variant_spec.keys())
             slot_options = [variant_spec[slot] for slot in slot_names]
 
@@ -953,13 +952,14 @@ def generate_template_variants(
             # Limit to max_variants if specified
             if max_variants and len(combinations) > max_variants:
                 print_info(
-                    f"Limiting to {max_variants} variants (out of {len(combinations)} possible)"
+                    f"Limiting to {max_variants} variants "
+                    f"(out of {len(combinations)} possible)"
                 )
                 combinations = combinations[:max_variants]
 
             for idx, combo in enumerate(combinations):
                 # Create substitution map
-                substitution_map = dict(zip(slot_names, combo))
+                substitution_map = dict(zip(slot_names, combo, strict=False))
 
                 # Apply substitutions to template_string
                 variant_template_string = base_template_string
@@ -987,9 +987,7 @@ def generate_template_variants(
                 variant = Template(**variant_data)
                 variants.append(variant)
 
-            print_success(
-                f"Generated {len(variants)} slot-based template variants"
-            )
+            print_success(f"Generated {len(variants)} slot-based template variants")
 
         else:
             # Generate simple metadata-only variants
@@ -1010,9 +1008,7 @@ def generate_template_variants(
                 variant = Template(**variant_data)
                 variants.append(variant)
 
-            print_success(
-                f"Generated {len(variants)} metadata-only template variants"
-            )
+            print_success(f"Generated {len(variants)} metadata-only template variants")
 
         # Save variants
         output_file.parent.mkdir(parents=True, exist_ok=True)

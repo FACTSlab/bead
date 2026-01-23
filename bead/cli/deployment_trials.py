@@ -275,8 +275,8 @@ def configure_choice(
         print_success(f"Choice configuration saved: {output_file}")
 
         # Show summary
-        kb_status = 'Enabled' if enable_keyboard else 'Disabled'
-        rand_status = 'Yes' if randomize_position else 'No'
+        kb_status = "Enabled" if enable_keyboard else "Disabled"
+        rand_status = "Yes" if randomize_position else "No"
         summary_panel = Panel(
             f"[cyan]Button HTML:[/cyan]\n{button_html}\n\n"
             f"[cyan]Keyboard Shortcuts:[/cyan] {kb_status}\n"

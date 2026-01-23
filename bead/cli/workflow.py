@@ -13,14 +13,14 @@ import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Any
 
 import click
 import yaml
 from rich.console import Console
 from rich.table import Table
 
-from bead.cli.utils import JsonValue, print_error, print_info, print_success
+from bead.cli.utils import print_error, print_info, print_success
+from bead.data.base import JsonValue
 
 console = Console()
 
@@ -270,7 +270,7 @@ WORKFLOW_TEMPLATES = {
 
 def _execute_stage(
     stage: str,
-    config: dict[str, Any],
+    config: dict[str, JsonValue],
     project_dir: Path,
     verbose: bool,
 ) -> None:
@@ -281,7 +281,7 @@ def _execute_stage(
     stage : str
         Stage name ('resources', 'templates', 'items', 'lists',
         'deployment', 'training').
-    config : dict[str, Any]
+    config : dict[str, JsonValue]
         Configuration dictionary from YAML.
     project_dir : Path
         Project directory path.
@@ -310,7 +310,7 @@ def _execute_stage(
 
 
 def _execute_resources_stage(
-    config: dict[str, Any], project_dir: Path, verbose: bool
+    config: dict[str, JsonValue], project_dir: Path, verbose: bool
 ) -> None:
     """Execute resources stage (lexicon and template creation).
 
@@ -320,7 +320,7 @@ def _execute_resources_stage(
 
     Parameters
     ----------
-    config : dict[str, Any]
+    config : dict[str, JsonValue]
         Configuration dictionary.
     project_dir : Path
         Project directory.
@@ -360,13 +360,13 @@ def _execute_resources_stage(
 
 
 def _execute_templates_stage(
-    config: dict[str, Any], project_dir: Path, verbose: bool
+    config: dict[str, JsonValue], project_dir: Path, verbose: bool
 ) -> None:
     """Execute templates stage (template filling).
 
     Parameters
     ----------
-    config : dict[str, Any]
+    config : dict[str, JsonValue]
         Configuration dictionary.
     project_dir : Path
         Project directory.
@@ -417,13 +417,13 @@ def _execute_templates_stage(
 
 
 def _execute_items_stage(
-    config: dict[str, Any], project_dir: Path, verbose: bool
+    config: dict[str, JsonValue], project_dir: Path, verbose: bool
 ) -> None:
     """Execute items stage (item construction).
 
     Parameters
     ----------
-    config : dict[str, Any]
+    config : dict[str, JsonValue]
         Configuration dictionary.
     project_dir : Path
         Project directory.
@@ -483,13 +483,13 @@ def _execute_items_stage(
 
 
 def _execute_lists_stage(
-    config: dict[str, Any], project_dir: Path, verbose: bool
+    config: dict[str, JsonValue], project_dir: Path, verbose: bool
 ) -> None:
     """Execute lists stage (list partitioning).
 
     Parameters
     ----------
-    config : dict[str, Any]
+    config : dict[str, JsonValue]
         Configuration dictionary.
     project_dir : Path
         Project directory.
@@ -546,13 +546,13 @@ def _execute_lists_stage(
 
 
 def _execute_deployment_stage(
-    config: dict[str, Any], project_dir: Path, verbose: bool
+    config: dict[str, JsonValue], project_dir: Path, verbose: bool
 ) -> None:
     """Execute deployment stage (experiment generation).
 
     Parameters
     ----------
-    config : dict[str, Any]
+    config : dict[str, JsonValue]
         Configuration dictionary.
     project_dir : Path
         Project directory.
@@ -608,13 +608,13 @@ def _execute_deployment_stage(
 
 
 def _execute_training_stage(
-    config: dict[str, Any], project_dir: Path, verbose: bool
+    config: dict[str, JsonValue], project_dir: Path, verbose: bool
 ) -> None:
     """Execute training stage (model training).
 
     Parameters
     ----------
-    config : dict[str, Any]
+    config : dict[str, JsonValue]
         Configuration dictionary.
     project_dir : Path
         Project directory.
@@ -677,9 +677,7 @@ def _run_command(cmd: list[str], verbose: bool) -> None:
             result = subprocess.run(cmd, check=True, text=True)
         else:
             # Capture output
-            result = subprocess.run(
-                cmd, capture_output=True, text=True, check=True
-            )
+            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
 
         if result.stdout and verbose:
             console.print(result.stdout)
@@ -690,9 +688,7 @@ def _run_command(cmd: list[str], verbose: bool) -> None:
             error_msg += f"\n{e.stderr}"
         raise RuntimeError(error_msg) from e
     except FileNotFoundError as e:
-        raise RuntimeError(
-            f"Command not found: {cmd[0]}. Is bead installed?"
-        ) from e
+        raise RuntimeError(f"Command not found: {cmd[0]}. Is bead installed?") from e
 
 
 # ============================================================================
@@ -912,8 +908,9 @@ def init(template: str, output_dir: Path | None, force: bool) -> None:
     console.rule(f"[bold]Initialize: {template_spec['name']}[/bold]")
 
     # Create directory structure
-    config_data: Any = template_spec["config"]
-    paths: dict[str, Any] = config_data.get("paths", {})
+    config_data = template_spec["config"]
+    paths_value = config_data.get("paths", {})
+    paths: dict[str, JsonValue] = paths_value if isinstance(paths_value, dict) else {}
 
     dirs_to_create: list[str] = [
         str(paths.get("lexicons_dir", "lexicons")),
@@ -996,7 +993,7 @@ def status(config_path: Path) -> None:
 
     # Load state
     state = load_state(project_dir)
-    stages_state: dict[str, Any] = state.get("stages", {})  # type: ignore
+    stages_state: dict[str, JsonValue] = state.get("stages", {})  # type: ignore
 
     # Check filesystem
     all_stages = [
@@ -1014,7 +1011,7 @@ def status(config_path: Path) -> None:
     table.add_column("Last Updated")
 
     for stage in all_stages:
-        stage_info: dict[str, Any] = stages_state.get(stage, {})
+        stage_info: dict[str, JsonValue] = stages_state.get(stage, {})
 
         # Check filesystem
         fs_complete = detect_stage_completion(project_dir, stage)
@@ -1076,7 +1073,7 @@ def resume(config_path: Path) -> None:
         print_error("Invalid workflow state. Use 'bead workflow run' to start.")
         sys.exit(1)
 
-    stages_state: dict[str, Any] = stages_value
+    stages_state: dict[str, JsonValue] = stages_value
 
     if not stages_state:
         print_error("No workflow state found. Use 'bead workflow run' to start.")
@@ -1094,7 +1091,7 @@ def resume(config_path: Path) -> None:
 
     last_completed_idx = -1
     for i, stage in enumerate(all_stages):
-        stage_info: dict[str, Any] = stages_state.get(stage, {})  # type: ignore[assignment]
+        stage_info: dict[str, JsonValue] = stages_state.get(stage, {})  # type: ignore[assignment]
         if stage_info.get("status") == "completed":
             last_completed_idx = i
 
@@ -1232,7 +1229,7 @@ def rollback(stage: str, config_path: Path, force: bool, dry_run: bool) -> None:
 
     # Update state
     state = load_state(project_dir)
-    stages_state: dict[str, Any] = state.get("stages", {})  # type: ignore
+    stages_state: dict[str, JsonValue] = state.get("stages", {})  # type: ignore
     for s in stages_to_delete:
         if s in stages_state:
             del stages_state[s]

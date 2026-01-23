@@ -22,6 +22,7 @@ from bead.cli.utils import (
     print_success,
     redact_sensitive_values,
 )
+from bead.config import list_profiles, validate_config
 
 
 @click.group()
@@ -155,9 +156,6 @@ def validate(ctx: click.Context, config_file: Path | None) -> None:
     verbose = ctx.obj.get("verbose", False)
 
     try:
-        # Lazy import to avoid circular import
-        from bead.config import validate_config
-
         # Load and validate
         cfg = load_config_for_cli(
             config_file=str(config_file),
@@ -278,9 +276,6 @@ def profiles() -> None:
     Examples:
         $ bead config profiles
     """
-    # Lazy import to avoid circular import
-    from bead.config import list_profiles
-
     available_profiles = list_profiles()
 
     print_info("Available configuration profiles:")

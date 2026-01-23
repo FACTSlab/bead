@@ -409,10 +409,14 @@ def create_size(
     """
     try:
         if exact_size is not None and (min_size is not None or max_size is not None):
-            raise ValueError("Cannot specify --exact-size with --min-size or --max-size")
+            raise ValueError(
+                "Cannot specify --exact-size with --min-size or --max-size"
+            )
 
         if exact_size is None and min_size is None and max_size is None:
-            raise ValueError("Must specify either --exact-size or at least one of --min-size/--max-size")
+            raise ValueError(
+                "Must specify --exact-size or at least one of --min-size/--max-size"
+            )
 
         constraint = SizeConstraint(
             exact_size=exact_size,

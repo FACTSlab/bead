@@ -69,7 +69,8 @@ _bead_completion() {
     local IFS=$'\\n'
     local response
 
-    response=$(env COMP_WORDS="${COMP_WORDS[*]}" COMP_CWORD=$COMP_CWORD _BEAD_COMPLETE=bash_complete bead 2>/dev/null)
+    response=$(env COMP_WORDS="${COMP_WORDS[*]}" COMP_CWORD=$COMP_CWORD \\
+        _BEAD_COMPLETE=bash_complete bead 2>/dev/null)
 
     for completion in $response; do
         IFS=',' read type value <<< "$completion"
@@ -94,7 +95,9 @@ complete -o nosort -F _bead_completion bead
 
     # Print hints to stderr
     sys.stderr.write("\n# Bash completion script generated\n")
-    sys.stderr.write("# Install with: bead completion bash > ~/.bash_completion.d/bead\n")
+    sys.stderr.write(
+        "# Install with: bead completion bash > ~/.bash_completion.d/bead\n"
+    )
 
 
 @completion.command()
@@ -128,7 +131,8 @@ _bead() {
     local -a response
     (( ! $+commands[bead] )) && return 1
 
-    response=("${(@f)$(env COMP_WORDS="${words[*]}" COMP_CWORD=$((CURRENT-1)) _BEAD_COMPLETE=zsh_complete bead 2>/dev/null)}")
+    response=("${(@f)$(env COMP_WORDS="${words[*]}" \\
+        COMP_CWORD=$((CURRENT-1)) _BEAD_COMPLETE=zsh_complete bead 2>/dev/null)}")
 
     for type key descr in ${response}; do
         if [[ "$type" == "plain" ]]; then
@@ -193,7 +197,9 @@ complete -c bead -f -a "(__fish_bead_complete)"
 
     # Print hints to stderr
     sys.stderr.write("\n# Fish completion script generated\n")
-    sys.stderr.write("# Install with: bead completion fish > ~/.config/fish/completions/bead.fish\n")
+    sys.stderr.write(
+        "# Install with: bead completion fish > ~/.config/fish/completions/bead.fish\n"
+    )
 
 
 @completion.command()

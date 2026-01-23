@@ -6,6 +6,7 @@ This module provides commands for filling templates with lexical items
 
 from __future__ import annotations
 
+import csv as csv_module
 import json
 from pathlib import Path
 
@@ -16,6 +17,9 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 
 from bead.cli.utils import print_error, print_info, print_success
+from bead.data.base import JsonValue
+from bead.dsl.evaluator import DSLEvaluator
+from bead.dsl.parser import parse
 from bead.resources.constraints import Constraint
 from bead.resources.lexicon import Lexicon
 from bead.resources.template_collection import TemplateCollection
@@ -51,7 +55,12 @@ def templates() -> None:
 
 @click.command()
 @click.argument("template_file", type=click.Path(exists=True, path_type=Path))
-@click.argument("lexicon_files", nargs=-1, type=click.Path(exists=True, path_type=Path), required=True)
+@click.argument(
+    "lexicon_files",
+    nargs=-1,
+    type=click.Path(exists=True, path_type=Path),
+    required=True,
+)
 @click.argument("output_file", type=click.Path(path_type=Path))
 @click.option(
     "--strategy",
@@ -127,7 +136,7 @@ def fill(
         --strategy exhaustive
 
     # Multiple lexicons
-    $ bead templates fill template.jsonl nouns.jsonl verbs.jsonl dets.jsonl filled.jsonl \\
+    $ bead templates fill tpl.jsonl nouns.jsonl verbs.jsonl filled.jsonl \\
         --strategy exhaustive
 
     # Random sampling
@@ -284,11 +293,17 @@ def fill(
     default="*.jsonl",
     help="File pattern to match (default: *.jsonl)",
 )
+@click.option(
+    "--filter",
+    "filter_expr",
+    help="DSL expression to filter (e.g., 'slot_fillers.noun.lemma == \"cat\"')",
+)
 @click.pass_context
 def list_filled(
     ctx: click.Context,
     directory: Path,
     pattern: str,
+    filter_expr: str | None,
 ) -> None:
     """List filled template files in a directory.
 
@@ -300,12 +315,16 @@ def list_filled(
         Directory to search.
     pattern : str
         File pattern to match.
+    filter_expr : str | None
+        DSL expression to filter filled templates.
 
     Examples
     --------
     $ bead templates list-filled
     $ bead templates list-filled --directory filled_templates/
     $ bead templates list-filled --pattern "filled_*.jsonl"
+    $ bead templates list-filled --filter "slot_fillers.noun.lemma == 'cat'"
+    $ bead templates list-filled --filter "len(slot_fillers) > 2"
     """
     try:
         files = list(directory.glob(pattern))
@@ -314,9 +333,22 @@ def list_filled(
             print_info(f"No files found in {directory} matching {pattern}")
             return
 
+        # Parse filter expression if provided
+        filter_ast = None
+        evaluator = None
+        if filter_expr:
+            try:
+                filter_ast = parse(filter_expr)
+                evaluator = DSLEvaluator()
+                print_info(f"Filtering with expression: {filter_expr}")
+            except Exception as e:
+                print_error(f"Invalid filter expression: {e}")
+                ctx.exit(1)
+
         table = Table(title=f"Filled Templates in {directory}")
         table.add_column("File", style="cyan")
         table.add_column("Count", justify="right", style="yellow")
+        table.add_column("Filtered", justify="right", style="magenta")
         table.add_column("Strategy", style="green")
         table.add_column("Sample", style="white")
 
@@ -329,7 +361,25 @@ def list_filled(
                 if not lines:
                     continue
 
-                count = len(lines)
+                # Apply filter if provided
+                filtered_count = 0
+                if filter_ast and evaluator:
+                    for line in lines:
+                        try:
+                            filled_data = json.loads(line)
+                            filled_template = FilledTemplate(**filled_data)
+                            # Create evaluation context
+                            context = {"self": filled_template}
+                            # Evaluate filter
+                            if evaluator.evaluate(filter_ast, context):
+                                filtered_count += 1
+                        except Exception:
+                            continue
+                else:
+                    filtered_count = len(lines)
+
+                if filtered_count == 0:
+                    continue
 
                 # Parse first filled template for metadata
                 first_data = json.loads(lines[0])
@@ -342,7 +392,8 @@ def list_filled(
 
                 table.add_row(
                     str(file_path.name),
-                    str(count),
+                    str(len(lines)),
+                    str(filtered_count) if filter_expr else "N/A",
                     strategy_name,
                     rendered,
                 )
@@ -501,7 +552,12 @@ def show_stats(ctx: click.Context, filled_file: Path) -> None:
 
 @click.command()
 @click.argument("template_file", type=click.Path(exists=True, path_type=Path))
-@click.argument("lexicon_files", nargs=-1, type=click.Path(exists=True, path_type=Path), required=True)
+@click.argument(
+    "lexicon_files",
+    nargs=-1,
+    type=click.Path(exists=True, path_type=Path),
+    required=True,
+)
 @click.option(
     "--language-code",
     help="ISO 639 language code to filter items",
@@ -725,7 +781,7 @@ def filter_filled(
                         continue
 
         print_success(
-            f"Filtered {filtered_count} of {total_count} filled templates: {output_file}"
+            f"Filtered {filtered_count} of {total_count} templates: {output_file}"
         )
 
     except Exception as e:
@@ -838,8 +894,6 @@ def export_csv(
     $ bead templates export-csv filled.jsonl filled.csv
     """
     try:
-        import csv as csv_module
-
         print_info(f"Exporting filled templates to CSV: {output_file}")
 
         filled_templates: list[FilledTemplate] = []
@@ -867,27 +921,33 @@ def export_csv(
             writer = csv_module.writer(f)
 
             # Header
-            writer.writerow([
-                "id",
-                "template_id",
-                "template_name",
-                "rendered_text",
-                "strategy_name",
-                "slot_count",
-            ])
+            writer.writerow(
+                [
+                    "id",
+                    "template_id",
+                    "template_name",
+                    "rendered_text",
+                    "strategy_name",
+                    "slot_count",
+                ]
+            )
 
             # Data
             for filled in filled_templates:
-                writer.writerow([
-                    str(filled.id),
-                    str(filled.template_id),
-                    filled.template_name,
-                    filled.rendered_text,
-                    filled.strategy_name,
-                    len(filled.slot_fillers),
-                ])
+                writer.writerow(
+                    [
+                        str(filled.id),
+                        str(filled.template_id),
+                        filled.template_name,
+                        filled.rendered_text,
+                        filled.strategy_name,
+                        len(filled.slot_fillers),
+                    ]
+                )
 
-        print_success(f"Exported {len(filled_templates)} filled templates to CSV: {output_file}")
+        print_success(
+            f"Exported {len(filled_templates)} filled templates to CSV: {output_file}"
+        )
 
     except Exception as e:
         print_error(f"Failed to export to CSV: {e}")
@@ -930,7 +990,7 @@ def export_json(
     try:
         print_info(f"Exporting filled templates to JSON: {output_file}")
 
-        filled_templates: list[dict[str, Any]] = []
+        filled_templates: list[dict[str, JsonValue]] = []
 
         with open(filled_file, encoding="utf-8") as f:
             for line in f:
@@ -957,7 +1017,9 @@ def export_json(
             else:
                 json.dump(filled_templates, f, ensure_ascii=False)
 
-        print_success(f"Exported {len(filled_templates)} filled templates to JSON: {output_file}")
+        print_success(
+            f"Exported {len(filled_templates)} filled templates to JSON: {output_file}"
+        )
 
     except Exception as e:
         print_error(f"Failed to export to JSON: {e}")
@@ -966,7 +1028,12 @@ def export_json(
 
 @click.command()
 @click.argument("template_file", type=click.Path(exists=True, path_type=Path))
-@click.argument("lexicon_files", nargs=-1, type=click.Path(exists=True, path_type=Path), required=True)
+@click.argument(
+    "lexicon_files",
+    nargs=-1,
+    type=click.Path(exists=True, path_type=Path),
+    required=True,
+)
 @click.argument("output_file", type=click.Path(path_type=Path))
 @click.option(
     "--n-samples",
@@ -1022,7 +1089,7 @@ def sample_combinations(
         --n-samples 1000 --seed 42
 
     # Multiple lexicons
-    $ bead templates sample-combinations template.jsonl nouns.jsonl verbs.jsonl samples.jsonl \\
+    $ bead templates sample-combinations tpl.jsonl nouns.jsonl verbs.jsonl out.jsonl \\
         --n-samples 1000 --seed 42
     """
     try:
