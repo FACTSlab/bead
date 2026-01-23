@@ -178,10 +178,11 @@ class TestRandomInterceptsMode:
         participant_ids = ["alice", "bob", "alice", "bob"] * 5
         model.train(sample_items, sample_labels, participant_ids)
 
-        # Check intercepts were created
-        assert "alice" in model.random_effects.intercepts
-        assert "bob" in model.random_effects.intercepts
-        assert len(model.random_effects.intercepts) == 2
+        # Check intercepts were created (nested: intercepts[param][participant])
+        assert "mu" in model.random_effects.intercepts
+        assert "alice" in model.random_effects.intercepts["mu"]
+        assert "bob" in model.random_effects.intercepts["mu"]
+        assert len(model.random_effects.intercepts["mu"]) == 2
 
     def test_predict_with_known_participant(
         self, sample_items: list[Item], sample_labels: list[str]
@@ -342,7 +343,7 @@ class TestPredictProba:
 
         assert proba.shape == (5, 2)
         # Each row should sum to 1
-        import numpy as np
+        import numpy as np  # noqa: PLC0415
 
         assert np.allclose(proba.sum(axis=1), 1.0)
 
@@ -365,7 +366,7 @@ class TestPredictProba:
         proba = model.predict_proba(sample_items[:5], ["alice"] * 5)
 
         assert proba.shape == (5, 2)
-        import numpy as np
+        import numpy as np  # noqa: PLC0415
 
         assert np.allclose(proba.sum(axis=1), 1.0)
 
@@ -405,7 +406,7 @@ class TestSaveLoad:
         model = ForcedChoiceModel(config)
 
         participant_ids = (["alice", "bob", "charlie"] * 6) + ["alice", "bob"]
-        metrics = model.train(sample_items, sample_labels, participant_ids)
+        model.train(sample_items, sample_labels, participant_ids)
 
         with tempfile.TemporaryDirectory() as tmpdir:
             model_path = Path(tmpdir) / "model"
@@ -415,10 +416,11 @@ class TestSaveLoad:
             loaded_model = ForcedChoiceModel()
             loaded_model.load(str(model_path))
 
-            # Check intercepts preserved
-            assert "alice" in loaded_model.random_effects.intercepts
-            assert "bob" in loaded_model.random_effects.intercepts
-            assert "charlie" in loaded_model.random_effects.intercepts
+            # Check intercepts preserved (nested: intercepts[param][participant])
+            assert "mu" in loaded_model.random_effects.intercepts
+            assert "alice" in loaded_model.random_effects.intercepts["mu"]
+            assert "bob" in loaded_model.random_effects.intercepts["mu"]
+            assert "charlie" in loaded_model.random_effects.intercepts["mu"]
 
             # Check variance history preserved
             assert len(loaded_model.variance_history) == len(model.variance_history)

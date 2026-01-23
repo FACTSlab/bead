@@ -117,11 +117,13 @@ class TestGetIntercepts:
         config = MixedEffectsConfig(mode="random_intercepts", prior_variance=1.0)
         manager = RandomEffectsManager(config)
 
-        bias = manager.get_intercepts("alice", n_classes=3, create_if_missing=True)
+        bias = manager.get_intercepts(
+            "alice", n_classes=3, param_name="bias", create_if_missing=True
+        )
 
         assert bias.shape == (3,)
         assert bias.requires_grad
-        assert "alice" in manager.intercepts
+        assert "alice" in manager.intercepts.get("bias", {})
 
     def test_get_intercepts_returns_existing(self) -> None:
         """Test that get_intercepts returns existing intercepts."""
@@ -129,9 +131,13 @@ class TestGetIntercepts:
         manager = RandomEffectsManager(config)
 
         # First call creates
-        bias1 = manager.get_intercepts("alice", n_classes=3, create_if_missing=True)
+        bias1 = manager.get_intercepts(
+            "alice", n_classes=3, param_name="bias", create_if_missing=True
+        )
         # Second call returns same
-        bias2 = manager.get_intercepts("alice", n_classes=3, create_if_missing=True)
+        bias2 = manager.get_intercepts(
+            "alice", n_classes=3, param_name="bias", create_if_missing=True
+        )
 
         assert torch.equal(bias1, bias2)
 
@@ -140,18 +146,24 @@ class TestGetIntercepts:
         config = MixedEffectsConfig(mode="random_intercepts", prior_mean=0.0)
         manager = RandomEffectsManager(config)
 
-        bias = manager.get_intercepts("unknown", n_classes=3, create_if_missing=False)
+        bias = manager.get_intercepts(
+            "unknown", n_classes=3, param_name="bias", create_if_missing=False
+        )
 
         assert bias.shape == (3,)
         assert torch.allclose(bias, torch.zeros(3))
-        assert "unknown" not in manager.intercepts
+        assert "unknown" not in manager.intercepts.get("bias", {})
 
     def test_get_intercepts_uses_prior_mean(self) -> None:
         """Test that intercepts use prior_mean when initialized."""
-        config = MixedEffectsConfig(mode="random_intercepts", prior_mean=2.0, prior_variance=0.0)
+        config = MixedEffectsConfig(
+            mode="random_intercepts", prior_mean=2.0, prior_variance=0.0
+        )
         manager = RandomEffectsManager(config)
 
-        bias = manager.get_intercepts("alice", n_classes=3, create_if_missing=True)
+        bias = manager.get_intercepts(
+            "alice", n_classes=3, param_name="bias", create_if_missing=True
+        )
 
         # With zero variance, should equal prior mean exactly
         assert torch.allclose(bias, torch.full((3,), 2.0))
@@ -162,7 +174,7 @@ class TestGetIntercepts:
         manager = RandomEffectsManager(config)
 
         with pytest.raises(ValueError, match="expected 'random_intercepts'"):
-            manager.get_intercepts("alice", n_classes=3)
+            manager.get_intercepts("alice", n_classes=3, param_name="bias")
 
     def test_get_intercepts_random_slopes_mode_raises(self) -> None:
         """Test that get_intercepts raises if mode is random_slopes."""
@@ -170,7 +182,7 @@ class TestGetIntercepts:
         manager = RandomEffectsManager(config)
 
         with pytest.raises(ValueError, match="expected 'random_intercepts'"):
-            manager.get_intercepts("alice", n_classes=3)
+            manager.get_intercepts("alice", n_classes=3, param_name="bias")
 
 
 class TestGetInterceptsWithShrinkage:
@@ -182,13 +194,15 @@ class TestGetInterceptsWithShrinkage:
             mode="random_intercepts",
             prior_mean=0.0,
             prior_variance=1.0,
-            min_samples_for_random_effects=10
+            min_samples_for_random_effects=10,
         )
         manager = RandomEffectsManager(config)
 
         # Create participant with strong deviation
         manager.register_participant("alice", n_samples=2)
-        manager.intercepts["alice"] = torch.tensor([5.0, 5.0, 5.0], requires_grad=True)
+        manager.intercepts.setdefault("bias", {})["alice"] = torch.tensor(
+            [5.0, 5.0, 5.0], requires_grad=True
+        )
 
         bias_shrunk = manager.get_intercepts_with_shrinkage("alice", n_classes=3)
 
@@ -200,15 +214,15 @@ class TestGetInterceptsWithShrinkage:
     def test_shrinkage_for_large_sample_participant(self) -> None:
         """Test that large sample participants use their specific estimate."""
         config = MixedEffectsConfig(
-            mode="random_intercepts",
-            prior_mean=0.0,
-            min_samples_for_random_effects=10
+            mode="random_intercepts", prior_mean=0.0, min_samples_for_random_effects=10
         )
         manager = RandomEffectsManager(config)
 
         # Large sample participant
         manager.register_participant("bob", n_samples=100)
-        manager.intercepts["bob"] = torch.tensor([5.0, 5.0, 5.0], requires_grad=True)
+        manager.intercepts.setdefault("bias", {})["bob"] = torch.tensor(
+            [5.0, 5.0, 5.0], requires_grad=True
+        )
 
         bias_shrunk = manager.get_intercepts_with_shrinkage("bob", n_classes=3)
 
@@ -236,11 +250,13 @@ class TestGetInterceptsWithShrinkage:
             effect_type="intercept",
             variance=2.0,  # Large variance → less shrinkage
             n_groups=10,
-            n_observations_per_group={"alice": 5}
+            n_observations_per_group={"alice": 5},
         )
 
         manager.register_participant("alice", n_samples=5)
-        manager.intercepts["alice"] = torch.tensor([5.0, 5.0, 5.0], requires_grad=True)
+        manager.intercepts.setdefault("bias", {})["alice"] = torch.tensor(
+            [5.0, 5.0, 5.0], requires_grad=True
+        )
 
         bias_shrunk = manager.get_intercepts_with_shrinkage("alice", n_classes=3)
 
@@ -253,7 +269,9 @@ class TestGetInterceptsWithShrinkage:
         config = MixedEffectsConfig(mode="random_slopes")
         manager = RandomEffectsManager(config)
 
-        with pytest.raises(ValueError, match="Shrinkage only for random_intercepts mode"):
+        with pytest.raises(
+            ValueError, match="Shrinkage only for random_intercepts mode"
+        ):
             manager.get_intercepts_with_shrinkage("alice", n_classes=3)
 
 
@@ -347,11 +365,15 @@ class TestEstimateVarianceComponents:
         manager = RandomEffectsManager(config)
 
         manager.register_participant("alice", n_samples=10)
-        manager.intercepts["alice"] = torch.tensor([1.0, 2.0, 3.0])
+        manager.intercepts.setdefault("bias", {})["alice"] = torch.tensor(
+            [1.0, 2.0, 3.0]
+        )
 
-        var_comp = manager.estimate_variance_components()
+        var_comps = manager.estimate_variance_components()
 
-        assert var_comp is not None
+        assert var_comps is not None
+        assert "bias" in var_comps
+        var_comp = var_comps["bias"]
         assert var_comp.grouping_factor == "participant"
         assert var_comp.effect_type == "intercept"
         assert var_comp.n_groups == 1
@@ -367,13 +389,19 @@ class TestEstimateVarianceComponents:
         manager.register_participant("charlie", n_samples=8)
 
         # Create intercepts with different values
-        manager.intercepts["alice"] = torch.tensor([0.0, 0.0, 0.0])
-        manager.intercepts["bob"] = torch.tensor([1.0, 1.0, 1.0])
-        manager.intercepts["charlie"] = torch.tensor([2.0, 2.0, 2.0])
+        manager.intercepts.setdefault("bias", {})["alice"] = torch.tensor(
+            [0.0, 0.0, 0.0]
+        )
+        manager.intercepts.setdefault("bias", {})["bob"] = torch.tensor([1.0, 1.0, 1.0])
+        manager.intercepts.setdefault("bias", {})["charlie"] = torch.tensor(
+            [2.0, 2.0, 2.0]
+        )
 
-        var_comp = manager.estimate_variance_components()
+        var_comps = manager.estimate_variance_components()
 
-        assert var_comp is not None
+        assert var_comps is not None
+        assert "bias" in var_comps
+        var_comp = var_comps["bias"]
         assert var_comp.n_groups == 3
         assert var_comp.variance > 0.0  # Should have variance across participants
 
@@ -383,15 +411,17 @@ class TestEstimateVarianceComponents:
         manager = RandomEffectsManager(config)
 
         manager.register_participant("alice", n_samples=10)
-        manager.intercepts["alice"] = torch.tensor([1.0, 2.0, 3.0])
+        manager.intercepts.setdefault("bias", {})["alice"] = torch.tensor(
+            [1.0, 2.0, 3.0]
+        )
 
         # First estimation
-        var_comp1 = manager.estimate_variance_components()
+        manager.estimate_variance_components()
         assert len(manager.variance_history) == 1
 
         # Second estimation
         manager.register_participant("bob", n_samples=15)
-        manager.intercepts["bob"] = torch.tensor([4.0, 5.0, 6.0])
+        manager.intercepts.setdefault("bias", {})["bob"] = torch.tensor([4.0, 5.0, 6.0])
         var_comp2 = manager.estimate_variance_components()
 
         assert len(manager.variance_history) == 2
@@ -420,9 +450,12 @@ class TestEstimateVarianceComponents:
         manager.get_slopes("alice", fixed_head, create_if_missing=True)
         manager.get_slopes("bob", fixed_head, create_if_missing=True)
 
-        var_comp = manager.estimate_variance_components()
+        var_comps = manager.estimate_variance_components()
 
-        assert var_comp is not None
+        assert var_comps is not None
+        # Slopes return a single variance component (not per-param)
+        assert "slopes" in var_comps
+        var_comp = var_comps["slopes"]
         assert var_comp.grouping_factor == "participant"
         assert var_comp.effect_type == "slope"
         assert var_comp.n_groups == 2
@@ -456,11 +489,13 @@ class TestComputePriorLoss:
             mode="random_intercepts",
             prior_mean=0.0,
             regularization_strength=0.1,
-            adaptive_regularization=False
+            adaptive_regularization=False,
         )
         manager = RandomEffectsManager(config)
 
-        manager.intercepts["alice"] = torch.tensor([1.0, 2.0, 3.0], requires_grad=True)
+        manager.intercepts.setdefault("bias", {})["alice"] = torch.tensor(
+            [1.0, 2.0, 3.0], requires_grad=True
+        )
 
         loss = manager.compute_prior_loss()
 
@@ -474,12 +509,16 @@ class TestComputePriorLoss:
             mode="random_intercepts",
             prior_mean=0.0,
             regularization_strength=0.1,
-            adaptive_regularization=False
+            adaptive_regularization=False,
         )
         manager = RandomEffectsManager(config)
 
-        manager.intercepts["alice"] = torch.tensor([1.0, 0.0, 0.0], requires_grad=True)
-        manager.intercepts["bob"] = torch.tensor([0.0, 1.0, 0.0], requires_grad=True)
+        manager.intercepts.setdefault("bias", {})["alice"] = torch.tensor(
+            [1.0, 0.0, 0.0], requires_grad=True
+        )
+        manager.intercepts.setdefault("bias", {})["bob"] = torch.tensor(
+            [0.0, 1.0, 0.0], requires_grad=True
+        )
 
         loss = manager.compute_prior_loss()
 
@@ -494,17 +533,21 @@ class TestComputePriorLoss:
             prior_mean=0.0,
             regularization_strength=1.0,
             adaptive_regularization=True,
-            min_samples_for_random_effects=5
+            min_samples_for_random_effects=5,
         )
         manager = RandomEffectsManager(config)
 
         # Alice has 2 samples → weight = 1/5 = 0.2
         manager.register_participant("alice", n_samples=2)
-        manager.intercepts["alice"] = torch.tensor([10.0, 0.0, 0.0], requires_grad=True)
+        manager.intercepts.setdefault("bias", {})["alice"] = torch.tensor(
+            [10.0, 0.0, 0.0], requires_grad=True
+        )
 
         # Bob has 20 samples → weight = 1/20 = 0.05
         manager.register_participant("bob", n_samples=20)
-        manager.intercepts["bob"] = torch.tensor([10.0, 0.0, 0.0], requires_grad=True)
+        manager.intercepts.setdefault("bias", {})["bob"] = torch.tensor(
+            [10.0, 0.0, 0.0], requires_grad=True
+        )
 
         loss = manager.compute_prior_loss()
 
@@ -519,7 +562,7 @@ class TestComputePriorLoss:
         config = MixedEffectsConfig(
             mode="random_slopes",
             regularization_strength=0.1,
-            adaptive_regularization=False
+            adaptive_regularization=False,
         )
         manager = RandomEffectsManager(config)
 
@@ -547,8 +590,10 @@ class TestSaveLoad:
 
         manager.register_participant("alice", n_samples=10)
         manager.register_participant("bob", n_samples=15)
-        manager.intercepts["alice"] = torch.tensor([1.0, 2.0, 3.0])
-        manager.intercepts["bob"] = torch.tensor([4.0, 5.0, 6.0])
+        manager.intercepts.setdefault("bias", {})["alice"] = torch.tensor(
+            [1.0, 2.0, 3.0]
+        )
+        manager.intercepts.setdefault("bias", {})["bob"] = torch.tensor([4.0, 5.0, 6.0])
 
         with tempfile.TemporaryDirectory() as tmpdir:
             path = Path(tmpdir) / "random_effects"
@@ -558,9 +603,13 @@ class TestSaveLoad:
             new_manager = RandomEffectsManager(config)
             new_manager.load(path)
 
-            assert len(new_manager.intercepts) == 2
-            assert torch.equal(new_manager.intercepts["alice"], torch.tensor([1.0, 2.0, 3.0]))
-            assert torch.equal(new_manager.intercepts["bob"], torch.tensor([4.0, 5.0, 6.0]))
+            assert len(new_manager.intercepts.get("bias", {})) == 2
+            assert torch.equal(
+                new_manager.intercepts["bias"]["alice"], torch.tensor([1.0, 2.0, 3.0])
+            )
+            assert torch.equal(
+                new_manager.intercepts["bias"]["bob"], torch.tensor([4.0, 5.0, 6.0])
+            )
             assert new_manager.participant_sample_counts["alice"] == 10
             assert new_manager.participant_sample_counts["bob"] == 15
 
@@ -586,7 +635,11 @@ class TestSaveLoad:
             assert "alice" in new_manager.slopes
 
             # Check parameters match
-            for p1, p2 in zip(head_alice.parameters(), new_manager.slopes["alice"].parameters()):
+            for p1, p2 in zip(
+                head_alice.parameters(),
+                new_manager.slopes["alice"].parameters(),
+                strict=False,
+            ):
                 assert torch.equal(p1, p2)
 
     def test_save_load_variance_history(self) -> None:
@@ -595,12 +648,14 @@ class TestSaveLoad:
         manager = RandomEffectsManager(config)
 
         manager.register_participant("alice", n_samples=10)
-        manager.intercepts["alice"] = torch.tensor([1.0, 2.0, 3.0])
+        manager.intercepts.setdefault("bias", {})["alice"] = torch.tensor(
+            [1.0, 2.0, 3.0]
+        )
 
         # Estimate variance multiple times
         manager.estimate_variance_components()
         manager.register_participant("bob", n_samples=15)
-        manager.intercepts["bob"] = torch.tensor([4.0, 5.0, 6.0])
+        manager.intercepts.setdefault("bias", {})["bob"] = torch.tensor([4.0, 5.0, 6.0])
         manager.estimate_variance_components()
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -613,14 +668,20 @@ class TestSaveLoad:
 
             assert len(new_manager.variance_history) == 2
             assert new_manager.variance_components is not None
-            assert new_manager.variance_components == new_manager.variance_history[-1]
+            # variance_components is now a dict; check the bias key matches last history
+            assert (
+                new_manager.variance_components["bias"]
+                == new_manager.variance_history[-1]
+            )
 
     def test_load_nonexistent_path_raises(self) -> None:
         """Test that loading from nonexistent path raises FileNotFoundError."""
         config = MixedEffectsConfig(mode="random_intercepts")
         manager = RandomEffectsManager(config)
 
-        with pytest.raises(FileNotFoundError, match="Random effects directory not found"):
+        with pytest.raises(
+            FileNotFoundError, match="Random effects directory not found"
+        ):
             manager.load(Path("/nonexistent/path"))
 
     def test_load_slopes_without_fixed_head_raises(self) -> None:
@@ -653,14 +714,17 @@ class TestEdgeCases:
         # All participants have identical intercepts
         manager.register_participant("alice", n_samples=10)
         manager.register_participant("bob", n_samples=15)
-        manager.intercepts["alice"] = torch.tensor([1.0, 1.0, 1.0])
-        manager.intercepts["bob"] = torch.tensor([1.0, 1.0, 1.0])
+        manager.intercepts.setdefault("bias", {})["alice"] = torch.tensor(
+            [1.0, 1.0, 1.0]
+        )
+        manager.intercepts.setdefault("bias", {})["bob"] = torch.tensor([1.0, 1.0, 1.0])
 
-        var_comp = manager.estimate_variance_components()
+        var_comps = manager.estimate_variance_components()
 
         # Variance should be very close to zero
-        assert var_comp is not None
-        assert var_comp.variance < 1e-5
+        assert var_comps is not None
+        assert "bias" in var_comps
+        assert var_comps["bias"].variance < 1e-5
 
     def test_many_participants(self) -> None:
         """Test with many participants (stress test)."""
@@ -669,12 +733,16 @@ class TestEdgeCases:
 
         # Register 100 participants
         for i in range(100):
-            manager.register_participant(f"participant_{i}", n_samples=i+1)
-            manager.intercepts[f"participant_{i}"] = torch.randn(3)
+            manager.register_participant(f"participant_{i}", n_samples=i + 1)
+            manager.intercepts.setdefault("bias", {})[f"participant_{i}"] = torch.randn(
+                3
+            )
 
-        var_comp = manager.estimate_variance_components()
+        var_comps = manager.estimate_variance_components()
 
-        assert var_comp is not None
+        assert var_comps is not None
+        assert "bias" in var_comps
+        var_comp = var_comps["bias"]
         assert var_comp.n_groups == 100
         assert len(var_comp.n_observations_per_group) == 100
 
@@ -684,12 +752,14 @@ class TestEdgeCases:
             mode="random_intercepts",
             prior_mean=5.0,
             regularization_strength=0.1,
-            adaptive_regularization=False
+            adaptive_regularization=False,
         )
         manager = RandomEffectsManager(config)
 
         # Intercept at prior mean should have zero loss
-        manager.intercepts["alice"] = torch.tensor([5.0, 5.0, 5.0], requires_grad=True)
+        manager.intercepts.setdefault("bias", {})["alice"] = torch.tensor(
+            [5.0, 5.0, 5.0], requires_grad=True
+        )
 
         loss = manager.compute_prior_loss()
 

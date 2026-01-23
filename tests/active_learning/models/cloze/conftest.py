@@ -23,7 +23,7 @@ def sample_cloze_items() -> list[Item]:
     for i in range(3):
         item = Item(
             item_template_id=uuid4(),
-            rendered_elements={"text": f"The cat ___."},
+            rendered_elements={"text": "The cat ___."},
             unfilled_slots=[
                 UnfilledSlot(slot_name="verb", position=2, constraint_ids=[])
             ],
@@ -35,7 +35,7 @@ def sample_cloze_items() -> list[Item]:
     for i in range(3):
         item = Item(
             item_template_id=uuid4(),
-            rendered_elements={"text": f"___ dog ___."},
+            rendered_elements={"text": "___ dog ___."},
             unfilled_slots=[
                 UnfilledSlot(slot_name="det", position=0, constraint_ids=[]),
                 UnfilledSlot(slot_name="verb", position=2, constraint_ids=[]),
@@ -70,7 +70,7 @@ def sample_cloze_labels() -> list[list[str]]:
 def sample_short_cloze_items() -> list[Item]:
     """Create minimal cloze items for faster tests."""
     items = []
-    for i in range(4):
+    for _i in range(4):
         item = Item(
             item_template_id=uuid4(),
             rendered_elements={"text": "The ___."},

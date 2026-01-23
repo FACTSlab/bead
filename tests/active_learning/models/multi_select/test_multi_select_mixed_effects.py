@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 import tempfile
 from pathlib import Path
-from uuid import uuid4
 
 import pytest
 
@@ -64,9 +63,7 @@ class TestFixedEffectsMode:
             # predicted_class is JSON string of selected options
             selected = json.loads(pred.predicted_class)
             assert isinstance(selected, list)
-            assert all(
-                opt in ["option_a", "option_b", "option_c"] for opt in selected
-            )
+            assert all(opt in ["option_a", "option_b", "option_c"] for opt in selected)
             assert 0.0 <= pred.confidence <= 1.0
 
     def test_train_requires_participant_ids(
@@ -81,7 +78,7 @@ class TestFixedEffectsMode:
         # Missing participant_ids should fail (signature requires it)
         # This is a compile-time check - the signature enforces it
         # Just verify the parameter exists
-        import inspect
+        import inspect  # noqa: PLC0415
 
         sig = inspect.signature(model.train)
         assert "participant_ids" in sig.parameters
@@ -142,8 +139,10 @@ class TestRandomInterceptsMode:
         assert model.random_effects is not None
         assert len(model.random_effects.intercepts) > 0
         # Should have intercepts for unique participants
+        # intercepts structure: {'mu': {'alice': ..., 'bob': ..., 'charlie': ...}}
         unique_participants = set(sample_participant_ids)
-        assert len(model.random_effects.intercepts) == len(unique_participants)
+        assert "mu" in model.random_effects.intercepts
+        assert len(model.random_effects.intercepts["mu"]) == len(unique_participants)
 
     def test_random_intercepts_uses_intercepts_in_prediction(
         self,
@@ -280,9 +279,7 @@ class TestRandomInterceptsMode:
         model.train(sample_items, sample_labels, sample_participant_ids)
 
         # Predict probabilities
-        proba = model.predict_proba(
-            sample_items[:5], sample_participant_ids[:5]
-        )
+        proba = model.predict_proba(sample_items[:5], sample_participant_ids[:5])
 
         # Should return (n_items, n_options) array
         assert proba.shape == (5, 3)
@@ -411,10 +408,13 @@ class TestSaveLoad:
             assert pred_before[0].predicted_class == pred_after[0].predicted_class
             # Probabilities should match
             for opt in ["option_a", "option_b", "option_c"]:
-                assert abs(
-                    pred_before[0].probabilities[opt]
-                    - pred_after[0].probabilities[opt]
-                ) < 1e-5
+                assert (
+                    abs(
+                        pred_before[0].probabilities[opt]
+                        - pred_after[0].probabilities[opt]
+                    )
+                    < 1e-5
+                )
 
     def test_save_and_load_preserves_variance_history(
         self,
@@ -448,7 +448,9 @@ class TestSaveLoad:
 
             # Variance history should be preserved
             assert len(loaded_model.variance_history) == 1
-            assert abs(loaded_model.variance_history[0].variance - variance_before) < 1e-6
+            assert (
+                abs(loaded_model.variance_history[0].variance - variance_before) < 1e-6
+            )
 
 
 class TestMultiLabelSpecifics:
@@ -478,9 +480,7 @@ class TestMultiLabelSpecifics:
         # May sum to anything in [0, 3] for 3 options
         assert 0.0 <= prob_sum <= 3.0
 
-    def test_empty_selection_possible(
-        self, sample_items: list[Item]
-    ) -> None:
+    def test_empty_selection_possible(self, sample_items: list[Item]) -> None:
         """Test that model can predict empty selection (no options selected)."""
         # Create labels with empty selections
         labels = [json.dumps([]) for _ in range(10)]  # No selections
@@ -503,9 +503,7 @@ class TestMultiLabelSpecifics:
         selected = json.loads(predictions[0].predicted_class)
         assert isinstance(selected, list)
 
-    def test_all_options_selected_possible(
-        self, sample_items: list[Item]
-    ) -> None:
+    def test_all_options_selected_possible(self, sample_items: list[Item]) -> None:
         """Test that model can predict all options selected."""
         # Create labels with all options selected
         labels = [json.dumps(["option_a", "option_b", "option_c"]) for _ in range(10)]
@@ -549,9 +547,7 @@ class TestMultiLabelSpecifics:
         # With random initialization and 1 epoch, shouldn't be perfect
         # (unless very lucky, but statistically unlikely)
 
-    def test_invalid_label_format_raises_error(
-        self, sample_items: list[Item]
-    ) -> None:
+    def test_invalid_label_format_raises_error(self, sample_items: list[Item]) -> None:
         """Test that invalid label format raises error."""
         # Invalid: not JSON
         labels_invalid = ["not_json"] * len(sample_items)

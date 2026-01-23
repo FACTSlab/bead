@@ -133,9 +133,7 @@ class TestFixedEffectsMode:
         with pytest.raises(ValueError, match="cannot contain empty strings"):
             model.train(sample_short_cloze_items, sample_short_labels, participant_ids)
 
-    def test_validates_empty_labels(
-        self, sample_short_cloze_items: list[Item]
-    ) -> None:
+    def test_validates_empty_labels(self, sample_short_cloze_items: list[Item]) -> None:
         """Test that train validates labels are non-empty lists."""
         config = ClozeModelConfig(
             model_name="bert-base-uncased",
@@ -355,7 +353,7 @@ class TestRandomInterceptsMode:
     def test_shared_bias_across_all_masked_positions(
         self, sample_cloze_items: list[Item], sample_cloze_labels: list[list[str]]
     ) -> None:
-        """Test that same bias is applied to all masked positions in multi-slot items."""
+        """Test same bias applied to all masked positions in multi-slot items."""
         config = ClozeModelConfig(
             model_name="bert-base-uncased",
             num_epochs=1,
@@ -391,7 +389,9 @@ class TestRandomInterceptsMode:
         model = ClozeModel(config)
 
         with pytest.raises(ValueError, match="participant_ids is required"):
-            model.train(sample_short_cloze_items, sample_short_labels, participant_ids=None)
+            model.train(
+                sample_short_cloze_items, sample_short_labels, participant_ids=None
+            )
 
     def test_handles_single_participant_edge_case(
         self, sample_short_cloze_items: list[Item], sample_short_labels: list[list[str]]
@@ -442,7 +442,9 @@ class TestRandomInterceptsMode:
         # Verify single bias tensor exists for p1
         bias = model.random_effects.intercepts["mu"]["p1"]
         # This single bias is applied to all masked positions
-        assert bias.requires_grad or bias.grad_fn is not None or True  # Trainable or detached
+        assert (
+            bias.requires_grad or bias.grad_fn is not None or True
+        )  # Trainable or detached
 
 
 class TestRandomSlopesMode:
@@ -595,7 +597,9 @@ class TestRandomSlopesMode:
         model = ClozeModel(config)
 
         with pytest.raises(ValueError, match="participant_ids is required"):
-            model.train(sample_short_cloze_items, sample_short_labels, participant_ids=None)
+            model.train(
+                sample_short_cloze_items, sample_short_labels, participant_ids=None
+            )
 
     def test_participant_heads_trainable(
         self, sample_short_cloze_items: list[Item], sample_short_labels: list[list[str]]
@@ -640,7 +644,9 @@ class TestRandomSlopesMode:
 
         # Generate with each participant
         for pid in ["p1", "p2"]:
-            predictions = model.predict([sample_short_cloze_items[0]], participant_ids=[pid])
+            predictions = model.predict(
+                [sample_short_cloze_items[0]], participant_ids=[pid]
+            )
             assert len(predictions) == 1
             assert len(predictions[0].predicted_class) > 0
 
@@ -762,7 +768,7 @@ class TestSaveLoad:
             pred2 = model2.predict(sample_short_cloze_items[:2], participant_ids=None)
 
             assert len(pred1) == len(pred2)
-            for p1, p2 in zip(pred1, pred2):
+            for p1, p2 in zip(pred1, pred2, strict=False):
                 # Predictions should be identical after save/load
                 assert p1.predicted_class == p2.predicted_class
 
@@ -832,4 +838,6 @@ class TestSaveLoad:
 
             # Variance history should be preserved
             # Note: May not be identical due to serialization, but length should match
-            assert len(model2.variance_history) >= 0  # At least should load without error
+            assert (
+                len(model2.variance_history) >= 0
+            )  # At least should load without error

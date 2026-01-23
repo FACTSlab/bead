@@ -6,13 +6,12 @@ import numpy as np
 import pytest
 from pydantic import ValidationError
 
-from bead.active_learning.models.base import ActiveLearningModel, ModelPrediction
 from bead.active_learning.config import (
     MixedEffectsConfig,
     RandomEffectsSpec,
     VarianceComponents,
 )
-from bead.items.item import Item
+from bead.active_learning.models.base import ActiveLearningModel, ModelPrediction
 
 
 class TestVarianceComponents:
@@ -189,32 +188,60 @@ class DummyModel(ActiveLearningModel):
 
     @property
     def supported_task_types(self):
+        """Return supported task types."""
         return ["forced_choice"]
 
     def validate_item_compatibility(self, item, item_template):
-        pass
+        """Validate item compatibility."""
 
-    def train(self, items, labels, participant_ids, validation_items=None, validation_labels=None):
+    def _prepare_training_data(self, items, labels, participant_ids):
+        """Prepare training data."""
+        return [], [], []
+
+    def _initialize_random_effects(self, n_classes):
+        """Initialize random effects."""
+
+    def _do_training(self, items, labels, participant_ids, validation_data):
+        """Perform training."""
         return {}
 
-    def predict(self, items, participant_ids):
+    def _do_predict(self, items, participant_ids):
+        """Make predictions."""
         return []
 
-    def predict_proba(self, items, participant_ids):
+    def _do_predict_proba(self, items, participant_ids):
+        """Return prediction probabilities."""
         return np.array([])
 
-    def save(self, path):
-        pass
+    def _get_save_state(self):
+        """Get save state."""
+        return {}
 
-    def load(self, path):
-        pass
+    def _save_model_components(self, save_path):
+        """Save model components."""
+
+    def _load_model_components(self, load_path):
+        """Load model components."""
+
+    def _restore_training_state(self, config_dict):
+        """Restore training state."""
+
+    def _get_random_effects_fixed_head(self):
+        """Get fixed head for random effects."""
+        return None
+
+    def _get_n_classes_for_random_effects(self):
+        """Get number of classes for random effects."""
+        return 2
 
 
 class DummyConfig:
     """Dummy config with mixed_effects field."""
 
     def __init__(self, mixed_effects=None):
-        self.mixed_effects = mixed_effects if mixed_effects is not None else MixedEffectsConfig()
+        self.mixed_effects = (
+            mixed_effects if mixed_effects is not None else MixedEffectsConfig()
+        )
 
 
 class TestActiveLearningModel:

@@ -89,7 +89,7 @@ def test_active_learning_selects_items_from_pool(test_items, forced_choice_templ
     )
 
     model_config = ForcedChoiceModelConfig(num_epochs=1, batch_size=4, device="cpu")
-    results = loop.run(
+    loop.run(
         initial_items=initial_items,
         initial_model=ForcedChoiceModel(config=model_config),
         item_template=forced_choice_template,

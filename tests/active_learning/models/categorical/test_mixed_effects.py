@@ -183,9 +183,11 @@ class TestRandomInterceptsMode:
         model.train(sample_items, sample_labels, participant_ids)
 
         # Check intercepts were created
-        assert "alice" in model.random_effects.intercepts
-        assert "bob" in model.random_effects.intercepts
-        assert len(model.random_effects.intercepts) == 2
+        # intercepts is a nested dict: intercepts[param_name][participant_id]
+        assert "mu" in model.random_effects.intercepts
+        assert "alice" in model.random_effects.intercepts["mu"]
+        assert "bob" in model.random_effects.intercepts["mu"]
+        assert len(model.random_effects.intercepts["mu"]) == 2
 
     def test_predict_with_known_participant(
         self, sample_items: list[Item], sample_labels: list[str]
@@ -270,7 +272,8 @@ class TestRandomInterceptsMode:
         model.train(sample_items, sample_labels, participant_ids)
 
         # Intercepts should have shape (3,) for 3 classes
-        assert model.random_effects.intercepts["alice"].shape[0] == 3
+        # intercepts is a nested dict: intercepts[param_name][participant_id]
+        assert model.random_effects.intercepts["mu"]["alice"].shape[0] == 3
 
 
 class TestRandomSlopesMode:
@@ -365,7 +368,7 @@ class TestPredictProba:
 
         assert proba.shape == (5, 3)  # 3 classes
         # Each row should sum to 1
-        import numpy as np
+        import numpy as np  # noqa: PLC0415
 
         assert np.allclose(proba.sum(axis=1), 1.0)
 
@@ -388,7 +391,7 @@ class TestPredictProba:
         proba = model.predict_proba(sample_items[:5], ["alice"] * 5)
 
         assert proba.shape == (5, 3)
-        import numpy as np
+        import numpy as np  # noqa: PLC0415
 
         assert np.allclose(proba.sum(axis=1), 1.0)
 
@@ -428,7 +431,7 @@ class TestSaveLoad:
         model = CategoricalModel(config)
 
         participant_ids = (["alice", "bob", "charlie"] * 6) + ["alice", "bob"]
-        metrics = model.train(sample_items, sample_labels, participant_ids)
+        model.train(sample_items, sample_labels, participant_ids)
 
         with tempfile.TemporaryDirectory() as tmpdir:
             model_path = Path(tmpdir) / "model"
@@ -439,9 +442,11 @@ class TestSaveLoad:
             loaded_model.load(str(model_path))
 
             # Check intercepts preserved
-            assert "alice" in loaded_model.random_effects.intercepts
-            assert "bob" in loaded_model.random_effects.intercepts
-            assert "charlie" in loaded_model.random_effects.intercepts
+            # intercepts is a nested dict: intercepts[param_name][participant_id]
+            assert "mu" in loaded_model.random_effects.intercepts
+            assert "alice" in loaded_model.random_effects.intercepts["mu"]
+            assert "bob" in loaded_model.random_effects.intercepts["mu"]
+            assert "charlie" in loaded_model.random_effects.intercepts["mu"]
 
             # Check variance history preserved
             assert len(loaded_model.variance_history) == len(model.variance_history)
@@ -586,9 +591,7 @@ class TestMultipleCategories:
         assert "train_accuracy" in metrics
         assert model.num_classes == 5
 
-    def test_intercepts_scale_with_categories(
-        self, sample_items: list[Item]
-    ) -> None:
+    def test_intercepts_scale_with_categories(self, sample_items: list[Item]) -> None:
         """Test that intercept dimensions match number of categories."""
         config = CategoricalModelConfig(
             model_name="bert-base-uncased",
@@ -606,4 +609,7 @@ class TestMultipleCategories:
         model.train(sample_items, labels, participant_ids)
 
         # Intercepts should have shape (5,) for 5 categories
-        assert model.random_effects.intercepts["alice"].shape[0] == 5
+        # intercepts is a nested dict: intercepts[param_name][participant_id]
+        assert "mu" in model.random_effects.intercepts
+        assert "alice" in model.random_effects.intercepts["mu"]
+        assert model.random_effects.intercepts["mu"]["alice"].shape[0] == 5

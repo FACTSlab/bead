@@ -163,7 +163,8 @@ def test_forced_choice_save_and_load(test_items):
 
         # Predictions should match
         assert all(
-            p1.predicted_class == p2.predicted_class for p1, p2 in zip(pred1, pred2)
+            p1.predicted_class == p2.predicted_class
+            for p1, p2 in zip(pred1, pred2, strict=False)
         )
         assert model2._is_fitted is True
 
@@ -268,9 +269,9 @@ def test_forced_choice_different_num_epochs(test_items):
 
 def test_forced_choice_empty_rendered_elements():
     """Test handling of empty rendered elements."""
-    from uuid import uuid4
+    from uuid import uuid4  # noqa: PLC0415
 
-    from bead.items.item import Item
+    from bead.items.item import Item  # noqa: PLC0415
 
     items = [
         Item(item_template_id=uuid4(), rendered_elements={}),
@@ -280,7 +281,7 @@ def test_forced_choice_empty_rendered_elements():
 
     config = ForcedChoiceModelConfig(num_epochs=1, batch_size=2, device="cpu")
     model = ForcedChoiceModel(config=config)
-    metrics = model.train(items, labels)
+    model.train(items, labels)
 
     # Should handle gracefully
     assert model._is_fitted is True
@@ -300,7 +301,7 @@ def test_forced_choice_prediction_consistency(test_items):
     pred2 = model.predict(items)
 
     # Should be identical in eval mode
-    for p1, p2 in zip(pred1, pred2):
+    for p1, p2 in zip(pred1, pred2, strict=False):
         assert p1.predicted_class == p2.predicted_class
         assert abs(p1.confidence - p2.confidence) < 1e-5
 
@@ -331,9 +332,9 @@ def test_forced_choice_predict_and_predict_proba_agreement(test_items):
 
 def test_forced_choice_max_length_truncation(test_items):
     """Test that long sequences are truncated."""
-    from uuid import uuid4
+    from uuid import uuid4  # noqa: PLC0415
 
-    from bead.items.item import Item
+    from bead.items.item import Item  # noqa: PLC0415
 
     # Create item with very long text
     long_text = " ".join(["word"] * 200)
@@ -349,7 +350,7 @@ def test_forced_choice_max_length_truncation(test_items):
         max_length=32, num_epochs=1, batch_size=1, device="cpu"
     )
     model = ForcedChoiceModel(config=config)
-    metrics = model.train(items, labels)
+    model.train(items, labels)
 
     # Should handle without error
     assert model._is_fitted is True
@@ -400,7 +401,7 @@ def test_forced_choice_small_batch_with_odd_size(test_items):
 
     config = ForcedChoiceModelConfig(num_epochs=1, batch_size=3, device="cpu")
     model = ForcedChoiceModel(config=config)
-    metrics = model.train(items, labels)
+    model.train(items, labels)
 
     # Should handle correctly
     assert model._is_fitted is True
@@ -446,6 +447,6 @@ def test_forced_choice_gradients_update_parameters(test_items):
     # At least some parameters should have changed
     params_changed = any(
         not torch.allclose(p1.detach(), p2.detach())
-        for p1, p2 in zip(initial_params, final_params)
+        for p1, p2 in zip(initial_params, final_params, strict=False)
     )
     assert params_changed, "Training should update model parameters"

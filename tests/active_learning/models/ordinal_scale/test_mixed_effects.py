@@ -98,9 +98,7 @@ class TestFixedEffectsMode:
         with pytest.raises(ValueError, match="cannot contain empty strings"):
             model.train(sample_items, sample_labels, participant_ids)
 
-    def test_train_validates_label_bounds(
-        self, sample_items: list[Item]
-    ) -> None:
+    def test_train_validates_label_bounds(self, sample_items: list[Item]) -> None:
         """Test that train validates label bounds."""
         config = OrdinalScaleModelConfig(
             model_name="bert-base-uncased", num_epochs=1, device="cpu"

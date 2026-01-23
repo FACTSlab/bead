@@ -35,8 +35,8 @@ def test_items():
             item = Item(
                 item_template_id=uuid4(),
                 rendered_elements={
-                    "option_a": f"The child played with toy {i}. This is a natural sentence.",
-                    "option_b": f"The person walked to place {i}. This is also natural.",
+                    "option_a": f"The child played with toy {i}. Natural sentence.",
+                    "option_b": f"The person walked to place {i}. Also natural.",
                 },
                 item_metadata={"test_index": i},
             )

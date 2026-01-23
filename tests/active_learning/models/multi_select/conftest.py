@@ -34,7 +34,7 @@ def sample_labels() -> list[str]:
     Returns
     -------
     list[str]
-        Each label is a JSON string of selected options, e.g., '["option_a", "option_c"]'.
+        JSON string of selected options, e.g., '["option_a", "option_c"]'.
     """
     labels = []
     # Vary selection patterns
