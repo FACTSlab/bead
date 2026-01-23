@@ -13,8 +13,8 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
 
+from bead.data.base import JsonValue
 from bead.data.timestamps import now_iso8601
 from bead.deployment.jatos.api import JATOSClient
 
@@ -68,7 +68,7 @@ class JATOSDataCollector:
         output_path: Path,
         component_id: int | None = None,
         worker_type: str | None = None,
-    ) -> list[dict[str, Any]]:
+    ) -> list[dict[str, JsonValue]]:
         """Download all results for the study.
 
         Downloads results from JATOS, optionally filtering by component ID
@@ -86,7 +86,7 @@ class JATOSDataCollector:
 
         Returns
         -------
-        list[dict[str, Any]]
+        list[dict[str, JsonValue]]
             Downloaded results with metadata.
 
         Raises
@@ -111,7 +111,7 @@ class JATOSDataCollector:
         # Get result IDs from JATOS API
         result_ids = self.client.get_results(self.study_id)
 
-        results: list[dict[str, Any]] = []
+        results: list[dict[str, JsonValue]] = []
 
         # Download each result with metadata
         for result_id in result_ids:
@@ -138,7 +138,7 @@ class JATOSDataCollector:
 
         return results
 
-    def _download_single_result(self, result_id: int) -> dict[str, Any]:
+    def _download_single_result(self, result_id: int) -> dict[str, JsonValue]:
         """Download a single result with metadata.
 
         Parameters
@@ -148,7 +148,7 @@ class JATOSDataCollector:
 
         Returns
         -------
-        dict[str, Any]
+        dict[str, JsonValue]
             Result data with metadata and download timestamp.
 
         Raises
@@ -175,14 +175,14 @@ class JATOSDataCollector:
             "download_timestamp": now_iso8601().isoformat(),
         }
 
-    def get_study_info(self) -> dict[str, Any]:
+    def get_study_info(self) -> dict[str, JsonValue]:
         """Get study information.
 
         Delegates to the underlying JATOSClient.
 
         Returns
         -------
-        dict[str, Any]
+        dict[str, JsonValue]
             Study details dictionary.
 
         Raises

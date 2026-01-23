@@ -139,20 +139,20 @@ async function runExperiment() {
             return item;
         });
 
-        // Create trials from items
-        // TODO: This needs to call the trial creation logic
-        // For now, assume items have rendered_elements that we can display
-        for (const item of listItems) {
-            timeline.push({
-                type: jsPsychHtmlButtonResponse,
-                stimulus: item.rendered_elements.text || 'No text',
-                choices: item.rendered_elements.choices || ['Option A', 'Option B'],
-                data: {
-                    trial_type: 'experimental_trial',
-                    item_id: item.id,
-                    item_metadata: item.item_metadata
-                }
-            });
+        // Load pre-generated trials for this list
+        const trialsData = await fetch('data/trials.json').then(r => r.json());
+        const listTrials = trialsData[assignedList.id];
+        
+        if (!listTrials || listTrials.length === 0) {
+            throw new Error(
+                `No trials found for list '${assignedList.name}' (id: ${assignedList.id}). ` +
+                `Ensure trials were generated correctly.`
+            );
+        }
+
+        // Add pre-generated trials to timeline
+        for (const trial of listTrials) {
+            timeline.push(trial);
         }
 
         // Completion

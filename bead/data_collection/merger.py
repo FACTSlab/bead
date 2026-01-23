@@ -7,7 +7,7 @@ records based on participant IDs and handles unmatched records gracefully.
 
 from __future__ import annotations
 
-from typing import Any
+from bead.data.base import JsonValue
 
 
 class DataMerger:
@@ -39,9 +39,9 @@ class DataMerger:
 
     def merge(
         self,
-        jatos_results: list[dict[str, Any]],
-        prolific_submissions: list[dict[str, Any]],
-    ) -> list[dict[str, Any]]:
+        jatos_results: list[dict[str, JsonValue]],
+        prolific_submissions: list[dict[str, JsonValue]],
+    ) -> list[dict[str, JsonValue]]:
         """Merge JATOS and Prolific data.
 
         Merges experimental results from JATOS with participant submissions
@@ -57,7 +57,7 @@ class DataMerger:
 
         Returns
         -------
-        list[dict[str, Any]]
+        list[dict[str, JsonValue]]
             Merged data with structure:
             {
                 "jatos_data": {...},
@@ -79,11 +79,11 @@ class DataMerger:
             assert merged[0]["merged"] is True
         """
         # Create lookup by Prolific participant ID
-        prolific_lookup: dict[str, dict[str, Any]] = {
+        prolific_lookup: dict[str, dict[str, JsonValue]] = {
             sub["participant_id"]: sub for sub in prolific_submissions
         }
 
-        merged: list[dict[str, Any]] = []
+        merged: list[dict[str, JsonValue]] = []
 
         for result in jatos_results:
             # Extract Prolific PID from JATOS data
@@ -91,7 +91,7 @@ class DataMerger:
 
             if prolific_pid and prolific_pid in prolific_lookup:
                 # Merge
-                merged_record: dict[str, Any] = {
+                merged_record: dict[str, JsonValue] = {
                     "jatos_data": result,
                     "prolific_metadata": prolific_lookup[prolific_pid],
                     "merged": True,
@@ -110,7 +110,7 @@ class DataMerger:
 
     def _extract_prolific_pid(
         self,
-        jatos_result: dict[str, Any],
+        jatos_result: dict[str, JsonValue],
     ) -> str | None:
         """Extract Prolific PID from JATOS result.
 
@@ -119,7 +119,7 @@ class DataMerger:
 
         Parameters
         ----------
-        jatos_result : dict[str, Any]
+        jatos_result : dict[str, JsonValue]
             JATOS result dictionary.
 
         Returns

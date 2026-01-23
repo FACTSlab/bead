@@ -8,23 +8,21 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
 from uuid import UUID
 
 from jinja2 import Environment, FileSystemLoader
 
+from bead.data.base import JsonValue
 from bead.data.serialization import SerializationError, write_jsonlines
 from bead.deployment.jspsych.config import (
     ChoiceConfig,
     ExperimentConfig,
     RatingScaleConfig,
 )
-from bead.deployment.jspsych.randomizer import generate_randomizer_function
 from bead.deployment.jspsych.trials import create_trial
 from bead.items.item import Item
 from bead.items.item_template import ItemTemplate
 from bead.lists import ExperimentList
-from bead.lists.constraints import OrderingConstraint
 
 
 class JsPsychExperimentGenerator:
@@ -125,7 +123,8 @@ class JsPsychExperimentGenerator:
             - index.html
             - js/experiment.js, js/list_distributor.js
             - css/experiment.css
-            - data/config.json, data/lists.jsonl, data/items.jsonl, data/distribution.json
+            - data/config.json, data/lists.jsonl, data/items.jsonl,
+              data/distribution.json
 
         Raises
         ------
@@ -138,8 +137,12 @@ class JsPsychExperimentGenerator:
         Examples
         --------
         >>> from pathlib import Path
-        >>> from bead.deployment.distribution import ListDistributionStrategy, DistributionStrategyType
-        >>> strategy = ListDistributionStrategy(strategy_type=DistributionStrategyType.BALANCED)
+        >>> from bead.deployment.distribution import (
+        ...     ListDistributionStrategy, DistributionStrategyType
+        ... )
+        >>> strategy = ListDistributionStrategy(
+        ...     strategy_type=DistributionStrategyType.BALANCED
+        ... )
         >>> config = ExperimentConfig(
         ...     experiment_type="forced_choice",
         ...     title="Test",
@@ -147,22 +150,24 @@ class JsPsychExperimentGenerator:
         ...     instructions="Test",
         ...     distribution_strategy=strategy
         ... )
-        >>> generator = JsPsychExperimentGenerator(config=config, output_dir=Path("/tmp/exp"))
+        >>> generator = JsPsychExperimentGenerator(
+        ...     config=config, output_dir=Path("/tmp/exp")
+        ... )
         >>> # output_dir = generator.generate(lists, items, templates)
         """
         # Validate inputs (no fallbacks)
         if not lists:
             raise ValueError(
-                "generate() requires at least one ExperimentList. Got empty list. "
-                "Create lists using ListPartitioner before calling generate(). "
-                "Example: partitioner.partition_with_batch_constraints(items, metadata, ...)"
+                "generate() requires at least one ExperimentList. Got empty list."
+                " Create lists using ListPartitioner before calling generate()."
+                " Example: partitioner.partition_with_batch_constraints(...)"
             )
 
         if not items:
             raise ValueError(
-                "generate() requires items dictionary. Got empty dict. "
-                "Ensure items are constructed before calling generate(). "
-                "Items must be created using item construction utilities from bead.items."
+                "generate() requires items dictionary. Got empty dict."
+                " Ensure items are constructed before calling generate()."
+                " Items must be created using bead.items utilities."
             )
 
         if not templates:
@@ -181,10 +186,11 @@ class JsPsychExperimentGenerator:
         # Create directory structure
         self._create_directory_structure()
 
-        # Write batch data files (lists, items, distribution config)
+        # Write batch data files (lists, items, distribution config, trials)
         self._write_lists_jsonl(lists)
         self._write_items_jsonl(items)
         self._write_distribution_config()
+        self._write_trials_json(lists, items, templates)
 
         # Generate HTML/CSS/JS files
         self._generate_html()
@@ -218,11 +224,12 @@ class JsPsychExperimentGenerator:
             for item_id in exp_list.item_refs:
                 if item_id not in items:
                     available_sample = list(items.keys())[:5]
+                    ellipsis = "..." if len(items) > 5 else ""
                     raise ValueError(
                         f"Item {item_id} referenced in list '{exp_list.name}' "
-                        f"(list_number={exp_list.list_number}) not found in items dictionary. "
-                        f"Available item UUIDs (first 5): {available_sample}{'...' if len(items) > 5 else ''}. "
-                        f"Ensure all items referenced in lists are included in the items dict passed to generate()."
+                        f"(list_number={exp_list.list_number}) not found in items. "
+                        f"Available UUIDs (first 5): {available_sample}{ellipsis}. "
+                        f"Include all referenced items in items dict."
                     )
 
     def _validate_template_references(
@@ -247,11 +254,12 @@ class JsPsychExperimentGenerator:
         for item_id, item in items.items():
             if item.item_template_id not in templates:
                 available_sample = list(templates.keys())[:5]
+                ellipsis = "..." if len(templates) > 5 else ""
                 raise ValueError(
-                    f"Template {item.item_template_id} referenced by item {item_id} "
-                    f"not found in templates dictionary. "
-                    f"Available template UUIDs (first 5): {available_sample}{'...' if len(templates) > 5 else ''}. "
-                    f"Ensure all templates referenced by items are included in the templates dict passed to generate()."
+                    f"Template {item.item_template_id} for item {item_id} "
+                    f"not found in templates. "
+                    f"Available UUIDs (first 5): {available_sample}{ellipsis}. "
+                    f"Include all referenced templates in templates dict."
                 )
 
     def _write_lists_jsonl(self, lists: list[ExperimentList]) -> None:
@@ -300,6 +308,58 @@ class JsPsychExperimentGenerator:
                 f"Failed to write items.jsonl to {output_path}: {e}. "
                 f"Check write permissions and disk space. "
                 f"Attempted to serialize {len(items)} items."
+            ) from e
+
+    def _write_trials_json(
+        self,
+        lists: list[ExperimentList],
+        items: dict[UUID, Item],
+        templates: dict[UUID, ItemTemplate],
+    ) -> None:
+        """Write pre-generated trials to data/trials.json.
+
+        Creates trials for each list and stores them in a JSON file
+        keyed by list ID for efficient loading in the experiment.
+
+        Parameters
+        ----------
+        lists : list[ExperimentList]
+            Experiment lists.
+        items : dict[UUID, Item]
+            Items dictionary.
+        templates : dict[UUID, ItemTemplate]
+            Templates dictionary.
+
+        Raises
+        ------
+        SerializationError
+            If writing JSON fails.
+        """
+        output_path = self.output_dir / "data" / "trials.json"
+        trials_by_list: dict[str, list[dict[str, JsonValue]]] = {}
+
+        for exp_list in lists:
+            list_trials: list[dict[str, JsonValue]] = []
+            for trial_num, item_id in enumerate(exp_list.item_refs):
+                item = items[item_id]
+                template = templates[item.item_template_id]
+                trial = create_trial(
+                    item=item,
+                    template=template,
+                    experiment_config=self.config,
+                    trial_number=trial_num,
+                    rating_config=self.rating_config,
+                    choice_config=self.choice_config,
+                )
+                list_trials.append(trial)
+            trials_by_list[str(exp_list.id)] = list_trials
+
+        try:
+            with open(output_path, "w", encoding="utf-8") as f:
+                json.dump(trials_by_list, f, indent=2)
+        except Exception as e:
+            raise SerializationError(
+                f"Failed to write trials.json to {output_path}: {e}"
             ) from e
 
     def _write_distribution_config(self) -> None:

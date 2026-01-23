@@ -134,7 +134,7 @@ class LatinSquareConfig(BeadBaseModel):
     Attributes
     ----------
     balanced : bool
-        Use balanced Latin square (complete counterbalancing) vs. standard (default: True).
+        Use balanced Latin square vs. standard (default: True).
         Balanced squares use Bradley's (1958) algorithm.
 
     Examples
@@ -151,7 +151,7 @@ class MetadataBasedConfig(BeadBaseModel):
     """Configuration for metadata-based assignment.
 
     Filters and ranks lists based on metadata expressions before assignment.
-    Useful for intelligent assignment based on list properties like difficulty or priority.
+    Useful for assignment based on list properties like difficulty or priority.
 
     Attributes
     ----------
@@ -166,7 +166,7 @@ class MetadataBasedConfig(BeadBaseModel):
         Lists are sorted by this value before assignment.
         Example: "list_metadata.priority || 0"
     rank_ascending : bool
-        Sort in ascending order (vs descending) when using rank_expression (default: True).
+        Sort ascending vs descending when using rank_expression (default: True).
 
     Examples
     --------
@@ -197,7 +197,7 @@ class MetadataBasedConfig(BeadBaseModel):
                 "or 'rank_expression'. Got neither. "
                 "Provide 'filter_expression' to filter lists (e.g., "
                 "\"list_metadata.difficulty === 'easy'\") or 'rank_expression' to "
-                "rank lists (e.g., \"list_metadata.priority || 0\")."
+                'rank lists (e.g., "list_metadata.priority || 0").'
             )
         return self
 
@@ -331,37 +331,33 @@ class ListDistributionStrategy(BeadBaseModel):
         if strategy == DistributionStrategyType.QUOTA_BASED:
             if "participants_per_list" not in config:
                 raise ValueError(
-                    f"QuotaConfig requires 'participants_per_list' in strategy_config. "
+                    f"QuotaConfig requires 'participants_per_list'. "
                     f"Got keys: {list(config.keys())}. "
-                    f"Add 'participants_per_list: <int>' to your strategy_config. "
-                    f"Example: strategy_config: {{participants_per_list: 25, allow_overflow: false}}"
+                    f"Add 'participants_per_list: <int>' to strategy_config."
                 )
 
             # Validate it's a positive integer
             ppl = config["participants_per_list"]
             if not isinstance(ppl, int) or ppl <= 0:
                 raise ValueError(
-                    f"QuotaConfig 'participants_per_list' must be a positive integer. "
-                    f"Got: {ppl} (type: {type(ppl).__name__}). "
-                    f"Change to a positive integer like 25."
+                    f"'participants_per_list' must be positive int. "
+                    f"Got: {ppl} ({type(ppl).__name__})."
                 )
 
         # Weighted random requires weight_expression
         elif strategy == DistributionStrategyType.WEIGHTED_RANDOM:
             if "weight_expression" not in config:
                 raise ValueError(
-                    f"WeightedRandomConfig requires 'weight_expression' in strategy_config. "
+                    f"WeightedRandomConfig requires 'weight_expression'. "
                     f"Got keys: {list(config.keys())}. "
-                    f"Add 'weight_expression: <string>' to your strategy_config. "
-                    f"Example: strategy_config: {{weight_expression: 'list_metadata.priority || 1.0'}}"
+                    f"Add 'weight_expression: <string>' to strategy_config."
                 )
 
             expr = config["weight_expression"]
             if not isinstance(expr, str) or not expr.strip():
                 raise ValueError(
-                    f"WeightedRandomConfig 'weight_expression' must be a non-empty string. "
-                    f"Got: {expr!r} (type: {type(expr).__name__}). "
-                    f"Provide a JavaScript expression like 'list_metadata.priority || 1.0'."
+                    f"'weight_expression' must be a non-empty string. "
+                    f"Got: {expr!r} ({type(expr).__name__})."
                 )
 
         # Metadata-based requires filter_expression or rank_expression
@@ -371,21 +367,17 @@ class ListDistributionStrategy(BeadBaseModel):
 
             if not has_filter and not has_rank:
                 raise ValueError(
-                    f"MetadataBasedConfig requires at least one of 'filter_expression' "
-                    f"or 'rank_expression' in strategy_config. "
-                    f"Got keys: {list(config.keys())}. "
-                    f"Add 'filter_expression' (e.g., \"list_metadata.difficulty === 'easy'\") "
-                    f"or 'rank_expression' (e.g., \"list_metadata.priority || 0\")."
+                    f"MetadataBasedConfig requires 'filter_expression' "
+                    f"or 'rank_expression'. Got keys: {list(config.keys())}."
                 )
 
         # Stratified requires factors list
         elif strategy == DistributionStrategyType.STRATIFIED:
             if "factors" not in config:
                 raise ValueError(
-                    f"StratifiedConfig requires 'factors' in strategy_config. "
+                    f"StratifiedConfig requires 'factors'. "
                     f"Got keys: {list(config.keys())}. "
-                    f"Add 'factors: [<list_of_metadata_keys>]' to your strategy_config. "
-                    f"Example: strategy_config: {{factors: ['condition', 'verb_type']}}"
+                    f"Add 'factors: [<list_of_keys>]' to strategy_config."
                 )
 
             factors = config["factors"]

@@ -12,10 +12,10 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
 
 import requests
 
+from bead.data.base import JsonValue
 from bead.data.timestamps import now_iso8601
 
 
@@ -70,7 +70,7 @@ class ProlificDataCollector:
         self,
         output_path: Path,
         status: str | None = None,
-    ) -> list[dict[str, Any]]:
+    ) -> list[dict[str, JsonValue]]:
         """Download participant submissions.
 
         Downloads all submissions for the study, handling pagination automatically.
@@ -85,7 +85,7 @@ class ProlificDataCollector:
 
         Returns
         -------
-        list[dict[str, Any]]
+        list[dict[str, JsonValue]]
             Downloaded submissions with metadata.
 
         Raises
@@ -106,7 +106,7 @@ class ProlificDataCollector:
                 status="APPROVED"
             )
         """
-        submissions: list[dict[str, Any]] = []
+        submissions: list[dict[str, JsonValue]] = []
         page = 1
 
         while True:
@@ -119,8 +119,10 @@ class ProlificDataCollector:
             response = self.session.get(url, params=params)
             response.raise_for_status()
 
-            data: dict[str, Any] = response.json()
-            page_submissions: list[Any] = data.get("results", [])
+            data: dict[str, JsonValue] = response.json()
+            page_submissions: list[JsonValue] = (
+                data.get("results", []) if isinstance(data.get("results"), list) else []
+            )
 
             if not page_submissions:
                 break
@@ -140,12 +142,12 @@ class ProlificDataCollector:
 
         return submissions
 
-    def get_study_info(self) -> dict[str, Any]:
+    def get_study_info(self) -> dict[str, JsonValue]:
         """Get study information.
 
         Returns
         -------
-        dict[str, Any]
+        dict[str, JsonValue]
             Study details dictionary.
 
         Raises

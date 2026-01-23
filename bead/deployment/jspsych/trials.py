@@ -7,8 +7,7 @@ forced choice, and binary choice trials.
 
 from __future__ import annotations
 
-from typing import Any
-
+from bead.data.base import JsonValue
 from bead.deployment.jspsych.config import (
     ChoiceConfig,
     ExperimentConfig,
@@ -18,7 +17,9 @@ from bead.items.item import Item
 from bead.items.item_template import ItemTemplate
 
 
-def _serialize_item_metadata(item: Item, template: ItemTemplate) -> dict[str, Any]:
+def _serialize_item_metadata(
+    item: Item, template: ItemTemplate
+) -> dict[str, JsonValue]:
     """Serialize complete item and template metadata for trial data.
 
     Parameters
@@ -30,7 +31,7 @@ def _serialize_item_metadata(item: Item, template: ItemTemplate) -> dict[str, An
 
     Returns
     -------
-    dict[str, Any]
+    dict[str, JsonValue]
         Metadata dictionary containing all item and template fields.
     """
     return {
@@ -154,7 +155,7 @@ def create_trial(
     trial_number: int,
     rating_config: RatingScaleConfig | None = None,
     choice_config: ChoiceConfig | None = None,
-) -> dict[str, Any]:
+) -> dict[str, JsonValue]:
     """Create a jsPsych trial object from an Item.
 
     Parameters
@@ -174,7 +175,7 @@ def create_trial(
 
     Returns
     -------
-    dict[str, Any]
+    dict[str, JsonValue]
         A jsPsych trial object with item and template metadata.
 
     Raises
@@ -235,7 +236,7 @@ def _create_likert_trial(
     template: ItemTemplate,
     config: RatingScaleConfig,
     trial_number: int,
-) -> dict[str, Any]:
+) -> dict[str, JsonValue]:
     """Create a Likert rating trial.
 
     Parameters
@@ -251,7 +252,7 @@ def _create_likert_trial(
 
     Returns
     -------
-    dict[str, Any]
+    dict[str, JsonValue]
         A jsPsych html-button-response trial object.
     """
     # Generate stimulus HTML from rendered elements
@@ -292,7 +293,7 @@ def _create_slider_trial(
     template: ItemTemplate,
     config: RatingScaleConfig,
     trial_number: int,
-) -> dict[str, Any]:
+) -> dict[str, JsonValue]:
     """Create a slider rating trial.
 
     Parameters
@@ -308,7 +309,7 @@ def _create_slider_trial(
 
     Returns
     -------
-    dict[str, Any]
+    dict[str, JsonValue]
         A jsPsych html-slider-response trial object.
     """
     stimulus_html = _generate_stimulus_html(item)
@@ -336,7 +337,7 @@ def _create_binary_choice_trial(
     template: ItemTemplate,
     config: ChoiceConfig,
     trial_number: int,
-) -> dict[str, Any]:
+) -> dict[str, JsonValue]:
     """Create a binary choice trial.
 
     Parameters
@@ -352,7 +353,7 @@ def _create_binary_choice_trial(
 
     Returns
     -------
-    dict[str, Any]
+    dict[str, JsonValue]
         A jsPsych html-button-response trial object.
     """
     stimulus_html = _generate_stimulus_html(item)
@@ -377,7 +378,7 @@ def _create_forced_choice_trial(
     template: ItemTemplate,
     config: ChoiceConfig,
     trial_number: int,
-) -> dict[str, Any]:
+) -> dict[str, JsonValue]:
     """Create a forced choice trial.
 
     For forced choice trials, the item should have multiple rendered elements
@@ -397,13 +398,19 @@ def _create_forced_choice_trial(
 
     Returns
     -------
-    dict[str, Any]
+    dict[str, JsonValue]
         A jsPsych html-button-response trial object.
     """
     # For forced choice, use the prompt from the template as the stimulus
     # (not the choices themselves)
-    prompt = template.task_spec.prompt if template.task_spec else "Which option do you choose?"
-    stimulus_html = f'<div class="stimulus-container"><p class="prompt">{prompt}</p></div>'
+    prompt = (
+        template.task_spec.prompt
+        if template.task_spec
+        else "Which option do you choose?"
+    )
+    stimulus_html = (
+        f'<div class="stimulus-container"><p class="prompt">{prompt}</p></div>'
+    )
 
     # Extract choices from rendered elements (excluding the main stimulus)
     # This assumes element names like "choice_0", "choice_1", etc.
@@ -478,7 +485,7 @@ def _generate_stimulus_html(item: Item, include_all: bool = True) -> str:
         return f'<div class="stimulus-container"><p>{element_html}</p></div>'
 
 
-def create_instruction_trial(instructions: str) -> dict[str, Any]:
+def create_instruction_trial(instructions: str) -> dict[str, JsonValue]:
     """Create an instruction trial.
 
     Parameters
@@ -488,7 +495,7 @@ def create_instruction_trial(instructions: str) -> dict[str, Any]:
 
     Returns
     -------
-    dict[str, Any]
+    dict[str, JsonValue]
         A jsPsych html-keyboard-response trial object.
     """
     stimulus_html = (
@@ -508,7 +515,7 @@ def create_instruction_trial(instructions: str) -> dict[str, Any]:
     }
 
 
-def create_consent_trial(consent_text: str) -> dict[str, Any]:
+def create_consent_trial(consent_text: str) -> dict[str, JsonValue]:
     """Create a consent trial.
 
     Parameters
@@ -518,7 +525,7 @@ def create_consent_trial(consent_text: str) -> dict[str, Any]:
 
     Returns
     -------
-    dict[str, Any]
+    dict[str, JsonValue]
         A jsPsych html-button-response trial object.
     """
     stimulus_html = (
@@ -537,7 +544,7 @@ def create_consent_trial(consent_text: str) -> dict[str, Any]:
 
 def create_completion_trial(
     completion_message: str = "Thank you for participating!",
-) -> dict[str, Any]:
+) -> dict[str, JsonValue]:
     """Create a completion trial.
 
     Parameters
@@ -547,7 +554,7 @@ def create_completion_trial(
 
     Returns
     -------
-    dict[str, Any]
+    dict[str, JsonValue]
         A jsPsych html-keyboard-response trial object.
     """
     stimulus_html = (
