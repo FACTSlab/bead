@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 from collections.abc import Callable, Iterator
 from pathlib import Path
-from typing import Literal, cast
+from typing import Literal
 from uuid import UUID
 
 import pandas as pd
@@ -629,11 +629,11 @@ class TemplateCollection(BeadBaseModel):
         # Get columns, handling both pandas and polars
         is_polars = isinstance(df, pl.DataFrame)
         if is_polars:
-            df_polars = cast(pl.DataFrame, df)
-            columns_list: list[str] = df_polars.columns
+            assert isinstance(df, pl.DataFrame)
+            columns_list: list[str] = df.columns
         else:
-            df_pandas = cast(pd.DataFrame, df)
-            columns_list = list(df_pandas.columns)
+            assert isinstance(df, pd.DataFrame)
+            columns_list = list(df.columns)
 
         if "name" not in columns_list or "template_string" not in columns_list:
             raise ValueError("DataFrame must have 'name' and 'template_string' columns")

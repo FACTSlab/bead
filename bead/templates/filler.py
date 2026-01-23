@@ -390,6 +390,7 @@ class CSPFiller(TemplateFiller):
         list[str]
             Slot names in optimal filling order.
         """
+
         # Sort slots by:
         # 1. Number of candidates (fewer first, most constrained)
         # 2. Number of constraints (more first, more likely to fail)
@@ -598,5 +599,7 @@ class CSPFiller(TemplateFiller):
             slot_fillers=assignment.copy(),
             rendered_text=rendered,
             strategy_name="backtracking",
-            template_slots={name: slot.required for name, slot in template.slots.items()},
+            template_slots={
+                name: slot.required for name, slot in template.slots.items()
+            },
         )

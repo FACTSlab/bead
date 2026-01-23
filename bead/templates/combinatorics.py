@@ -5,12 +5,12 @@ from __future__ import annotations
 import itertools
 import random
 from collections.abc import Iterator
-from typing import Any, TypeVar
+from typing import TypeVar
 
 T = TypeVar("T")
 
 
-def cartesian_product(*iterables: list[Any]) -> Iterator[tuple[Any, ...]]:
+def cartesian_product[T](*iterables: list[T]) -> Iterator[tuple[T, ...]]:
     """Generate Cartesian product of iterables.
 
     Equivalent to itertools.product but with explicit type hints
@@ -18,12 +18,12 @@ def cartesian_product(*iterables: list[Any]) -> Iterator[tuple[Any, ...]]:
 
     Parameters
     ----------
-    *iterables : list[Any]
+    *iterables : list[T]
         Variable number of iterables to combine.
 
     Yields
     ------
-    tuple[Any, ...]
+    tuple[T, ...]
         Each combination from the Cartesian product.
 
     Examples
@@ -34,7 +34,7 @@ def cartesian_product(*iterables: list[Any]) -> Iterator[tuple[Any, ...]]:
     return itertools.product(*iterables)
 
 
-def count_combinations(*iterables: list[Any]) -> int:
+def count_combinations[T](*iterables: list[T]) -> int:
     """Count total combinations without generating them.
 
     Calculate the size of the Cartesian product space efficiently
@@ -72,7 +72,7 @@ def stratified_sample[T](
 
     Parameters
     ----------
-    groups : dict[str, list[Any]]
+    groups : dict[str, list[T]]
         Dictionary mapping group names to lists of items.
     n_per_group : int
         Number of items to sample from each group.
@@ -81,7 +81,7 @@ def stratified_sample[T](
 
     Returns
     -------
-    list[Any]
+    list[T]
         Sampled items, balanced across groups.
 
     Examples

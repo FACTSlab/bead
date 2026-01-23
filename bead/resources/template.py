@@ -8,7 +8,7 @@ sentence generation.
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from pydantic import Field, field_validator, model_validator
 
@@ -17,7 +17,13 @@ from bead.data.language_codes import LanguageCode
 from bead.resources.constraints import Constraint
 
 if TYPE_CHECKING:
+    from bead.items.item_template import MetadataValue
     from bead.templates.filler import FilledTemplate
+else:
+    # Recursive type for metadata values
+    type MetadataValue = (
+        str | int | float | bool | None | dict[str, MetadataValue] | list[MetadataValue]
+    )
 
 
 def _empty_constraint_list() -> list[Constraint]:
@@ -116,10 +122,10 @@ class Template(BeadBaseModel):
     language_code : LanguageCode | None
         ISO 639-1 (2-letter) or ISO 639-3 (3-letter) language code.
         Examples: "en", "eng", "ko", "kor", "zu", "zul".
-        Required for cross-linguistic classification via TemplateClass (Phase 20).
+        Required for cross-linguistic classification via TemplateClass.
     tags : list[str]
         Tags for categorization.
-    metadata : dict[str, Any]
+    metadata : dict[str, MetadataValue]
         Additional metadata.
 
     Examples
@@ -143,7 +149,7 @@ class Template(BeadBaseModel):
     description: str | None = None
     language_code: LanguageCode | None = None
     tags: list[str] = Field(default_factory=_empty_str_list)
-    metadata: dict[str, Any] = Field(default_factory=dict)
+    metadata: dict[str, MetadataValue] = Field(default_factory=dict)
 
     @field_validator("name")
     @classmethod

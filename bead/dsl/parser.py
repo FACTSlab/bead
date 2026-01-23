@@ -7,7 +7,6 @@ parsing library. The parser converts constraint strings into AST nodes.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
 
 from lark import Lark, Token, Transformer
 from lark.exceptions import LarkError, UnexpectedCharacters, UnexpectedInput
@@ -62,7 +61,7 @@ class ASTBuilder(Transformer):  # type: ignore[type-arg]
         name = str(items[0].value)
         return ast.Variable(name=name)
 
-    def binary_op(self, items: list[Any]) -> ast.BinaryOp:
+    def binary_op(self, items: list[Token | ast.ASTNode]) -> ast.BinaryOp:
         """Transform binary operation."""
         # Items: [left, operator_token, right]
         left = items[0]
@@ -75,7 +74,7 @@ class ASTBuilder(Transformer):  # type: ignore[type-arg]
         right = items[2]
         return ast.BinaryOp(operator=operator, left=left, right=right)
 
-    def binary_op_not_in(self, items: list[Any]) -> ast.BinaryOp:
+    def binary_op_not_in(self, items: list[Token | ast.ASTNode]) -> ast.BinaryOp:
         """Transform 'not in' binary operation."""
         # Items: [left, Token('not'), Token('in'), right]
         # Filter to get only AST nodes
@@ -84,7 +83,7 @@ class ASTBuilder(Transformer):  # type: ignore[type-arg]
         right = nodes[1]
         return ast.BinaryOp(operator="not in", left=left, right=right)
 
-    def unary_op(self, items: list[Any]) -> ast.UnaryOp:
+    def unary_op(self, items: list[Token | ast.ASTNode]) -> ast.UnaryOp:
         """Transform unary operation."""
         # Items: [operator_token, operand]
         operator_token = items[0]
@@ -95,7 +94,7 @@ class ASTBuilder(Transformer):  # type: ignore[type-arg]
         operand = items[1]
         return ast.UnaryOp(operator=operator, operand=operand)
 
-    def attribute_access(self, items: list[Any]) -> ast.AttributeAccess:
+    def attribute_access(self, items: list[Token | ast.ASTNode]) -> ast.AttributeAccess:
         """Transform attribute access."""
         # Items: [object, dot_token, name_token]
         obj = items[0]
@@ -103,7 +102,7 @@ class ASTBuilder(Transformer):  # type: ignore[type-arg]
         attribute = str(items[-1].value)
         return ast.AttributeAccess(object=obj, attribute=attribute)
 
-    def subscript(self, items: list[Any]) -> ast.Subscript:
+    def subscript(self, items: list[Token | ast.ASTNode]) -> ast.Subscript:
         """Transform subscript access."""
         # Items: [object, lbracket_token, index_expr, rbracket_token]
         obj = items[0]
@@ -111,51 +110,64 @@ class ASTBuilder(Transformer):  # type: ignore[type-arg]
         index_expr = [item for item in items[1:] if not isinstance(item, Token)][0]
         return ast.Subscript(object=obj, index=index_expr)
 
-    def function_call(self, items: list[Any]) -> ast.FunctionCall:
+    def function_call(
+        self, items: list[Token | ast.ASTNode | list[ast.ASTNode] | None]
+    ) -> ast.FunctionCall:
         """Transform function call."""
         # Items: [atom, lparen, arguments_list/None, rparen]
         # The first item is the function expression (can be Variable or AttributeAccess)
-        function = items[0]
+        if not items or not isinstance(items[0], ast.ASTNode):
+            raise ValueError("Function call must have a function expression")
+        function: ast.ASTNode = items[0]
 
         # Arguments are in the list returned by the arguments rule (if present)
         # Filter for non-Token, non-None items and flatten lists
-        arguments = []
+        arguments: list[ast.ASTNode] = []
         for item in items[1:]:
             if isinstance(item, list):
-                # This is the arguments list
-                arguments.extend(item)  # type: ignore[arg-type]
-            elif not isinstance(item, Token) and item is not None:
-                arguments.append(item)  # type: ignore[arg-type]
-        return ast.FunctionCall(function=function, arguments=arguments)  # type: ignore[arg-type]
+                # This is the arguments list - arg is already ast.ASTNode
+                for arg in item:
+                    arguments.append(arg)
+            elif isinstance(item, ast.ASTNode):
+                arguments.append(item)
+        return ast.FunctionCall(function=function, arguments=arguments)
 
-    def list_literal(self, items: list[Any]) -> ast.ListLiteral:
+    def list_literal(
+        self, items: list[Token | ast.ASTNode | list[ast.ASTNode] | None]
+    ) -> ast.ListLiteral:
         """Transform list literal."""
         # Filter out bracket tokens and None, flatten lists
-        elements = []
+        elements: list[ast.ASTNode] = []
         for item in items:
             if isinstance(item, list):
-                # This is the list_elements list
-                elements.extend(item)  # type: ignore[arg-type]
-            elif not isinstance(item, Token) and item is not None:
-                elements.append(item)  # type: ignore[arg-type]
-        return ast.ListLiteral(elements=elements)  # type: ignore[arg-type]
+                # This is the list_elements list - elem is already ast.ASTNode
+                for elem in item:
+                    elements.append(elem)
+            elif isinstance(item, ast.ASTNode):
+                elements.append(item)
+        return ast.ListLiteral(elements=elements)
 
-    def arguments(self, items: list[Any]) -> list[Any]:
+    def arguments(self, items: list[Token | ast.ASTNode]) -> list[ast.ASTNode]:
         """Transform function arguments, returning flat list."""
         # Filter out comma tokens
-        return [item for item in items if not isinstance(item, Token)]
+        return [item for item in items if isinstance(item, ast.ASTNode)]
 
-    def list_elements(self, items: list[Any]) -> list[Any]:
+    def list_elements(self, items: list[Token | ast.ASTNode]) -> list[ast.ASTNode]:
         """Transform list elements, returning flat list."""
         # Filter out comma tokens
-        return [item for item in items if not isinstance(item, Token)]
+        return [item for item in items if isinstance(item, ast.ASTNode)]
 
-    def atom(self, items: list[Any]) -> ast.ASTNode:
+    def atom(self, items: list[Token | ast.ASTNode]) -> ast.ASTNode:
         """Transform atom (handles parenthesized expressions)."""
         # If we have parentheses, items = [lparen_token, expr, rparen_token]
         # Return just the expression (filter out tokens)
-        nodes = [item for item in items if not isinstance(item, Token)]
-        return nodes[0] if nodes else items[0]
+        nodes = [item for item in items if isinstance(item, ast.ASTNode)]
+        if nodes:
+            return nodes[0]
+        # Fallback: if no AST nodes, try to get first item (shouldn't happen)
+        if items and isinstance(items[0], ast.ASTNode):
+            return items[0]
+        raise ValueError("Atom must contain an AST node")
 
 
 def parse(expression: str) -> ast.ASTNode:
@@ -190,9 +202,13 @@ def parse(expression: str) -> ast.ASTNode:
 
         # Transform to AST
         transformer = ASTBuilder()
-        result: ast.Expression = transformer.transform(tree)  # type: ignore[no-untyped-call]
+        result = transformer.transform(tree)
 
-        return result  # type: ignore[return-value]
+        if not isinstance(result, ast.ASTNode):
+            raise ParseError(
+                f"Parser returned unexpected type: {type(result)}", text=expression
+            )
+        return result
 
     except UnexpectedCharacters as e:
         # Handle invalid characters (must come before UnexpectedInput)

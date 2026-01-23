@@ -9,19 +9,35 @@ from __future__ import annotations
 
 import math
 import random
-from typing import TYPE_CHECKING, Any
+from collections.abc import Callable
+from typing import TYPE_CHECKING, TypeVar
 
 if TYPE_CHECKING:
     from bead.dsl.context import EvaluationContext
+    from bead.items.item import Item
+
+# Type for DSL scalar values that can be compared/processed
+DslScalar = str | int | float | bool | None
+
+# Type for collections in DSL
+DslCollection = list[DslScalar] | dict[str, DslScalar]
+
+# Generic type for min/max/any/all operations
+T = TypeVar("T")
 
 
 # String functions
-def len_(s: Any) -> int:
+def len_(
+    s: str
+    | list[str | int | float | bool | None]
+    | dict[str, str | int | float | bool | None]
+    | tuple[str | int | float | bool | None, ...],
+) -> int:
     """Return length of string or collection.
 
     Parameters
     ----------
-    s : Any
+    s : str | list | dict | tuple
         String or collection to measure.
 
     Returns
@@ -205,14 +221,14 @@ def split(s: str, sep: str = " ") -> list[str]:
 
 
 # Collection functions
-def count(collection: Any, item: Any) -> int:
+def count(collection: str | list[DslScalar], item: DslScalar) -> int:
     """Count occurrences of item in collection.
 
     Parameters
     ----------
-    collection : Any
+    collection : str | list[DslScalar]
         Collection to search.
-    item : Any
+    item : DslScalar
         Item to count.
 
     Returns
@@ -253,17 +269,17 @@ def sum_(collection: list[int | float]) -> int | float:
     return sum(collection)
 
 
-def min_(collection: list[Any]) -> Any:
+def min_(collection: list[DslScalar]) -> DslScalar:
     """Return minimum value from collection.
 
     Parameters
     ----------
-    collection : list[Any]
+    collection : list[DslScalar]
         Collection to search.
 
     Returns
     -------
-    Any
+    DslScalar
         Minimum value.
 
     Examples
@@ -274,17 +290,17 @@ def min_(collection: list[Any]) -> Any:
     return min(collection)
 
 
-def max_(collection: list[Any]) -> Any:
+def max_[T](collection: list[T]) -> T:
     """Return maximum value from collection.
 
     Parameters
     ----------
-    collection : list[Any]
+    collection : list[T]
         Collection to search.
 
     Returns
     -------
-    Any
+    T
         Maximum value.
 
     Examples
@@ -295,12 +311,12 @@ def max_(collection: list[Any]) -> Any:
     return max(collection)
 
 
-def any_(collection: list[Any]) -> bool:
+def any_[T](collection: list[T]) -> bool:
     """Check if any element is truthy.
 
     Parameters
     ----------
-    collection : list[Any]
+    collection : list[T]
         Collection to check.
 
     Returns
@@ -318,12 +334,12 @@ def any_(collection: list[Any]) -> bool:
     return any(collection)
 
 
-def all_(collection: list[Any]) -> bool:
+def all_[T](collection: list[T]) -> bool:
     """Check if all elements are truthy.
 
     Parameters
     ----------
-    collection : list[Any]
+    collection : list[T]
         Collection to check.
 
     Returns
@@ -342,12 +358,12 @@ def all_(collection: list[Any]) -> bool:
 
 
 # Type checking functions
-def is_str(value: Any) -> bool:
+def is_str(value: DslScalar) -> bool:
     """Check if value is a string.
 
     Parameters
     ----------
-    value : Any
+    value : DslScalar
         Value to check.
 
     Returns
@@ -365,12 +381,12 @@ def is_str(value: Any) -> bool:
     return isinstance(value, str)
 
 
-def is_int(value: Any) -> bool:
+def is_int(value: DslScalar) -> bool:
     """Check if value is an integer.
 
     Parameters
     ----------
-    value : Any
+    value : DslScalar
         Value to check.
 
     Returns
@@ -388,12 +404,12 @@ def is_int(value: Any) -> bool:
     return isinstance(value, int) and not isinstance(value, bool)
 
 
-def is_float(value: Any) -> bool:
+def is_float(value: DslScalar) -> bool:
     """Check if value is a float.
 
     Parameters
     ----------
-    value : Any
+    value : DslScalar
         Value to check.
 
     Returns
@@ -411,12 +427,12 @@ def is_float(value: Any) -> bool:
     return isinstance(value, float)
 
 
-def is_bool(value: Any) -> bool:
+def is_bool(value: DslScalar) -> bool:
     """Check if value is a boolean.
 
     Parameters
     ----------
-    value : Any
+    value : DslScalar
         Value to check.
 
     Returns
@@ -434,12 +450,12 @@ def is_bool(value: Any) -> bool:
     return isinstance(value, bool)
 
 
-def is_list(value: Any) -> bool:
+def is_list(value: DslScalar | list[DslScalar]) -> bool:
     """Check if value is a list.
 
     Parameters
     ----------
-    value : Any
+    value : DslScalar | list[DslScalar]
         Value to check.
 
     Returns
@@ -458,12 +474,12 @@ def is_list(value: Any) -> bool:
 
 
 # Conversion functions
-def str_(value: Any) -> str:
+def str_(value: DslScalar) -> str:
     """Convert value to string.
 
     Parameters
     ----------
-    value : Any
+    value : DslScalar
         Value to convert.
 
     Returns
@@ -575,12 +591,12 @@ def ceil(value: float) -> int:
 
 
 # Logic functions
-def not_(value: Any) -> bool:
+def not_(value: DslScalar | list[DslScalar]) -> bool:
     """Return logical negation of value.
 
     Parameters
     ----------
-    value : Any
+    value : DslScalar | list[DslScalar]
         Value to negate.
 
     Returns
@@ -726,7 +742,9 @@ def add_noise(
         return value
 
 
-def model_output(item: Any, key: str, default: Any = None) -> Any:
+def model_output(
+    item: Item, key: str, default: DslScalar = None
+) -> DslScalar | list[float]:
     """Extract model output from item.
 
     Parameters
@@ -735,12 +753,12 @@ def model_output(item: Any, key: str, default: Any = None) -> Any:
         Item with model outputs.
     key : str
         Key to extract (e.g., "lm_score", "embedding").
-    default : Any
+    default : DslScalar
         Default value if key not found.
 
     Returns
     -------
-    Any
+    DslScalar | list[float]
         Extracted value or default.
 
     Examples
@@ -837,8 +855,11 @@ def preference_prob(score1: float, score2: float, temperature: float = 1.0) -> f
     return sigmoid((score1 - score2) / temperature)
 
 
+# Type alias for DSL callable functions
+DslFunction = Callable[..., DslScalar | list[DslScalar] | list[float]]
+
 # Register simulation functions
-SIMULATION_FUNCTIONS: dict[str, Any] = {
+SIMULATION_FUNCTIONS: dict[str, DslFunction] = {
     "sigmoid": sigmoid,
     "softmax": softmax,
     "sample_categorical": sample_categorical,
@@ -850,7 +871,7 @@ SIMULATION_FUNCTIONS: dict[str, Any] = {
 
 
 # Registry
-STDLIB_FUNCTIONS: dict[str, Any] = {
+STDLIB_FUNCTIONS: dict[str, DslFunction] = {
     # String functions
     "len": len_,
     "lower": lower,
