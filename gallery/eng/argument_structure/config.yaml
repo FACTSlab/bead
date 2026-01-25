@@ -570,6 +570,20 @@ deployment:
     randomize_order: true
     randomize_choices: true
 
+  # Behavioral capture with slopit (optional)
+  # Captures keystroke dynamics, focus patterns, and paste events
+  slopit:
+    enabled: false  # Set to true to enable behavioral capture
+    keystroke:
+      enabled: true  # Capture keystroke timing
+    focus:
+      enabled: true  # Capture focus/blur events
+    paste:
+      enabled: true  # Capture paste events
+      prevent: false  # Set true to block paste operations
+    target_selectors:
+      forced_choice: ".bead-choice-button"
+
   # Participant requirements
   participants:
     # Number of participants per list
