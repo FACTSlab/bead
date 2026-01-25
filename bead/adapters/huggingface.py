@@ -10,11 +10,22 @@ from __future__ import annotations
 import logging
 from typing import Literal
 
-import torch
+import torch.backends.mps
+import torch.cuda
 
 logger = logging.getLogger(__name__)
 
 DeviceType = Literal["cpu", "cuda", "mps"]
+
+
+def _cuda_available() -> bool:
+    """Check if CUDA is available."""
+    return torch.cuda.is_available()  # pyright: ignore[reportAttributeAccessIssue]
+
+
+def _mps_available() -> bool:
+    """Check if MPS (Apple Silicon) is available."""
+    return torch.backends.mps.is_available()  # pyright: ignore[reportAttributeAccessIssue]
 
 
 class HuggingFaceAdapterMixin:
@@ -41,10 +52,10 @@ class HuggingFaceAdapterMixin:
         DeviceType
             Validated device (falls back to CPU if unavailable).
         """
-        if device == "cuda" and not torch.cuda.is_available():
-            logger.warning("CUDA not available, falling back to CPU")
+        if device == "cuda" and not _cuda_available():
+            logger.warning("CUDA unavailable, using CPU")
             return "cpu"
-        if device == "mps" and not torch.backends.mps.is_available():
-            logger.warning("MPS not available, falling back to CPU")
+        if device == "mps" and not _mps_available():
+            logger.warning("MPS unavailable, using CPU")
             return "cpu"
         return device

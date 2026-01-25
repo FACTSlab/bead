@@ -114,21 +114,17 @@ class ActiveLearningLoop:
         self.prolific_collector: ProlificDataCollector | None = None
         self.data_merger: DataMerger | None = None
 
-        if (
-            self.config.jatos_base_url
-            and self.config.jatos_api_token
-            and self.config.jatos_study_id is not None
-        ):
+        if self.config.jatos is not None:
             self.jatos_collector = JATOSDataCollector(
-                base_url=self.config.jatos_base_url,
-                api_token=self.config.jatos_api_token,
-                study_id=self.config.jatos_study_id,
+                base_url=self.config.jatos.base_url,
+                api_token=self.config.jatos.api_token,
+                study_id=self.config.jatos.study_id,
             )
 
-        if self.config.prolific_api_key and self.config.prolific_study_id:
+        if self.config.prolific is not None:
             self.prolific_collector = ProlificDataCollector(
-                api_key=self.config.prolific_api_key,
-                study_id=self.config.prolific_study_id,
+                api_key=self.config.prolific.api_key,
+                study_id=self.config.prolific.study_id,
             )
 
         if self.jatos_collector or self.prolific_collector:

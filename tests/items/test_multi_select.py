@@ -24,10 +24,10 @@ class TestCreateMultiSelectItem:
         item = create_multi_select_item("Option A", "Option B", "Option C")
 
         assert isinstance(item, Item)
-        assert item.rendered_elements["option_a"] == "Option A"
-        assert item.rendered_elements["option_b"] == "Option B"
-        assert item.rendered_elements["option_c"] == "Option C"
-        assert len(item.rendered_elements) == 3
+        assert item.options[0] == "Option A"
+        assert item.options[1] == "Option B"
+        assert item.options[2] == "Option C"
+        assert len(item.options) == 3
 
     def test_default_min_max_selections(self) -> None:
         """Test default min/max selections."""
@@ -69,12 +69,13 @@ class TestCreateMultiSelectItem:
         ):
             create_multi_select_item("A", "B", "C", max_selections=5)
 
-    def test_too_many_options_raises_error(self) -> None:
-        """Test that more than 26 options raises error."""
-        options = [f"Option {i}" for i in range(27)]
+    def test_many_options_allowed(self) -> None:
+        """Test that more than 26 options is allowed with list-based storage."""
+        options = [f"Option {i}" for i in range(30)]
 
-        with pytest.raises(ValueError, match="Too many options"):
-            create_multi_select_item(*options)
+        item = create_multi_select_item(*options)
+        assert len(item.options) == 30
+        assert item.item_metadata["max_selections"] == 30
 
     def test_with_custom_template_id(self) -> None:
         """Test creating item with custom template ID."""
@@ -93,14 +94,16 @@ class TestCreateMultiSelectItem:
         assert item.item_metadata["min_selections"] == 1
         assert item.item_metadata["max_selections"] == 3
 
-    def test_custom_option_prefix(self) -> None:
-        """Test creating item with custom option prefix."""
-        item = create_multi_select_item("A", "B", "C", option_prefix="choice")
+    def test_options_stored_in_list(self) -> None:
+        """Test that options are stored in the options list field."""
+        item = create_multi_select_item("A", "B", "C")
 
-        assert "choice_a" in item.rendered_elements
-        assert "choice_b" in item.rendered_elements
-        assert "choice_c" in item.rendered_elements
-        assert "option_a" not in item.rendered_elements
+        # Options are stored in item.options list, not rendered_elements
+        assert len(item.options) == 3
+        assert item.options[0] == "A"
+        assert item.options[1] == "B"
+        assert item.options[2] == "C"
+        assert len(item.rendered_elements) == 0
 
 
 class TestCreateMultiSelectItemsFromGroups:
@@ -131,7 +134,7 @@ class TestCreateMultiSelectItemsFromGroups:
         )
 
         assert len(ms_items) == 1
-        assert len(ms_items[0].rendered_elements) == 3
+        assert len(ms_items[0].options) == 3
         assert ms_items[0].item_metadata["group_key"] == "walk"
 
     def test_n_options_parameter(self) -> None:
@@ -152,7 +155,7 @@ class TestCreateMultiSelectItemsFromGroups:
         # Should create combinations of 3 from 5 = C(5,3) = 10
         assert len(ms_items) == 10
         for item in ms_items:
-            assert len(item.rendered_elements) == 3
+            assert len(item.options) == 3
 
     def test_custom_min_max(self) -> None:
         """Test custom min/max selections."""
@@ -212,7 +215,7 @@ class TestCreateMultiSelectItemsWithFoils:
         )
 
         assert len(ms_items) == 1
-        assert len(ms_items[0].rendered_elements) == 4
+        assert len(ms_items[0].options) == 4
         assert ms_items[0].item_metadata["n_correct"] == 2
         assert ms_items[0].item_metadata["n_foils"] == 2
 
@@ -269,7 +272,7 @@ class TestCreateMultiSelectItemsCrossProduct:
         )
 
         assert len(ms_items) == 1
-        assert len(ms_items[0].rendered_elements) == 2
+        assert len(ms_items[0].options) == 2
 
 
 class TestCreateFilteredMultiSelectItems:
@@ -333,4 +336,4 @@ class TestCreateFilteredMultiSelectItems:
 
         # Only group "b" has >= 3 items
         assert len(ms_items) == 1
-        assert len(ms_items[0].rendered_elements) == 4
+        assert len(ms_items[0].options) == 4

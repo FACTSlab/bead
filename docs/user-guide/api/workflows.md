@@ -181,13 +181,13 @@ print(f"Loaded {len(lists)} lists and {len(items)} items")
 
 # Create item template
 template = ItemTemplate(
-    name="forced_choice",
-    description="2AFC item",
+    name="likert_rating",
+    description="7-point acceptability",
     judgment_type="acceptability",
-    task_type="forced_choice",
+    task_type="ordinal_scale",
     task_spec=TaskSpec(
-        prompt="Which sentence sounds more natural?",
-        options=["Option A", "Option B"],
+        prompt="How natural does this sentence sound?",
+        scale_bounds=(1, 7),
     ),
     presentation_spec=PresentationSpec(mode="static"),
 )
@@ -199,10 +199,10 @@ for item in items_dict.values():
 
 # Create experiment config
 config = ExperimentConfig(
-    experiment_type="forced_choice",
+    experiment_type="likert_rating",
     title="Sentence Acceptability Study",
-    description="Rate sentence pairs",
-    instructions="Select the more natural sentence",
+    description="Rate sentence acceptability",
+    instructions="Rate how natural each sentence sounds",
     randomize_trial_order=True,
     show_progress_bar=True,
     distribution_strategy=ListDistributionStrategy(
@@ -228,7 +228,7 @@ print(f"Experiment generated in {output_dir}")
 # Export to JATOS
 exporter = JATOSExporter(
     study_title="Acceptability Study",
-    study_description="Forced choice acceptability judgments",
+    study_description="Likert-scale acceptability judgments",
 )
 
 exporter.export(

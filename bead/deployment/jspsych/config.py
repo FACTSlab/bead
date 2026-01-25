@@ -11,6 +11,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 from bead.config.deployment import SlopitIntegrationConfig
+from bead.data.range import Range
 from bead.deployment.distribution import ListDistributionStrategy
 
 # Type alias for experiment types
@@ -116,7 +117,7 @@ class ExperimentConfig(BaseModel):
     prolific_completion_code: str | None = Field(default=None)
     slopit: SlopitIntegrationConfig = Field(
         default_factory=SlopitIntegrationConfig,
-        description="Slopit behavioral capture integration (opt-in, disabled by default)",
+        description="Slopit behavioral capture integration (opt-in, disabled)",
     )
 
 
@@ -125,20 +126,34 @@ class RatingScaleConfig(BaseModel):
 
     Attributes
     ----------
-    min_value : int
-        Minimum value on the scale (default: 1)
-    max_value : int
-        Maximum value on the scale (default: 7)
-    min_label : str
-        Label for the minimum value (default: "Not at all")
-    max_label : str
-        Label for the maximum value (default: "Very much")
-    step : int
-        Step size between values (default: 1)
-    show_numeric_labels : bool
-        Whether to show numeric labels on the scale (default: True)
-    required : bool
-        Whether a response is required (default: True)
+    scale
+        Numeric range for the rating scale with min and max values.
+        Default is Range(min=1, max=7) for a standard 7-point Likert scale.
+    min_label
+        Label for the minimum value (default: "Not at all").
+    max_label
+        Label for the maximum value (default: "Very much").
+    step
+        Step size between values (default: 1).
+    show_numeric_labels
+        Whether to show numeric labels on the scale (default: True).
+    required
+        Whether a response is required (default: True).
+
+    Examples
+    --------
+    >>> config = RatingScaleConfig()
+    >>> config.scale.min
+    1
+    >>> config.scale.max
+    7
+    >>> config.scale.contains(4)
+    True
+
+    >>> # Custom 5-point scale
+    >>> config = RatingScaleConfig(scale=Range[int](min=1, max=5))
+    >>> config.scale.max
+    5
     """
 
     model_config = ConfigDict(
@@ -147,8 +162,10 @@ class RatingScaleConfig(BaseModel):
         validate_assignment=True,
     )
 
-    min_value: int = Field(default=1)
-    max_value: int = Field(default=7)
+    scale: Range[int] = Field(
+        default_factory=lambda: Range[int](min=1, max=7),
+        description="Numeric range for the rating scale",
+    )
     min_label: str = Field(default="Not at all")
     max_label: str = Field(default="Very much")
     step: int = Field(default=1, ge=1)

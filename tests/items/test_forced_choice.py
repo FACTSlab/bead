@@ -23,37 +23,30 @@ class TestCreateForcedChoiceItem:
         item = create_forced_choice_item("Option A", "Option B")
 
         assert isinstance(item, Item)
-        assert item.rendered_elements["option_a"] == "Option A"
-        assert item.rendered_elements["option_b"] == "Option B"
-        assert len(item.rendered_elements) == 2
+        assert item.options[0] == "Option A"
+        assert item.options[1] == "Option B"
+        assert len(item.options) == 2
 
     def test_create_3afc_item(self) -> None:
         """Test creating a 3AFC item."""
         item = create_forced_choice_item("A", "B", "C")
 
-        assert item.rendered_elements["option_a"] == "A"
-        assert item.rendered_elements["option_b"] == "B"
-        assert item.rendered_elements["option_c"] == "C"
-        assert len(item.rendered_elements) == 3
+        assert item.options[0] == "A"
+        assert item.options[1] == "B"
+        assert item.options[2] == "C"
+        assert len(item.options) == 3
 
     def test_create_4afc_item(self) -> None:
         """Test creating a 4AFC item."""
         item = create_forced_choice_item("A", "B", "C", "D")
 
-        assert len(item.rendered_elements) == 4
-        assert item.rendered_elements["option_d"] == "D"
+        assert len(item.options) == 4
+        assert item.options[3] == "D"
 
     def test_requires_at_least_two_options(self) -> None:
         """Test that at least 2 options are required."""
         with pytest.raises(ValueError, match="At least 2 options required"):
             create_forced_choice_item("Only one")
-
-    def test_too_many_options_raises_error(self) -> None:
-        """Test that more than 26 options raises error."""
-        options = [f"Option {i}" for i in range(27)]
-
-        with pytest.raises(ValueError, match="Too many options"):
-            create_forced_choice_item(*options)
 
     def test_with_custom_template_id(self) -> None:
         """Test creating item with custom template ID."""
@@ -71,20 +64,23 @@ class TestCreateForcedChoiceItem:
         assert item.item_metadata["contrast"] == "number"
         assert item.item_metadata["verb"] == "walk"
 
-    def test_custom_option_prefix(self) -> None:
-        """Test creating item with custom option prefix."""
-        item = create_forced_choice_item("A", "B", "C", option_prefix="choice")
+    def test_n_options_metadata(self) -> None:
+        """Test that n_options is included in metadata."""
+        item = create_forced_choice_item("A", "B", "C")
 
-        assert "choice_a" in item.rendered_elements
-        assert "choice_b" in item.rendered_elements
-        assert "choice_c" in item.rendered_elements
-        assert "option_a" not in item.rendered_elements
+        assert item.item_metadata["n_options"] == 3
 
     def test_default_generates_uuid(self) -> None:
         """Test that default behavior generates UUID."""
         item = create_forced_choice_item("A", "B")
 
         assert item.item_template_id is not None
+
+    def test_rendered_elements_empty(self) -> None:
+        """Test that rendered_elements is empty for forced choice items."""
+        item = create_forced_choice_item("A", "B")
+
+        assert len(item.rendered_elements) == 0
 
 
 class TestCreateForcedChoiceItemsFromGroups:
@@ -110,8 +106,8 @@ class TestCreateForcedChoiceItemsFromGroups:
         )
 
         assert len(fc_items) == 1
-        assert fc_items[0].rendered_elements["option_a"] == "She walks."
-        assert fc_items[0].rendered_elements["option_b"] == "She walks the dog."
+        assert fc_items[0].options[0] == "She walks."
+        assert fc_items[0].options[1] == "She walks the dog."
 
     def test_multiple_groups(self) -> None:
         """Test grouping with multiple groups."""
@@ -168,7 +164,7 @@ class TestCreateForcedChoiceItemsFromGroups:
 
         # Each should have 3 options
         for fc_item in fc_items:
-            assert len(fc_item.rendered_elements) == 3
+            assert len(fc_item.options) == 3
 
     def test_custom_extract_text(self) -> None:
         """Test with custom text extraction function."""
@@ -193,7 +189,7 @@ class TestCreateForcedChoiceItemsFromGroups:
         )
 
         assert len(fc_items) == 1
-        assert fc_items[0].rendered_elements["option_a"] == "First sentence"
+        assert fc_items[0].options[0] == "First sentence"
 
     def test_without_group_metadata(self) -> None:
         """Test without including group metadata."""
@@ -290,8 +286,8 @@ class TestCreateForcedChoiceItemsCrossProduct:
         )
 
         assert len(fc_items) == 1
-        assert fc_items[0].rendered_elements["option_a"] == "Grammatical"
-        assert fc_items[0].rendered_elements["option_b"] == "Ungrammatical"
+        assert fc_items[0].options[0] == "Grammatical"
+        assert fc_items[0].options[1] == "Ungrammatical"
 
     def test_multiple_from_each_group(self) -> None:
         """Test selecting multiple items from each group."""
@@ -413,8 +409,8 @@ class TestCreateForcedChoiceItemsCrossProduct:
             extract_text=lambda item: item.rendered_elements["sentence"],
         )
 
-        assert fc_items[0].rendered_elements["option_a"] == "Sent 1"
-        assert fc_items[0].rendered_elements["option_b"] == "Sent 2"
+        assert fc_items[0].options[0] == "Sent 1"
+        assert fc_items[0].options[1] == "Sent 2"
 
 
 class TestCreateFilteredForcedChoiceItems:
@@ -480,10 +476,7 @@ class TestCreateFilteredForcedChoiceItems:
         # Only group A has ≥2 items
         # C(2,2) = 1 combination
         assert len(fc_items) == 1
-        assert (
-            "A1" in fc_items[0].rendered_elements["option_a"]
-            or "A2" in fc_items[0].rendered_elements["option_a"]
-        )
+        assert "A1" in fc_items[0].options[0] or "A2" in fc_items[0].options[0]
 
     def test_combination_filter(self) -> None:
         """Test filtering specific combinations."""

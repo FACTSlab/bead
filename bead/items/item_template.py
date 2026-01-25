@@ -87,7 +87,7 @@ class ChunkingSpec(BeadBaseModel):
     Attributes
     ----------
     unit : ChunkingUnit
-        Segmentation unit type.
+        Segmentation unit type. Defaults to "word".
     parse_type : ParseType | None
         Type of parsing for constituent chunking ("constituency" or "dependency").
     constituent_labels : list[str] | None
@@ -125,7 +125,7 @@ class ChunkingSpec(BeadBaseModel):
     >>> ChunkingSpec(unit="custom", custom_boundaries=[0, 3, 7, 10])
     """
 
-    unit: ChunkingUnit = Field(..., description="Segmentation unit type")
+    unit: ChunkingUnit = Field(default="word", description="Segmentation unit type")
     parse_type: ParseType | None = Field(
         default=None, description="Parsing type for constituent chunking"
     )
@@ -310,18 +310,21 @@ class PresentationSpec(BeadBaseModel):
     Attributes
     ----------
     mode : PresentationMode
-        Presentation mode (static, self_paced, or timed_sequence).
-    chunking : ChunkingSpec | None
-        Chunking specification for incremental presentations.
-    timing : TimingParams | None
-        Timing parameters for timed presentations.
+        Presentation mode (static, self_paced, or timed_sequence). Defaults to
+        "static".
+    chunking : ChunkingSpec
+        Chunking specification for incremental presentations. Defaults to
+        word-level chunking.
+    timing : TimingParams
+        Timing parameters for timed presentations. Defaults to cumulative
+        display with no fixed durations.
     display_format : dict[str, str | int | float | bool]
         Additional display formatting options.
 
     Examples
     --------
     >>> # Static presentation (default)
-    >>> PresentationSpec(mode="static")
+    >>> PresentationSpec()
     >>> # Self-paced word-by-word reading
     >>> PresentationSpec(
     ...     mode="self_paced",
@@ -346,11 +349,13 @@ class PresentationSpec(BeadBaseModel):
     ... )
     """
 
-    mode: PresentationMode = Field(..., description="Presentation mode")
-    chunking: ChunkingSpec | None = Field(
-        default=None, description="Chunking specification"
+    mode: PresentationMode = Field(default="static", description="Presentation mode")
+    chunking: ChunkingSpec = Field(
+        default_factory=ChunkingSpec, description="Chunking specification"
     )
-    timing: TimingParams | None = Field(default=None, description="Timing parameters")
+    timing: TimingParams = Field(
+        default_factory=TimingParams, description="Timing parameters"
+    )
     display_format: dict[str, str | int | float | bool] = Field(
         default_factory=_empty_display_format_dict,
         description="Display formatting options",

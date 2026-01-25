@@ -97,6 +97,7 @@ ignore = ["ANN401"]
 convention = "numpy"
 
 [tool.pyright]
+include = ["bead"]
 typeCheckingMode = "strict"
 pythonVersion = "3.13"
 reportMissingTypeStubs = false
@@ -110,6 +111,7 @@ reportUnknownParameterType = false
 reportUnknownLambdaType = false
 exclude = [
     "tests/**",
+    "gallery/**",
     "bead/active_learning/**",
     "bead/resources/adapters/unimorph.py",
     "bead/resources/adapters/glazing.py",

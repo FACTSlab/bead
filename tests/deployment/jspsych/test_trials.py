@@ -7,6 +7,7 @@ from uuid import uuid4
 import pytest
 from pydantic import ValidationError
 
+from bead.data.range import Range
 from bead.deployment.distribution import (
     DistributionStrategyType,
     ListDistributionStrategy,
@@ -64,7 +65,7 @@ class TestCreateTrial:
                 strategy_type=DistributionStrategyType.BALANCED
             ),
         )
-        rating_config = RatingScaleConfig(min_value=1, max_value=7)
+        rating_config = RatingScaleConfig(scale=Range[int](min=1, max=7))
 
         trial = create_trial(
             item=sample_item,
@@ -121,11 +122,10 @@ class TestCreateTrial:
 
         item = Item(
             item_template_id=template.id,
-            rendered_elements={
-                "sentence": "Which is more natural?",
-                "choice_0": "The cat broke the vase.",
-                "choice_1": "The vase was broken by the cat.",
-            },
+            options=[
+                "The cat broke the vase.",
+                "The vase was broken by the cat.",
+            ],
         )
 
         config = ExperimentConfig(
@@ -267,8 +267,7 @@ class TestLikertConfiguration:
         )
 
         rating_config = RatingScaleConfig(
-            min_value=1,
-            max_value=5,
+            scale=Range[int](min=1, max=5),
             min_label="Strongly disagree",
             max_label="Strongly agree",
         )

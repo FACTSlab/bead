@@ -26,13 +26,13 @@ items = read_jsonlines(Path("items/2afc_pairs.jsonl"), Item)
 
 # Create item template
 template = ItemTemplate(
-    name="forced_choice",
-    description="2AFC acceptability",
+    name="likert_rating",
+    description="7-point acceptability",
     judgment_type="acceptability",
-    task_type="forced_choice",
+    task_type="ordinal_scale",
     task_spec=TaskSpec(
-        prompt="Which sentence sounds more natural?",
-        options=["Option A", "Option B"],
+        prompt="How natural does this sentence sound?",
+        scale_bounds=(1, 7),
     ),
     presentation_spec=PresentationSpec(mode="static"),
 )
@@ -44,10 +44,10 @@ for item in items_dict.values():
 
 # Create experiment config
 config = ExperimentConfig(
-    experiment_type="forced_choice",
+    experiment_type="likert_rating",
     title="Sentence Acceptability Study",
-    description="Rate which sentence sounds more natural",
-    instructions="You will see pairs of sentences. Select the more natural one.",
+    description="Rate how natural each sentence sounds",
+    instructions="You will see sentences. Rate how natural each one sounds.",
     randomize_trial_order=True,
     show_progress_bar=True,
     distribution_strategy=ListDistributionStrategy(
@@ -199,18 +199,31 @@ The deployment system optionally integrates [slopit](https://github.com/aaronste
 Enable behavioral capture in ExperimentConfig:
 
 ```python
-from bead.deployment.jspsych.config import ExperimentConfig, SlopitIntegrationConfig
+from bead.config.deployment import (
+    SlopitFocusConfig,
+    SlopitIntegrationConfig,
+    SlopitKeystrokeConfig,
+    SlopitPasteConfig,
+)
+from bead.deployment.distribution import (
+    DistributionStrategyType,
+    ListDistributionStrategy,
+)
+from bead.deployment.jspsych.config import ExperimentConfig
 
 config = ExperimentConfig(
-    experiment_type="forced_choice",
+    experiment_type="likert_rating",
     title="Study with Behavioral Capture",
     description="Captures keystrokes and focus events",
-    instructions="Select the more natural sentence.",
+    instructions="Rate how natural each sentence sounds.",
+    distribution_strategy=ListDistributionStrategy(
+        strategy_type=DistributionStrategyType.BALANCED
+    ),
     slopit=SlopitIntegrationConfig(
         enabled=True,
-        keystroke=KeystrokeCaptureConfig(enabled=True),
-        focus=FocusCaptureConfig(enabled=True),
-        paste=PasteCaptureConfig(enabled=True, prevent=False),
+        keystroke=SlopitKeystrokeConfig(enabled=True),
+        focus=SlopitFocusConfig(enabled=True),
+        paste=SlopitPasteConfig(enabled=True, prevent=False),
     ),
 )
 ```
@@ -230,7 +243,9 @@ config = ExperimentConfig(
 **Target Selectors**: Map task types to CSS selectors for capture:
 
 ```python
-slopit=SlopitIntegrationConfig(
+from bead.config.deployment import SlopitIntegrationConfig
+
+slopit = SlopitIntegrationConfig(
     enabled=True,
     target_selectors={
         "likert_rating": ".bead-rating-button",
@@ -352,11 +367,13 @@ items = read_jsonlines(Path("items/2afc_pairs.jsonl"), Item)
 
 # Create template
 template = ItemTemplate(
-    name="forced_choice",
-    description="2AFC",
+    name="likert_rating",
+    description="7-point acceptability",
     judgment_type="acceptability",
-    task_type="forced_choice",
-    task_spec=TaskSpec(prompt="Which is more natural?", options=["A", "B"]),
+    task_type="ordinal_scale",
+    task_spec=TaskSpec(
+        prompt="How natural does this sentence sound?", scale_bounds=(1, 7)
+    ),
     presentation_spec=PresentationSpec(mode="static"),
 )
 
@@ -366,10 +383,10 @@ for item in items_dict.values():
 
 # Generate experiment
 config = ExperimentConfig(
-    experiment_type="forced_choice",
+    experiment_type="likert_rating",
     title="Study",
     description="Acceptability",
-    instructions="Select more natural sentence",
+    instructions="Rate how natural each sentence sounds",
     distribution_strategy=ListDistributionStrategy(
         strategy_type=DistributionStrategyType.BALANCED
     ),
@@ -384,7 +401,7 @@ output_dir = generator.generate(
 # Export to JATOS
 exporter = JATOSExporter(
     study_title="Sentence Acceptability Study",
-    study_description="Forced choice acceptability judgments",
+    study_description="Likert-scale acceptability judgments",
 )
 
 exporter.export(
@@ -439,13 +456,13 @@ items = read_jsonlines(Path("items/2afc_pairs.jsonl"), Item)
 
 # Create item template
 template = ItemTemplate(
-    name="2afc_forced_choice",
-    description="Two-alternative forced choice item",
+    name="likert_rating",
+    description="7-point acceptability rating",
     judgment_type="acceptability",
-    task_type="forced_choice",
+    task_type="ordinal_scale",
     task_spec=TaskSpec(
-        prompt="Which sentence sounds more natural?",
-        options=["Option A", "Option B"],
+        prompt="How natural does this sentence sound?",
+        scale_bounds=(1, 7),
     ),
     presentation_spec=PresentationSpec(mode="static"),
 )
@@ -457,10 +474,10 @@ for item in items_dict.values():
 
 # Create config
 config = ExperimentConfig(
-    experiment_type="forced_choice",
+    experiment_type="likert_rating",
     title="Sentence Acceptability Study",
-    description="Rate which sentence sounds more natural",
-    instructions="Select the more natural sentence from each pair.",
+    description="Rate how natural each sentence sounds",
+    instructions="Rate each sentence on a scale from 1 to 7.",
     randomize_trial_order=True,
     show_progress_bar=True,
     distribution_strategy=ListDistributionStrategy(
@@ -486,7 +503,7 @@ print(f"Generated experiment in {output_dir}")
 # Export to JATOS
 exporter = JATOSExporter(
     study_title="Sentence Acceptability",
-    study_description="Acceptability judgments via forced choice",
+    study_description="Likert-scale acceptability judgments",
 )
 
 exporter.export(

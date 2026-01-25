@@ -3,9 +3,53 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Literal
+from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
+
+
+class SlotStrategyConfig(BaseModel):
+    """Configuration for a single slot's filling strategy.
+
+    Parameters
+    ----------
+    strategy
+        Filling strategy for this slot. Must be one of "exhaustive",
+        "random", "stratified", or "mlm".
+    sample_size
+        Sample size for random or stratified strategies. Only used when
+        strategy is "random" or "stratified".
+    stratify_by
+        Feature name to stratify by. Only used when strategy is "stratified".
+    beam_size
+        Beam size for MLM strategy. Only used when strategy is "mlm".
+
+    Examples
+    --------
+    >>> config = SlotStrategyConfig(strategy="exhaustive")
+    >>> config.strategy
+    'exhaustive'
+    >>> config_random = SlotStrategyConfig(strategy="random", sample_size=100)
+    >>> config_random.sample_size
+    100
+    >>> config_stratified = SlotStrategyConfig(
+    ...     strategy="stratified", sample_size=50, stratify_by="pos"
+    ... )
+    >>> config_stratified.stratify_by
+    'pos'
+    >>> config_mlm = SlotStrategyConfig(strategy="mlm", beam_size=10)
+    >>> config_mlm.beam_size
+    10
+    """
+
+    strategy: Literal["exhaustive", "random", "stratified", "mlm"] = Field(
+        ..., description="Filling strategy for this slot"
+    )
+    sample_size: int | None = Field(
+        default=None, description="Sample size for random/stratified"
+    )
+    stratify_by: str | None = Field(default=None, description="Feature to stratify by")
+    beam_size: int | None = Field(default=None, description="Beam size for MLM")
 
 
 class TemplateConfig(BaseModel):
@@ -42,11 +86,9 @@ class TemplateConfig(BaseModel):
         Enable content-addressable caching for MLM predictions.
     mlm_cache_dir : Path | None
         Directory for MLM prediction cache.
-    slot_strategies : dict[str, dict[str, Any]] | None
+    slot_strategies : dict[str, SlotStrategyConfig] | None
         Per-slot strategy configuration for mixed filling.
-        Maps slot names to strategy configs with format:
-        {'slot_name': {'strategy': 'exhaustive|random|stratified|mlm',
-         ...strategy_config...}}
+        Maps slot names to SlotStrategyConfig instances.
 
     Examples
     --------
@@ -66,14 +108,15 @@ class TemplateConfig(BaseModel):
     ...     filling_strategy="mixed",
     ...     mlm_model_name="bert-base-uncased",
     ...     slot_strategies={
-    ...         "noun": {"strategy": "exhaustive"},
-    ...         "verb": {"strategy": "exhaustive"},
-    ...         "adjective": {"strategy": "mlm"}
+    ...         "noun": SlotStrategyConfig(strategy="exhaustive"),
+    ...         "verb": SlotStrategyConfig(strategy="exhaustive"),
+    ...         "adjective": SlotStrategyConfig(strategy="mlm", beam_size=10)
     ...     }
     ... )
-    >>> config_mixed.slot_strategies  # doctest: +SKIP
-    {'noun': {'strategy': 'exhaustive'}, 'verb': {'strategy': 'exhaustive'},
-     'adjective': {'strategy': 'mlm'}}
+    >>> config_mixed.slot_strategies["noun"].strategy
+    'exhaustive'
+    >>> config_mixed.slot_strategies["adjective"].beam_size
+    10
     """
 
     filling_strategy: Literal["exhaustive", "random", "stratified", "mlm", "mixed"] = (
@@ -122,11 +165,10 @@ class TemplateConfig(BaseModel):
     )
 
     # Mixed strategy settings
-    slot_strategies: dict[str, dict[str, Any]] | None = Field(
+    slot_strategies: dict[str, SlotStrategyConfig] | None = Field(
         default=None,
         description="Per-slot strategy configuration for mixed filling. "
-        "Format: {'slot_name': {'strategy': "
-        "'exhaustive|random|stratified|mlm', ...config...}}",
+        "Maps slot names to SlotStrategyConfig instances.",
     )
 
     @field_validator("max_combinations")
@@ -184,21 +226,9 @@ class TemplateConfig(BaseModel):
             raise ValueError(msg)
 
         if self.slot_strategies is not None:
-            for slot_name, config in self.slot_strategies.items():
-                if "strategy" not in config:
-                    msg = (
-                        f"'strategy' key required for slot '{slot_name}' "
-                        f"in slot_strategies"
-                    )
-                    raise ValueError(msg)
-
-                strategy_name = config["strategy"]
-                if strategy_name not in ["exhaustive", "random", "stratified", "mlm"]:
-                    msg = f"Invalid strategy '{strategy_name}' for slot '{slot_name}'"
-                    raise ValueError(msg)
-
-                # If MLM, check model config is available
-                if strategy_name == "mlm" and self.mlm_model_name is None:
+            for slot_name, slot_config in self.slot_strategies.items():
+                # If MLM strategy is used for a slot, check model config is available
+                if slot_config.strategy == "mlm" and self.mlm_model_name is None:
                     msg = (
                         f"mlm_model_name must be specified when slot "
                         f"'{slot_name}' uses MLM"

@@ -7,6 +7,7 @@ from uuid import UUID, uuid4
 
 import pytest
 
+from bead.data.range import Range
 from bead.deployment.distribution import (
     DistributionStrategyType,
     ListDistributionStrategy,
@@ -75,8 +76,7 @@ def sample_rating_config() -> RatingScaleConfig:
         Sample rating scale configuration.
     """
     return RatingScaleConfig(
-        min_value=1,
-        max_value=7,
+        scale=Range[int](min=1, max=7),
         min_label="Not natural at all",
         max_label="Very natural",
         step=1,

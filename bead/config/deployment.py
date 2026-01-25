@@ -48,7 +48,9 @@ class SlopitFocusConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     enabled: bool = Field(default=True, description="Capture focus events")
-    use_visibility_api: bool = Field(default=True, description="Use Page Visibility API")
+    use_visibility_api: bool = Field(
+        default=True, description="Use Page Visibility API"
+    )
     use_blur_focus: bool = Field(default=True, description="Track blur/focus events")
 
 
@@ -72,7 +74,9 @@ class SlopitPasteConfig(BaseModel):
     enabled: bool = Field(default=True, description="Capture paste events")
     prevent: bool = Field(default=False, description="Block paste actions")
     capture_preview: bool = Field(default=True, description="Capture text preview")
-    preview_length: int = Field(default=100, ge=0, description="Preview character limit")
+    preview_length: int = Field(
+        default=100, ge=0, description="Preview character limit"
+    )
 
 
 class SlopitIntegrationConfig(BaseModel):

@@ -13,6 +13,7 @@ from bead.data.metadata import (
     ProcessingRecord,
     ProvenanceRecord,
 )
+from bead.data.range import Range
 from bead.data.repository import Repository
 from bead.data.serialization import (
     DeserializationError,
@@ -37,6 +38,8 @@ __all__ = [
     "generate_uuid",
     "extract_timestamp",
     "is_valid_uuid7",
+    # Range
+    "Range",
     # Timestamps
     "now_iso8601",
     "parse_iso8601",

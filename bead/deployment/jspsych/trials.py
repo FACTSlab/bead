@@ -43,6 +43,8 @@ def _serialize_item_metadata(
         "item_template_id": str(item.item_template_id),
         # Filled template references
         "filled_template_refs": [str(ref) for ref in item.filled_template_refs],
+        # Options (for forced_choice/multi_select)
+        "options": list(item.options),
         # Rendered elements
         "rendered_elements": dict(item.rendered_elements),
         # Unfilled slots (for cloze tasks)
@@ -260,7 +262,7 @@ def _create_likert_trial(
 
     # Generate button labels for Likert scale
     labels: list[str] = []
-    for i in range(config.min_value, config.max_value + 1, config.step):
+    for i in range(config.scale.min, config.scale.max + 1, config.step):
         if config.show_numeric_labels:
             labels.append(str(i))
         else:
@@ -323,10 +325,10 @@ def _create_slider_trial(
         "type": "html-slider-response",
         "stimulus": stimulus_html,
         "labels": [config.min_label, config.max_label],
-        "min": config.min_value,
-        "max": config.max_value,
+        "min": config.scale.min,
+        "max": config.scale.max,
         "step": config.step,
-        "slider_start": (config.min_value + config.max_value) // 2,
+        "slider_start": (config.scale.min + config.scale.max) // 2,
         "require_movement": config.required,
         "data": metadata,
     }
@@ -381,14 +383,11 @@ def _create_forced_choice_trial(
 ) -> dict[str, JsonValue]:
     """Create a forced choice trial.
 
-    For forced choice trials, the item should have multiple rendered elements
-    that represent the different choices. The choices are extracted from the
-    rendered_elements and presented as buttons.
-
     Parameters
     ----------
     item : Item
-        The item to create a trial from.
+        The item to create a trial from. Must have at least 2 options in
+        the item.options list.
     template : ItemTemplate
         The item template.
     config : ChoiceConfig
@@ -400,6 +399,11 @@ def _create_forced_choice_trial(
     -------
     dict[str, JsonValue]
         A jsPsych html-button-response trial object.
+
+    Raises
+    ------
+    ValueError
+        If item.options is empty or has fewer than 2 options.
     """
     # For forced choice, use the prompt from the template as the stimulus
     # (not the choices themselves)
@@ -412,28 +416,19 @@ def _create_forced_choice_trial(
         f'<div class="stimulus-container"><p class="prompt">{prompt}</p></div>'
     )
 
-    # Extract choices from rendered elements (excluding the main stimulus)
-    # This assumes element names like "choice_0", "choice_1", etc.
-    # or "option_a", "option_b", etc.
-    choices = []
-    choice_keys = sorted(
-        [
-            k
-            for k in item.rendered_elements.keys()
-            if k.startswith(("choice_", "option_"))
-        ]
-    )
-
-    if choice_keys:
-        choices = [item.rendered_elements[k] for k in choice_keys]
-    else:
-        # Fallback: use all elements except the first one as choices
-        all_keys = sorted(item.rendered_elements.keys())
-        if len(all_keys) > 1:
-            choices = [item.rendered_elements[k] for k in all_keys[1:]]
-        else:
-            # No choices found, create generic yes/no
-            choices = ["Choice A", "Choice B"]
+    # Extract choices from item.options
+    if not item.options:
+        raise ValueError(
+            f"Item {item.id} has no options. "
+            f"Forced choice items must have at least 2 options in item.options. "
+            f"Use create_forced_choice_item() to create items with options."
+        )
+    if len(item.options) < 2:
+        raise ValueError(
+            f"Item {item.id} has only {len(item.options)} option(s). "
+            f"Forced choice items require at least 2 options."
+        )
+    choices = list(item.options)
 
     # Serialize complete metadata
     metadata = _serialize_item_metadata(item, template)

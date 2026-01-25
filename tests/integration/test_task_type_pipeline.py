@@ -57,8 +57,9 @@ class TestForcedChoiceIntegration:
         # Verify items created correctly
         assert len(items_list) == 3
         assert all(isinstance(item, Item) for item in items_list)
-        assert "option_a" in items_list[0].rendered_elements
-        assert "option_b" in items_list[0].rendered_elements
+        assert len(items_list[0].options) == 2
+        assert items_list[0].options[0] == "The cat sat on the mat."
+        assert items_list[0].options[1] == "The dog sat on the mat."
 
         # Stage 4: Partition into lists
         partitioner = ListPartitioner(random_seed=42)
@@ -260,7 +261,9 @@ class TestCategoricalIntegration:
 
         assert len(items_list) == 2
         assert "categories" in items_list[0].item_metadata
-        assert len(items_list[0].item_metadata["categories"]) == 3
+        categories = items_list[0].item_metadata["categories"]
+        assert isinstance(categories, list)
+        assert len(categories) == 3
 
         # Stage 4: Partition
         partitioner = ListPartitioner()
@@ -269,8 +272,11 @@ class TestCategoricalIntegration:
         lists = partitioner.partition(items=item_uuids, n_lists=1, strategy="random")
 
         # Stage 5: Deploy
+        # Note: categorical items use categories in metadata, not item.options
+        # Using likert_rating as a deployment test since categorical experiment
+        # type is not yet implemented
         config = ExperimentConfig(
-            experiment_type="forced_choice",
+            experiment_type="likert_rating",
             title="NLI Test",
             description="Test",
             instructions="Select relationship",

@@ -19,7 +19,6 @@ def create_forced_choice_item(
     *options: str,
     item_template_id: UUID | None = None,
     metadata: dict[str, MetadataValue] | None = None,
-    option_prefix: str = "option",
 ) -> Item:
     """Create an N-AFC (forced-choice) item from N text options.
 
@@ -31,13 +30,11 @@ def create_forced_choice_item(
         Template ID for the item. If None, generates new UUID.
     metadata : dict[str, MetadataValue] | None
         Additional metadata for item_metadata field.
-    option_prefix : str
-        Prefix for option names (default: "option" → option_a, option_b, ...).
 
     Returns
     -------
     Item
-        Forced-choice item with options in rendered_elements.
+        Forced-choice item with options stored in the options field.
 
     Raises
     ------
@@ -51,9 +48,9 @@ def create_forced_choice_item(
     ...     "The cats sat on the mat.",
     ...     metadata={"contrast": "number"}
     ... )
-    >>> item.rendered_elements["option_a"]
+    >>> item.options[0]
     'The cat sat on the mat.'
-    >>> item.rendered_elements["option_b"]
+    >>> item.options[1]
     'The cats sat on the mat.'
 
     >>> # 4AFC item
@@ -63,7 +60,7 @@ def create_forced_choice_item(
     ...     "Option C text",
     ...     "Option D text"
     ... )
-    >>> len(item.rendered_elements)
+    >>> len(item.options)
     4
     """
     if len(options) < 2:
@@ -71,15 +68,6 @@ def create_forced_choice_item(
 
     if item_template_id is None:
         item_template_id = uuid4()
-
-    # Create option names (option_a, option_b, option_c, ...)
-    letters = "abcdefghijklmnopqrstuvwxyz"
-    rendered_elements: dict[str, str] = {}
-    for i, option_text in enumerate(options):
-        if i >= len(letters):
-            raise ValueError(f"Too many options ({len(options)}). Maximum is 26.")
-        option_name = f"{option_prefix}_{letters[i]}"
-        rendered_elements[option_name] = option_text
 
     # Build item metadata with n_options (consistent with other task types)
     item_metadata: dict[str, MetadataValue] = {
@@ -90,7 +78,7 @@ def create_forced_choice_item(
 
     return Item(
         item_template_id=item_template_id,
-        rendered_elements=rendered_elements,
+        options=list(options),
         item_metadata=item_metadata,
     )
 

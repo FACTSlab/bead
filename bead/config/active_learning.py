@@ -8,10 +8,94 @@ from typing import Literal
 from pydantic import BaseModel, Field, model_validator
 
 from bead.active_learning.config import MixedEffectsConfig
+from bead.data.range import Range
 
 
-class ForcedChoiceModelConfig(BaseModel):
+class BaseEncoderModelConfig(BaseModel):
+    """Base configuration for encoder-based active learning models.
+
+    Provides shared configuration fields for models that use transformer
+    encoders with optional dual-encoder architecture and mixed effects.
+
+    Parameters
+    ----------
+    model_name : str
+        HuggingFace model identifier.
+    max_length : int
+        Maximum sequence length for tokenization.
+    encoder_mode : Literal["single_encoder", "dual_encoder"]
+        Encoding strategy for input processing.
+    include_instructions : bool
+        Whether to include task instructions.
+    learning_rate : float
+        Learning rate for AdamW optimizer.
+    batch_size : int
+        Batch size for training.
+    num_epochs : int
+        Number of training epochs.
+    device : Literal["cpu", "cuda", "mps"]
+        Device to train on.
+    mixed_effects : MixedEffectsConfig
+        Mixed effects configuration for participant-level modeling.
+
+    Examples
+    --------
+    >>> config = BaseEncoderModelConfig()
+    >>> config.model_name
+    'bert-base-uncased'
+    >>> config.batch_size
+    16
+    >>> config.mixed_effects.mode
+    'fixed'
+    """
+
+    model_name: str = Field(
+        default="bert-base-uncased",
+        description="HuggingFace model identifier",
+    )
+    max_length: int = Field(
+        default=128,
+        description="Maximum sequence length for tokenization",
+        gt=0,
+    )
+    encoder_mode: Literal["single_encoder", "dual_encoder"] = Field(
+        default="single_encoder",
+        description="Encoding strategy for input processing",
+    )
+    include_instructions: bool = Field(
+        default=False,
+        description="Whether to include task instructions",
+    )
+    learning_rate: float = Field(
+        default=2e-5,
+        description="Learning rate for AdamW optimizer",
+        gt=0,
+    )
+    batch_size: int = Field(
+        default=16,
+        description="Batch size for training",
+        gt=0,
+    )
+    num_epochs: int = Field(
+        default=3,
+        description="Number of training epochs",
+        gt=0,
+    )
+    device: Literal["cpu", "cuda", "mps"] = Field(
+        default="cpu",
+        description="Device to train on",
+    )
+    mixed_effects: MixedEffectsConfig = Field(
+        default_factory=MixedEffectsConfig,
+        description="Mixed effects configuration for participant-level modeling",
+    )
+
+
+class ForcedChoiceModelConfig(BaseEncoderModelConfig):
     """Configuration for forced choice active learning models.
+
+    Inherits all fields from BaseEncoderModelConfig. Used for tasks where
+    participants select one option from a set of alternatives.
 
     Parameters
     ----------
@@ -44,47 +128,6 @@ class ForcedChoiceModelConfig(BaseModel):
     >>> config.mixed_effects.mode
     'fixed'
     """
-
-    model_name: str = Field(
-        default="bert-base-uncased",
-        description="HuggingFace model identifier",
-    )
-    max_length: int = Field(
-        default=128,
-        description="Maximum sequence length for tokenization",
-        gt=0,
-    )
-    encoder_mode: Literal["single_encoder", "dual_encoder"] = Field(
-        default="single_encoder",
-        description="Encoding strategy for options",
-    )
-    include_instructions: bool = Field(
-        default=False,
-        description="Whether to include task instructions",
-    )
-    learning_rate: float = Field(
-        default=2e-5,
-        description="Learning rate for AdamW optimizer",
-        gt=0,
-    )
-    batch_size: int = Field(
-        default=16,
-        description="Batch size for training",
-        gt=0,
-    )
-    num_epochs: int = Field(
-        default=3,
-        description="Number of training epochs",
-        gt=0,
-    )
-    device: Literal["cpu", "cuda", "mps"] = Field(
-        default="cpu",
-        description="Device to train on",
-    )
-    mixed_effects: MixedEffectsConfig = Field(
-        default_factory=MixedEffectsConfig,
-        description="Mixed effects configuration for participant-level modeling",
-    )
 
 
 class UncertaintySamplerConfig(BaseModel):
@@ -119,6 +162,58 @@ class UncertaintySamplerConfig(BaseModel):
     )
 
 
+class JatosDataCollectionConfig(BaseModel):
+    """Configuration for JATOS data collection.
+
+    Parameters
+    ----------
+    base_url : str
+        JATOS base URL (e.g., "https://jatos.example.com").
+    api_token : str
+        JATOS API token for authentication.
+    study_id : int
+        JATOS study ID to collect data from.
+
+    Examples
+    --------
+    >>> config = JatosDataCollectionConfig(
+    ...     base_url="https://jatos.example.com",
+    ...     api_token="secret-token",
+    ...     study_id=123,
+    ... )
+    >>> config.base_url
+    'https://jatos.example.com'
+    """
+
+    base_url: str = Field(..., description="JATOS base URL")
+    api_token: str = Field(..., description="JATOS API token")
+    study_id: int = Field(..., description="JATOS study ID")
+
+
+class ProlificDataCollectionConfig(BaseModel):
+    """Configuration for Prolific data collection.
+
+    Parameters
+    ----------
+    api_key : str
+        Prolific API key for authentication.
+    study_id : str
+        Prolific study ID to collect data from.
+
+    Examples
+    --------
+    >>> config = ProlificDataCollectionConfig(
+    ...     api_key="secret-key",
+    ...     study_id="abc123",
+    ... )
+    >>> config.study_id
+    'abc123'
+    """
+
+    api_key: str = Field(..., description="Prolific API key")
+    study_id: str = Field(..., description="Prolific study ID")
+
+
 class ActiveLearningLoopConfig(BaseModel):
     """Configuration for active learning loop orchestration.
 
@@ -138,6 +233,14 @@ class ActiveLearningLoopConfig(BaseModel):
         Iterations to wait before declaring convergence.
     convergence_threshold : float
         Minimum improvement to avoid convergence.
+    jatos : JatosDataCollectionConfig | None
+        Configuration for JATOS data collection. If None, JATOS integration
+        is disabled.
+    prolific : ProlificDataCollectionConfig | None
+        Configuration for Prolific data collection. If None, Prolific
+        integration is disabled.
+    data_collection_timeout : int
+        Timeout in seconds for data collection.
 
     Examples
     --------
@@ -146,6 +249,16 @@ class ActiveLearningLoopConfig(BaseModel):
     10
     >>> config.budget_per_iteration
     100
+
+    >>> # With JATOS integration
+    >>> jatos_config = JatosDataCollectionConfig(
+    ...     base_url="https://jatos.example.com",
+    ...     api_token="secret-token",
+    ...     study_id=123,
+    ... )
+    >>> config = ActiveLearningLoopConfig(jatos=jatos_config)
+    >>> config.jatos.study_id
+    123
     """
 
     max_iterations: int = Field(
@@ -185,25 +298,13 @@ class ActiveLearningLoopConfig(BaseModel):
         gt=0,
     )
     # Data collection configuration (optional)
-    jatos_base_url: str | None = Field(
+    jatos: JatosDataCollectionConfig | None = Field(
         default=None,
-        description="JATOS base URL for data collection",
+        description="Configuration for JATOS data collection",
     )
-    jatos_api_token: str | None = Field(
+    prolific: ProlificDataCollectionConfig | None = Field(
         default=None,
-        description="JATOS API token for authentication",
-    )
-    jatos_study_id: int | None = Field(
-        default=None,
-        description="JATOS study ID to collect data from",
-    )
-    prolific_api_key: str | None = Field(
-        default=None,
-        description="Prolific API key for data collection",
-    )
-    prolific_study_id: str | None = Field(
-        default=None,
-        description="Prolific study ID to collect data from",
+        description="Configuration for Prolific data collection",
     )
     data_collection_timeout: int = Field(
         default=3600,
@@ -253,8 +354,11 @@ class TrainerConfig(BaseModel):
     wandb_project: str | None = Field(default=None, description="W&B project name")
 
 
-class CategoricalModelConfig(BaseModel):
+class CategoricalModelConfig(BaseEncoderModelConfig):
     """Configuration for categorical active learning models.
+
+    Inherits all fields from BaseEncoderModelConfig. Used for tasks where
+    participants select one category from a predefined set.
 
     Parameters
     ----------
@@ -286,50 +390,12 @@ class CategoricalModelConfig(BaseModel):
     'fixed'
     """
 
-    model_name: str = Field(
-        default="bert-base-uncased",
-        description="HuggingFace model identifier",
-    )
-    max_length: int = Field(
-        default=128,
-        description="Maximum sequence length for tokenization",
-        gt=0,
-    )
-    encoder_mode: Literal["single_encoder", "dual_encoder"] = Field(
-        default="single_encoder",
-        description="Encoding strategy for categories",
-    )
-    include_instructions: bool = Field(
-        default=False,
-        description="Whether to include task instructions",
-    )
-    learning_rate: float = Field(
-        default=2e-5,
-        description="Learning rate for AdamW optimizer",
-        gt=0,
-    )
-    batch_size: int = Field(
-        default=16,
-        description="Batch size for training",
-        gt=0,
-    )
-    num_epochs: int = Field(
-        default=3,
-        description="Number of training epochs",
-        gt=0,
-    )
-    device: Literal["cpu", "cuda", "mps"] = Field(
-        default="cpu",
-        description="Device to train on",
-    )
-    mixed_effects: MixedEffectsConfig = Field(
-        default_factory=MixedEffectsConfig,
-        description="Mixed effects configuration for participant-level modeling",
-    )
 
-
-class BinaryModelConfig(BaseModel):
+class BinaryModelConfig(BaseEncoderModelConfig):
     """Configuration for binary active learning models.
+
+    Inherits all fields from BaseEncoderModelConfig. Used for binary
+    classification tasks (yes/no, true/false, acceptable/unacceptable).
 
     Parameters
     ----------
@@ -361,50 +427,12 @@ class BinaryModelConfig(BaseModel):
     'fixed'
     """
 
-    model_name: str = Field(
-        default="bert-base-uncased",
-        description="HuggingFace model identifier",
-    )
-    max_length: int = Field(
-        default=128,
-        description="Maximum sequence length for tokenization",
-        gt=0,
-    )
-    encoder_mode: Literal["single_encoder", "dual_encoder"] = Field(
-        default="single_encoder",
-        description="Encoding strategy for binary classification",
-    )
-    include_instructions: bool = Field(
-        default=False,
-        description="Whether to include task instructions",
-    )
-    learning_rate: float = Field(
-        default=2e-5,
-        description="Learning rate for AdamW optimizer",
-        gt=0,
-    )
-    batch_size: int = Field(
-        default=16,
-        description="Batch size for training",
-        gt=0,
-    )
-    num_epochs: int = Field(
-        default=3,
-        description="Number of training epochs",
-        gt=0,
-    )
-    device: Literal["cpu", "cuda", "mps"] = Field(
-        default="cpu",
-        description="Device to train on",
-    )
-    mixed_effects: MixedEffectsConfig = Field(
-        default_factory=MixedEffectsConfig,
-        description="Mixed effects configuration for participant-level modeling",
-    )
 
-
-class MultiSelectModelConfig(BaseModel):
+class MultiSelectModelConfig(BaseEncoderModelConfig):
     """Configuration for multi-select active learning models.
+
+    Inherits all fields from BaseEncoderModelConfig. Used for tasks where
+    participants can select multiple options from a set of alternatives.
 
     Parameters
     ----------
@@ -436,47 +464,6 @@ class MultiSelectModelConfig(BaseModel):
     'fixed'
     """
 
-    model_name: str = Field(
-        default="bert-base-uncased",
-        description="HuggingFace model identifier",
-    )
-    max_length: int = Field(
-        default=128,
-        description="Maximum sequence length for tokenization",
-        gt=0,
-    )
-    encoder_mode: Literal["single_encoder", "dual_encoder"] = Field(
-        default="single_encoder",
-        description="Encoding strategy for multi-select options",
-    )
-    include_instructions: bool = Field(
-        default=False,
-        description="Whether to include task instructions",
-    )
-    learning_rate: float = Field(
-        default=2e-5,
-        description="Learning rate for AdamW optimizer",
-        gt=0,
-    )
-    batch_size: int = Field(
-        default=16,
-        description="Batch size for training",
-        gt=0,
-    )
-    num_epochs: int = Field(
-        default=3,
-        description="Number of training epochs",
-        gt=0,
-    )
-    device: Literal["cpu", "cuda", "mps"] = Field(
-        default="cpu",
-        description="Device to train on",
-    )
-    mixed_effects: MixedEffectsConfig = Field(
-        default_factory=MixedEffectsConfig,
-        description="Mixed effects configuration for participant-level modeling",
-    )
-
 
 class OrdinalScaleModelConfig(BaseModel):
     """Configuration for ordinal scale active learning models.
@@ -499,10 +486,8 @@ class OrdinalScaleModelConfig(BaseModel):
         Number of training epochs.
     device : Literal["cpu", "cuda", "mps"]
         Device to train on.
-    scale_min : float
-        Minimum value of the ordinal scale (default 0.0).
-    scale_max : float
-        Maximum value of the ordinal scale (default 1.0).
+    scale : Range[float]
+        Numeric range for the ordinal scale (default: 0.0 to 1.0).
     distribution : Literal["truncated_normal"]
         Distribution for modeling bounded continuous responses.
     sigma : float
@@ -515,12 +500,19 @@ class OrdinalScaleModelConfig(BaseModel):
     >>> config = OrdinalScaleModelConfig()
     >>> config.model_name
     'bert-base-uncased'
-    >>> config.scale_min
+    >>> config.scale.min
     0.0
-    >>> config.scale_max
+    >>> config.scale.max
     1.0
     >>> config.mixed_effects.mode
     'fixed'
+
+    >>> # Custom scale from 1.0 to 5.0
+    >>> config = OrdinalScaleModelConfig(
+    ...     scale=Range[float](min=1.0, max=5.0)
+    ... )
+    >>> config.scale.contains(3.5)
+    True
     """
 
     model_name: str = Field(
@@ -559,14 +551,9 @@ class OrdinalScaleModelConfig(BaseModel):
         default="cpu",
         description="Device to train on",
     )
-    scale_min: float = Field(
-        default=0.0,
-        description="Minimum value of the ordinal scale",
-    )
-    scale_max: float = Field(
-        default=1.0,
-        description="Maximum value of the ordinal scale",
-        gt=0.0,
+    scale: Range[float] = Field(
+        default_factory=lambda: Range[float](min=0.0, max=1.0),
+        description="Numeric range for the ordinal scale",
     )
     distribution: Literal["truncated_normal"] = Field(
         default="truncated_normal",

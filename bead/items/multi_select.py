@@ -27,7 +27,6 @@ def create_multi_select_item(
     max_selections: int | None = None,
     item_template_id: UUID | None = None,
     metadata: dict[str, MetadataValue] | None = None,
-    option_prefix: str = "option",
 ) -> Item:
     """Create a multi-select item from N text options.
 
@@ -44,13 +43,11 @@ def create_multi_select_item(
         Template ID for the item. If None, generates new UUID.
     metadata : dict[str, MetadataValue] | None
         Additional metadata for item_metadata field.
-    option_prefix : str
-        Prefix for option names (default: "option" → option_a, option_b, ...).
 
     Returns
     -------
     Item
-        Multi-select item with options in rendered_elements.
+        Multi-select item with options stored in the options field.
 
     Raises
     ------
@@ -69,7 +66,7 @@ def create_multi_select_item(
     ...     max_selections=4,
     ...     metadata={"task": "select_grammatical"}
     ... )
-    >>> item.rendered_elements["option_a"]
+    >>> item.options[0]
     'She walks.'
     >>> item.item_metadata["min_selections"]
     1
@@ -106,15 +103,6 @@ def create_multi_select_item(
     if item_template_id is None:
         item_template_id = uuid4()
 
-    # Create option names (option_a, option_b, option_c, ...)
-    letters = "abcdefghijklmnopqrstuvwxyz"
-    rendered_elements: dict[str, str] = {}
-    for i, option_text in enumerate(options):
-        if i >= len(letters):
-            raise ValueError(f"Too many options ({len(options)}). Maximum is 26.")
-        option_name = f"{option_prefix}_{letters[i]}"
-        rendered_elements[option_name] = option_text
-
     # Build item metadata
     item_metadata: dict[str, MetadataValue] = {
         "min_selections": min_selections,
@@ -125,7 +113,7 @@ def create_multi_select_item(
 
     return Item(
         item_template_id=item_template_id,
-        rendered_elements=rendered_elements,
+        options=list(options),
         item_metadata=item_metadata,
     )
 

@@ -246,10 +246,58 @@ def item_passes_all_constraints(item: Item) -> bool:
     return all(item.constraint_satisfaction.values())
 
 
-def _check_option_keys(rendered_elements: dict[str, str]) -> tuple[bool, int]:
-    """Check if rendered_elements has consecutive option_a, option_b, ... keys.
+def _check_options(item: Item) -> tuple[bool, int]:
+    """Check if item has valid options list.
 
     Helper function for detecting forced_choice and multi_select task types.
+    Checks the item.options field for a valid list of options.
+
+    Parameters
+    ----------
+    item : Item
+        Item to check for options.
+
+    Returns
+    -------
+    tuple[bool, int]
+        Tuple of (has_options, n_options) where has_options is True if
+        the item has at least 2 options, and n_options is the count.
+
+    Examples
+    --------
+    >>> item = Item(item_template_id=uuid4(), options=["A", "B"])
+    >>> _check_options(item)
+    (True, 2)
+    >>> item = Item(item_template_id=uuid4(), options=[])
+    >>> _check_options(item)
+    (False, 0)
+    >>> item = Item(item_template_id=uuid4(), options=["A"])
+    >>> _check_options(item)
+    (False, 0)  # Need at least 2 options
+    """
+    if not item.options:
+        return (False, 0)
+
+    n_options = len(item.options)
+
+    # Must have at least 2 options to be valid
+    if n_options < 2:
+        return (False, 0)
+
+    return (True, n_options)
+
+
+def _check_option_keys(  # pyright: ignore[reportUnusedFunction]
+    rendered_elements: dict[str, str],
+) -> tuple[bool, int]:
+    """Check if rendered_elements has consecutive option_a, option_b, ... keys.
+
+    .. deprecated::
+        This function is deprecated. Use _check_options() instead, which
+        checks the item.options list field.
+
+    Helper function for detecting forced_choice and multi_select task types
+    in legacy items that store options in rendered_elements.
 
     Parameters
     ----------
@@ -322,7 +370,7 @@ def get_task_type_requirements(task_type: TaskType) -> dict[str, list[str] | str
     """
     requirements = {
         "forced_choice": {
-            "required_rendered_keys": ["option_a", "option_b"],
+            "required_rendered_keys": [],
             "required_metadata_keys": [],
             "optional_metadata_keys": [
                 "source_items",
@@ -330,16 +378,16 @@ def get_task_type_requirements(task_type: TaskType) -> dict[str, list[str] | str
                 "pair_type",
                 "n_options",
             ],
-            "special_fields": [],
+            "special_fields": ["options"],
             "description": (
                 "Pick exactly one option from N alternatives (2AFC, 3AFC, ...)"
             ),
         },
         "multi_select": {
-            "required_rendered_keys": ["option_a", "option_b"],
+            "required_rendered_keys": [],
             "required_metadata_keys": ["min_selections", "max_selections"],
             "optional_metadata_keys": ["source_items", "group_key"],
-            "special_fields": [],
+            "special_fields": ["options"],
             "description": "Pick one or more options (checkboxes)",
         },
         "ordinal_scale": {
@@ -449,15 +497,15 @@ def validate_item_for_task_type(item: Item, task_type: TaskType) -> bool:
     actual_rendered = set(item.rendered_elements.keys())
     required_rendered = set(reqs["required_rendered_keys"])
 
-    # Special handling for forced_choice and multi_select (option keys)
+    # Special handling for forced_choice and multi_select (options field)
     if task_type in ("forced_choice", "multi_select"):
-        has_options, _ = _check_option_keys(item.rendered_elements)
+        has_options, n_options = _check_options(item)
         if not has_options:
             raise ValueError(
-                f"{task_type} items must have consecutive option_a, option_b, ... keys "
-                f"in rendered_elements, but found keys: {list(actual_rendered)}"
+                f"{task_type} items must have at least 2 options in the options field, "
+                f"but found {n_options} option(s): {item.options}"
             )
-        # For these types, we don't check for exact required keys since options vary
+        # For these types, we don't check for exact required rendered_elements keys
     else:
         # Check for exact required keys
         missing_rendered = required_rendered - actual_rendered
@@ -486,6 +534,13 @@ def validate_item_for_task_type(item: Item, task_type: TaskType) -> bool:
             raise ValueError(
                 f"{task_type} items must have unfilled_slots field populated, "
                 f"but found empty list"
+            )
+
+    if "options" in reqs["special_fields"]:
+        if not item.options or len(item.options) < 2:
+            raise ValueError(
+                f"{task_type} items must have at least 2 options in the options field, "
+                f"but found {len(item.options) if item.options else 0} option(s)"
             )
 
     # Task-specific validation
@@ -609,15 +664,15 @@ def infer_task_type_from_item(item: Item) -> TaskType:
         if "n_unfilled_slots" in metadata:
             return "cloze"
 
-    # Priority 2: Check for forced_choice (consecutive option keys)
-    has_options, _ = _check_option_keys(rendered)
+    # Priority 2: Check for forced_choice/multi_select (options list field)
+    has_options, _ = _check_options(item)
     if has_options:
         # Distinguish between forced_choice and multi_select
         if "min_selections" in metadata and "max_selections" in metadata:
             return "multi_select"
         if "n_options" in metadata:
             return "forced_choice"
-        # Default to forced_choice if has option keys but no specific metadata
+        # Default to forced_choice if has options but no specific metadata
         return "forced_choice"
 
     # Priority 3: Check for single "text" key (cloze without unfilled_slots)

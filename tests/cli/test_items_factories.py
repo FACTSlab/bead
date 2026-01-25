@@ -63,8 +63,9 @@ class TestForcedChoice:
 
         # Verify output format
         item = Item.model_validate_json(output.read_text())
-        assert item.rendered_elements["option_a"] == "Option A"
-        assert item.rendered_elements["option_b"] == "Option B"
+        assert len(item.options) == 2
+        assert item.options[0] == "Option A"
+        assert item.options[1] == "Option B"
         assert item.item_metadata["n_options"] == 2
 
     def test_create_3afc(self, runner: CliRunner, tmp_path: Path) -> None:
@@ -78,7 +79,7 @@ class TestForcedChoice:
         assert result.exit_code == 0
         item = Item.model_validate_json(output.read_text())
         assert item.item_metadata["n_options"] == 3
-        assert "option_c" in item.rendered_elements
+        assert len(item.options) == 3
 
     def test_create_with_metadata(self, runner: CliRunner, tmp_path: Path) -> None:
         """Test forced choice with custom metadata."""
@@ -358,9 +359,9 @@ class TestMultiSelect:
             for line in output.read_text().strip().split("\n")
         ]
         assert len(items) == 3
-        # Options are in rendered_elements, not metadata
-        assert all("option_a" in item.rendered_elements for item in items)
-        assert all(item.rendered_elements["option_a"] == "Option A" for item in items)
+        # Options are stored in item.options list
+        assert all(len(item.options) == 3 for item in items)
+        assert all(item.options[0] == "Option A" for item in items)
         assert all(item.item_metadata["min_selections"] == 1 for item in items)
         assert all(item.item_metadata["max_selections"] == 2 for item in items)
 

@@ -17,6 +17,7 @@ from bead.items.item_template import (
 )
 from bead.items.validation import (
     _check_option_keys,
+    _check_options,
     get_task_type_requirements,
     infer_task_type_from_item,
     item_passes_all_constraints,
@@ -338,8 +339,62 @@ class TestItemPassesAllConstraints:
         assert item_passes_all_constraints(simple_item) is False
 
 
+class TestCheckOptions:
+    """Tests for _check_options helper function."""
+
+    def test_valid_two_options(self) -> None:
+        """Test with valid two options."""
+        item = Item(
+            item_template_id=uuid4(),
+            options=["A", "B"],
+        )
+        has_options, n_options = _check_options(item)
+        assert has_options is True
+        assert n_options == 2
+
+    def test_valid_three_options(self) -> None:
+        """Test with valid three options."""
+        item = Item(
+            item_template_id=uuid4(),
+            options=["A", "B", "C"],
+        )
+        has_options, n_options = _check_options(item)
+        assert has_options is True
+        assert n_options == 3
+
+    def test_no_options(self) -> None:
+        """Test with empty options list."""
+        item = Item(
+            item_template_id=uuid4(),
+            options=[],
+        )
+        has_options, n_options = _check_options(item)
+        assert has_options is False
+        assert n_options == 0
+
+    def test_only_one_option(self) -> None:
+        """Test with only one option (not enough)."""
+        item = Item(
+            item_template_id=uuid4(),
+            options=["A"],
+        )
+        has_options, n_options = _check_options(item)
+        assert has_options is False
+        assert n_options == 0
+
+    def test_default_empty_options(self) -> None:
+        """Test item without explicitly setting options field."""
+        item = Item(
+            item_template_id=uuid4(),
+            rendered_elements={"text": "Hello"},
+        )
+        has_options, n_options = _check_options(item)
+        assert has_options is False
+        assert n_options == 0
+
+
 class TestCheckOptionKeys:
-    """Tests for _check_option_keys helper function."""
+    """Tests for _check_option_keys helper function (legacy, deprecated)."""
 
     def test_valid_two_options(self) -> None:
         """Test with valid two options."""
@@ -383,18 +438,18 @@ class TestGetTaskTypeRequirements:
     def test_forced_choice_requirements(self) -> None:
         """Test requirements for forced_choice."""
         reqs = get_task_type_requirements("forced_choice")
-        assert "option_a" in reqs["required_rendered_keys"]
-        assert "option_b" in reqs["required_rendered_keys"]
+        assert reqs["required_rendered_keys"] == []  # Options stored in options field
         assert reqs["required_metadata_keys"] == []  # n_options not auto-set
         assert "n_options" in reqs["optional_metadata_keys"]
-        assert reqs["special_fields"] == []
+        assert "options" in reqs["special_fields"]
 
     def test_multi_select_requirements(self) -> None:
         """Test requirements for multi_select."""
         reqs = get_task_type_requirements("multi_select")
-        assert "option_a" in reqs["required_rendered_keys"]
+        assert reqs["required_rendered_keys"] == []  # Options stored in options field
         assert "min_selections" in reqs["required_metadata_keys"]
         assert "max_selections" in reqs["required_metadata_keys"]
+        assert "options" in reqs["special_fields"]
 
     def test_ordinal_scale_requirements(self) -> None:
         """Test requirements for ordinal_scale."""
@@ -477,7 +532,7 @@ class TestValidateItemForTaskType:
         """Test multi_select with min > max raises error."""
         item = Item(
             item_template_id=uuid4(),
-            rendered_elements={"option_a": "A", "option_b": "B"},
+            options=["A", "B"],
             item_metadata={"min_selections": 3, "max_selections": 1},
         )
         with pytest.raises(ValueError, match="min_selections <= max_selections"):

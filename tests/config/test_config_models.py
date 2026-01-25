@@ -11,9 +11,9 @@ from bead.config.active_learning import ActiveLearningConfig
 from bead.config.config import BeadConfig
 from bead.config.deployment import (
     DeploymentConfig,
+    SlopitFocusConfig,
     SlopitIntegrationConfig,
     SlopitKeystrokeConfig,
-    SlopitFocusConfig,
     SlopitPasteConfig,
 )
 from bead.config.item import ItemConfig

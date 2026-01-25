@@ -27,7 +27,7 @@ from bead.config.profiles import (
 )
 from bead.config.resources import ResourceConfig
 from bead.config.serialization import save_yaml, to_yaml
-from bead.config.template import TemplateConfig
+from bead.config.template import SlotStrategyConfig, TemplateConfig
 from bead.config.validation import validate_config
 
 __all__ = [
@@ -36,6 +36,7 @@ __all__ = [
     # Config sections
     "PathsConfig",
     "ResourceConfig",
+    "SlotStrategyConfig",
     "TemplateConfig",
     "ModelConfig",
     "ItemConfig",

@@ -339,8 +339,9 @@ def test_presentation_spec_static() -> None:
     spec = PresentationSpec(mode="static")
 
     assert spec.mode == "static"
-    assert spec.chunking is None
-    assert spec.timing is None
+    # chunking and timing now have defaults
+    assert spec.chunking.unit == "word"
+    assert spec.timing.cumulative is True
 
 
 def test_presentation_spec_self_paced_word() -> None:

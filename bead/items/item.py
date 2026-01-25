@@ -50,6 +50,11 @@ def _empty_metadata_dict() -> dict[str, MetadataValue]:
     return {}
 
 
+def _empty_str_list() -> list[str]:
+    """Return empty string list."""
+    return []
+
+
 class UnfilledSlot(BeadBaseModel):
     """An unfilled slot in a cloze task item.
 
@@ -196,6 +201,9 @@ class Item(BeadBaseModel):
         UUIDs of filled templates used in this item.
     rendered_elements : dict[str, str]
         Rendered text for each element (by element_name).
+    options : list[str]
+        Choice options for forced_choice/multi_select tasks. Each string
+        is one option text. Order matters (first option is displayed first).
     unfilled_slots : list[UnfilledSlot]
         Unfilled slots for cloze tasks (UI widgets inferred from constraints).
     model_outputs : list[ModelOutput]
@@ -212,6 +220,12 @@ class Item(BeadBaseModel):
     ...     item_template_id=UUID("..."),
     ...     filled_template_refs=[UUID("...")],
     ...     rendered_elements={"sentence": "The cat broke the vase"}
+    ... )
+    >>> # Forced-choice item with options
+    >>> fc_item = Item(
+    ...     item_template_id=UUID("..."),
+    ...     options=["The cat sat on the mat.", "The cats sat on the mat."],
+    ...     item_metadata={"n_options": 2}
     ... )
     >>> # Cloze item with unfilled slots
     >>> cloze_item = Item(
@@ -230,6 +244,10 @@ class Item(BeadBaseModel):
     )
     rendered_elements: dict[str, str] = Field(
         default_factory=_empty_str_dict, description="Rendered element text"
+    )
+    options: list[str] = Field(
+        default_factory=_empty_str_list,
+        description="Choice options for forced_choice/multi_select tasks",
     )
     unfilled_slots: list[UnfilledSlot] = Field(
         default_factory=_empty_unfilled_slot_list,

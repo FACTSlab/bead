@@ -8,13 +8,10 @@ PEFT library.
 from __future__ import annotations
 
 import copy
-from typing import TYPE_CHECKING
 
 import torch.nn as nn
 from peft import LoraConfig, get_peft_model
-
-if TYPE_CHECKING:
-    pass
+from torch import Tensor
 
 
 class DecoderWrapper(nn.Module):
@@ -38,27 +35,31 @@ class DecoderWrapper(nn.Module):
         if hasattr(decoder, "config"):
             self.config = decoder.config
 
-    def forward(self, *args: object, **kwargs: object) -> object:
+    def forward(
+        self, input_ids: Tensor, attention_mask: Tensor | None = None
+    ) -> Tensor:
         """Forward pass through decoder.
 
         Parameters
         ----------
-        *args : object
-            Positional arguments for decoder.
-        **kwargs : object
-            Keyword arguments for decoder.
+        input_ids : Tensor
+            Input token IDs, shape (batch_size, seq_len).
+        attention_mask : Tensor | None
+            Attention mask, shape (batch_size, seq_len). If None, no masking.
 
         Returns
         -------
-        object
-            Decoder output.
+        Tensor
+            Decoder output tensor.
         """
-        return self.decoder(*args, **kwargs)
+        if attention_mask is not None:
+            return self.decoder(input_ids, attention_mask=attention_mask)
+        return self.decoder(input_ids)
 
-    def __getattr__(self, name: str) -> object:
+    def __getattr__(self, name: str) -> nn.Module:
         """Delegate attribute access to decoder."""
         if name in ("decoder", "config"):
-            return super().__getattr__(name)
+            return super().__getattr__(name)  # type: ignore[return-value]
         return getattr(self.decoder, name)
 
 
