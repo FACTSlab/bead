@@ -14,6 +14,7 @@ gallery/**/items/*.jsonl
 gallery/**/lists/*.jsonl
 gallery/**/deployment/
 node_modules/
+bead/deployment/jspsych/dist/
 coverage/
 site/
 

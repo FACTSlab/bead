@@ -64,6 +64,9 @@ stats = [
 ui = [
     "textual>=0.40.0",
 ]
+behavioral-analysis = [
+    "slopit>=0.1.0",
+]
 
 [project.scripts]
 bead = "bead.cli.main:cli"
