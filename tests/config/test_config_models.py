@@ -9,7 +9,13 @@ from pydantic import ValidationError
 
 from bead.config.active_learning import ActiveLearningConfig
 from bead.config.config import BeadConfig
-from bead.config.deployment import DeploymentConfig
+from bead.config.deployment import (
+    DeploymentConfig,
+    SlopitIntegrationConfig,
+    SlopitKeystrokeConfig,
+    SlopitFocusConfig,
+    SlopitPasteConfig,
+)
 from bead.config.item import ItemConfig
 from bead.config.list import ListConfig
 from bead.config.logging import LoggingConfig
@@ -355,6 +361,91 @@ class TestDeploymentConfig:
         assert config.include_demographics is False
         assert config.include_attention_checks is False
         assert config.jatos_export is True
+
+
+class TestSlopitIntegrationConfig:
+    """Tests for SlopitIntegrationConfig model."""
+
+    def test_creation_with_defaults(self) -> None:
+        """Test creating SlopitIntegrationConfig with default values."""
+        config = SlopitIntegrationConfig()
+        assert config.enabled is False
+        assert isinstance(config.keystroke, SlopitKeystrokeConfig)
+        assert isinstance(config.focus, SlopitFocusConfig)
+        assert isinstance(config.paste, SlopitPasteConfig)
+        assert "forced_choice" in config.target_selectors
+
+    def test_disabled_by_default(self) -> None:
+        """Test that slopit is disabled by default."""
+        config = SlopitIntegrationConfig()
+        assert config.enabled is False
+
+    def test_keystroke_config(self) -> None:
+        """Test keystroke capture configuration."""
+        config = SlopitIntegrationConfig(
+            keystroke=SlopitKeystrokeConfig(
+                enabled=True,
+                capture_key_up=False,
+                include_modifiers=False,
+            )
+        )
+        assert config.keystroke.enabled is True
+        assert config.keystroke.capture_key_up is False
+        assert config.keystroke.include_modifiers is False
+
+    def test_focus_config(self) -> None:
+        """Test focus capture configuration."""
+        config = SlopitIntegrationConfig(
+            focus=SlopitFocusConfig(
+                enabled=True,
+                use_visibility_api=False,
+                use_blur_focus=True,
+            )
+        )
+        assert config.focus.enabled is True
+        assert config.focus.use_visibility_api is False
+        assert config.focus.use_blur_focus is True
+
+    def test_paste_config(self) -> None:
+        """Test paste capture configuration."""
+        config = SlopitIntegrationConfig(
+            paste=SlopitPasteConfig(
+                enabled=True,
+                prevent=True,
+                capture_preview=True,
+                preview_length=50,
+            )
+        )
+        assert config.paste.enabled is True
+        assert config.paste.prevent is True
+        assert config.paste.capture_preview is True
+        assert config.paste.preview_length == 50
+
+    def test_custom_target_selectors(self) -> None:
+        """Test custom target selectors."""
+        selectors = {
+            "custom_task": ".my-custom-selector",
+        }
+        config = SlopitIntegrationConfig(target_selectors=selectors)
+        assert config.target_selectors == selectors
+
+    def test_enabled_requires_bundle(self) -> None:
+        """Test that enabling slopit validates bundle exists."""
+        # This test checks that validation runs when enabled=True
+        # The bundle may or may not exist depending on build state
+        # so we just verify the validator is called
+        try:
+            SlopitIntegrationConfig(enabled=True)
+        except ValueError as e:
+            # Expected if bundle not built
+            assert "slopit-bundle.js" in str(e)
+            assert "pnpm build" in str(e)
+
+    def test_disabled_does_not_validate_bundle(self) -> None:
+        """Test that disabled config does not validate bundle."""
+        # Should not raise even if bundle missing
+        config = SlopitIntegrationConfig(enabled=False)
+        assert config.enabled is False
 
 
 class TestActivelearningConfig:

@@ -441,12 +441,9 @@ class TestListDistributorGeneration:
         list_distributor_path = tmp_output_dir / "js" / "list_distributor.js"
         content = list_distributor_path.read_text()
 
-        # Check for atomic update functions
+        # Check for atomic update functions (TypeScript version consolidated into two)
         assert "function updateQueueAtomically" in content
         assert "function updateStatisticsAtomically" in content
-        assert "function updateSequentialAtomically" in content
-        assert "function updateLatinSquareAtomically" in content
-        assert "function updateQuotaAtomically" in content
 
     def test_list_distributor_contains_all_strategies(
         self,
@@ -506,12 +503,12 @@ class TestListDistributorGeneration:
 
         # Check for unified assignment function
         assert "async function assignList" in content
-        # Check it routes to all strategies
-        assert "case 'random':" in content
-        assert "case 'sequential':" in content
-        assert "case 'balanced':" in content
-        assert "case 'latin_square':" in content
-        assert "case 'stratified':" in content
-        assert "case 'weighted_random':" in content
-        assert "case 'quota_based':" in content
-        assert "case 'metadata_based':" in content
+        # Check it routes to all strategies (double quotes in compiled TS)
+        assert 'case "random":' in content
+        assert 'case "sequential":' in content
+        assert 'case "balanced":' in content
+        assert 'case "latin_square":' in content
+        assert 'case "stratified":' in content
+        assert 'case "weighted_random":' in content
+        assert 'case "quota_based":' in content
+        assert 'case "metadata_based":' in content
