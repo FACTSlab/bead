@@ -1,12 +1,10 @@
 # bead
 
-A comprehensive Python framework for constructing, deploying, and analyzing large-scale linguistic judgment experiments with active learning.
+A Python framework for constructing, deploying, and analyzing large-scale linguistic judgment experiments with active learning.
 
 [![Python Version](https://img.shields.io/badge/python-3.13-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
-
----
 
 ## Overview
 
@@ -25,7 +23,7 @@ A comprehensive Python framework for constructing, deploying, and analyzing larg
 
 ### Why bead?
 
-The name "bead" refers to the small, decorative elements that form part of window glazing, a play on the [glazing](https://github.com/aaronstevenwhite/glazing) package (which provides access to VerbNet, PropBank, and FrameNet). Just as beads add structure and detail to a window, `bead` provides:
+The name "bead" refers to the way sealant is appealed while glazing a window–a play on the [glazing](https://github.com/caulking/glazing) package (which provides access to VerbNet, PropBank, and FrameNet). `bead` provides:
 
 - **Reproducibility**: Full provenance tracking and deterministic pipelines
 - **Scalability**: Handles combinatorial explosion with streaming and sampling strategies
@@ -75,7 +73,7 @@ uv pip install bead[training]  # PyTorch Lightning, TensorBoard
 
 ```bash
 # Clone repository
-git clone https://github.com/aaronstevenwhite/bead.git
+git clone https://github.com/caulking/bead.git
 cd bead
 
 # Install all dependencies (creates .venv automatically)
@@ -1258,7 +1256,7 @@ For complete API documentation, see the [API Reference](docs/api-reference/).
 
 ```bash
 # Clone repository
-git clone https://github.com/aaronstevenwhite/bead.git
+git clone https://github.com/caulking/bead.git
 cd bead
 
 # Install all dependencies (creates .venv automatically)
@@ -1366,7 +1364,7 @@ If you use `bead` in your research, please cite:
   author = {White, Aaron Steven},
   title = {bead: A framework for linguistic judgment experiments},
   year = {2025},
-  url = {https://github.com/aaronstevenwhite/bead},
+  url = {https://github.com/caulking/bead},
   version = {0.1.0}
 }
 ```
@@ -1381,22 +1379,13 @@ MIT License. See [LICENSE](LICENSE) for details.
 
 ## Acknowledgments
 
-- **glazing**: VerbNet, PropBank, FrameNet access
-- **unimorph**: Morphological features
-- **Pydantic**: Data validation
-- **HuggingFace**: Model infrastructure
-- **jsPsych**: Experiment framework
-- **JATOS**: Deployment platform
+This project was developed by Aaron Steven White at the University of Rochester with support from the National Science Foundation (NSF-BCS-2237175 *CAREER: Logical Form Induction*, NSF-BCS-2040831 *Computational Modeling of the Internal Structure of Events*). It was architected and implemented with the assistance of Claude Code.
 
 ---
 
 ## Support
 
-- **Documentation**: [https://bead.readthedocs.io](https://bead.readthedocs.io)
-- **Issues**: [https://github.com/aaronstevenwhite/bead/issues](https://github.com/aaronstevenwhite/bead/issues)
-- **Discussions**: [https://github.com/aaronstevenwhite/bead/discussions](https://github.com/aaronstevenwhite/bead/discussions)
+- **Documentation**: [https://caulking.github.io/bead](https://caulking.github.io/bead)
+- **Issues**: [https://github.com/caulking/bead/issues](https://github.com/caulking/bead/issues)
+- **Discussions**: [https://github.com/caulking/bead/discussions](https://github.com/caulking/bead/discussions)
 - **Email**: aaron.white@rochester.edu
-
----
-
-**Built for linguistic research**
