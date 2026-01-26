@@ -11,7 +11,8 @@ def pytest_configure(config: pytest.Config) -> None:
     """Register custom markers."""
     config.addinivalue_line(
         "markers",
-        "slow_model_training: marks tests that train ML models (deselect with '-m \"not slow_model_training\"')",
+        "slow_model_training: marks tests that train ML models "
+        "(deselect with '-m \"not slow_model_training\"')",
     )
 
 
