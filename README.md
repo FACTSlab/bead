@@ -23,7 +23,7 @@ A Python framework for constructing, deploying, and analyzing large-scale lingui
 
 ### Why bead?
 
-The name "bead" refers to the way sealant is appealed while glazing a window–a play on the [glazing](https://github.com/caulking/glazing) package (which provides access to VerbNet, PropBank, and FrameNet). `bead` provides:
+The name "bead" refers to the way sealant is applied while glazing a window–a play on the [glazing](https://github.com/caulking/glazing) package (which provides access to VerbNet, PropBank, and FrameNet). `bead` provides:
 
 - **Reproducibility**: Full provenance tracking and deterministic pipelines
 - **Scalability**: Handles combinatorial explosion with streaming and sampling strategies
