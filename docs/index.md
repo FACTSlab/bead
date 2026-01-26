@@ -55,9 +55,15 @@ uv sync --all-extras
 If you use bead in your research, please cite:
 
 ```
-[Citation information to be added]
+@software{white_bead_2026,
+  author = {White, Aaron Steven},
+  title = {Bead: A python framework for linguistic judgment experiments with active learning},
+  year = {2026},
+  url = {https://github.com/caulking/bead},
+  version = {0.1.0}
+}
 ```
 
 ## License
 
-[License information to be added]
+MIT License. See [LICENSE](https://github.com/caulking/bead/blob/main/LICENSE) for details.
