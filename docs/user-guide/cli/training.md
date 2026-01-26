@@ -299,8 +299,8 @@ uv run bead training evaluate \
 
 After training:
 
-1. [Evaluate models](active-learning.md#evaluation) with cross-validation
+1. [Evaluate models](#cross-validation) with cross-validation
 2. Deploy models for real-time prediction
 3. Analyze learned representations
 
-For complete API documentation, see [bead.active_learning API reference](../api/active_learning.md).
+For complete API documentation, see [bead.active_learning API reference](../../api/active_learning.md).

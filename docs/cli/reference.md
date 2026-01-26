@@ -304,17 +304,22 @@ uv run bead items construct \
     --cache-dir .cache/models
 
 # Create forced-choice items from texts
-uv run bead items create-forced-choice-from-texts texts.txt items.jsonl \
-    --n-alternatives 2 --group-by line
+uv run bead items create-forced-choice-from-texts \
+    --texts-file sentences.txt \
+    --n-alternatives 2 \
+    --output items.jsonl
 
 # Create Likert items
-uv run bead items create-ordinal-scale-from-texts sentences.txt items.jsonl \
-    --scale-min 1 --scale-max 7
+uv run bead items create-ordinal-scale-from-texts \
+    --texts-file sentences.txt \
+    --scale-min 1 --scale-max 7 \
+    --output items.jsonl
 
 # Create NLI items
-uv run bead items create-nli items.jsonl \
+uv run bead items create-nli \
     --premise "All dogs bark" \
-    --hypothesis "Some dogs bark"
+    --hypothesis "Some dogs bark" \
+    --output items.jsonl
 ```
 
 **Analysis:**
@@ -386,18 +391,24 @@ uv run bead lists partition items.jsonl lists/ --n-lists 5 \
 
 ```bash
 # List constraints (per-list)
-uv run bead lists create-uniqueness --property "verb_lemma" \
-    --output constraints.jsonl
+uv run bead lists create-uniqueness \
+    --property-expression "item.metadata.verb_lemma" \
+    -o constraints.jsonl
 
-uv run bead lists create-balance --property "condition" \
-    --tolerance 0.1 --output constraints.jsonl
+uv run bead lists create-balance \
+    --property-expression "item.metadata.condition" \
+    --tolerance 0.1 -o constraints.jsonl
 
 # Batch constraints (across all lists)
-uv run bead lists create-batch-coverage --property "template_id" \
-    --min-coverage 1.0 --output constraints.jsonl
+uv run bead lists create-batch-coverage \
+    --property-expression "item.metadata.template_id" \
+    --target-values "0,1,2,3,4,5" \
+    --min-coverage 1.0 -o constraints.jsonl
 
-uv run bead lists create-batch-balance --property "verb_type" \
-    --tolerance 0.15 --output constraints.jsonl
+uv run bead lists create-batch-balance \
+    --property-expression "item.metadata.verb_type" \
+    --target-distribution "transitive=0.5,intransitive=0.5" \
+    --tolerance 0.05 -o constraints.jsonl
 ```
 
 **Analysis:**
@@ -630,19 +641,29 @@ uv run bead training collect-data results.jsonl \
 uv run bead training show-data-stats results.jsonl
 
 # Compute agreement
-uv run bead training compute-agreement results.jsonl \
+uv run bead training compute-agreement \
+    --annotations annotations.jsonl \
     --metric krippendorff_alpha
 
 # Cross-validation
-uv run bead training cross-validate items.jsonl labels.jsonl \
-    --n-folds 5 --task-type forced_choice
+uv run bead training cross-validate \
+    --items items.jsonl \
+    --labels labels.jsonl \
+    --model-config model_config.yaml \
+    --k-folds 5
 
 # Evaluate model
-uv run bead training evaluate model_dir/ test_data.jsonl
+uv run bead training evaluate \
+    --model-dir model_dir/ \
+    --test-items test_items.jsonl \
+    --test-labels test_labels.jsonl
 
 # Generate learning curve
-uv run bead training learning-curve items.jsonl labels.jsonl \
-    --output learning_curve.png
+uv run bead training learning-curve \
+    --items items.jsonl \
+    --labels labels.jsonl \
+    --model-config model_config.yaml \
+    --output learning_curve.json
 ```
 
 ### simulate
@@ -860,8 +881,11 @@ uv run bead active-learning check-convergence \
     --threshold 0.8
 
 # Generate learning curve
-uv run bead training learning-curve items/items.jsonl data/all_labels.jsonl \
-    --output plots/learning_curve.png
+uv run bead training learning-curve \
+    --items items/items.jsonl \
+    --labels data/all_labels.jsonl \
+    --model-config model_config.yaml \
+    --output learning_curve.json
 ```
 
 ### Simulation Testing

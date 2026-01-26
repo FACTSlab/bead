@@ -184,11 +184,11 @@ The core pipeline stages remain identical across languages.
 
 Now that you understand bead's architecture, explore specific pipeline stages:
 
-- [Resources Module](resources.md): create lexicons, templates, and constraints
-- [Templates Module](templates.md): fill templates with strategies
-- [Items Module](items.md): construct task-specific items
-- [Lists Module](lists.md): partition items with constraints
-- [Deployment Module](deployment.md): generate jsPsych experiments
-- [Active Learning Module](active-learning.md): train GLMM models
+- [Resources CLI](cli/resources.md): create lexicons, templates, and constraints
+- [Templates CLI](cli/templates.md): fill templates with strategies
+- [Items CLI](cli/items.md): construct task-specific items
+- [Lists CLI](cli/lists.md): partition items with constraints
+- [Deployment CLI](cli/deployment.md): generate jsPsych experiments
+- [Training CLI](cli/training.md): train GLMM models
 
 For complete command reference, see the [API documentation](../api/resources.md).

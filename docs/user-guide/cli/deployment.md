@@ -301,6 +301,6 @@ After deployment:
 
 1. Collect responses via JATOS
 2. [Train models](training.md) on collected data
-3. [Evaluate convergence](training.md#convergence) to human agreement
+3. [Evaluate convergence](training.md#convergence-detection) to human agreement
 
 For complete API documentation, see [bead.deployment API reference](../api/deployment.md).

@@ -728,11 +728,11 @@ uv run bead config create-deployment --distribution-strategy balanced
 
 After creating configuration files:
 
-1. [Load resources](resources.md) specified in configuration
-2. [Fill templates](templates.md) using configured strategies
-3. [Create items](items.md) with configured task types
-4. [Partition lists](lists.md) using configured constraints
-5. [Deploy experiments](deployment.md) with configured distribution strategies
-6. [Train models](active-learning.md) using active learning configuration
+1. [Load resources](cli/resources.md) specified in configuration
+2. [Fill templates](cli/templates.md) using configured strategies
+3. [Create items](cli/items.md) with configured task types
+4. [Partition lists](cli/lists.md) using configured constraints
+5. [Deploy experiments](cli/deployment.md) with configured distribution strategies
+6. [Train models](cli/training.md) using active learning configuration
 
 For complete API documentation, see [bead.config API reference](../api/config.md).

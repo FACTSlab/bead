@@ -12,7 +12,7 @@ Ensure property values appear at most once per list:
 
 ```bash
 uv run bead lists create-uniqueness \
-    --property-expression "item['verb']" \
+    --property-expression "item.metadata.verb" \
     --priority 5 \
     --output constraints/unique_verbs.jsonl
 ```
@@ -25,7 +25,7 @@ Balance distribution of property values:
 
 ```bash
 uv run bead lists create-balance \
-    --property-expression "item['condition']" \
+    --property-expression "item.metadata.condition" \
     --target-counts "control=10,experimental=10" \
     --tolerance 0.1 \
     --priority 4 \
@@ -40,7 +40,7 @@ Ensure property values span quantile ranges:
 
 ```bash
 uv run bead lists create-quantile \
-    --property-expression "item['word_length']" \
+    --property-expression "item.metadata.word_length" \
     --n-quantiles 4 \
     --priority 3 \
     --output constraints/quantile_length.jsonl
@@ -54,8 +54,8 @@ Apply quantile constraints within groups:
 
 ```bash
 uv run bead lists create-grouped-quantile \
-    --property-expression "item['frequency']" \
-    --group-by-expression "item['condition']" \
+    --property-expression "item.metadata.frequency" \
+    --group-by-expression "item.metadata.condition" \
     --n-quantiles 3 \
     --priority 3 \
     --output constraints/grouped_quantile_freq.jsonl
@@ -69,7 +69,7 @@ Require minimum unique values:
 
 ```bash
 uv run bead lists create-diversity \
-    --property-expression "item['verb_class']" \
+    --property-expression "item.metadata.verb_class" \
     --min-unique 10 \
     --priority 3 \
     --output constraints/diversity_class.jsonl
@@ -101,7 +101,7 @@ Ensure all target values appear somewhere:
 
 ```bash
 uv run bead lists create-batch-coverage \
-    --property-expression "item['template_id']" \
+    --property-expression "item.metadata.template_id" \
     --target-values "0,1,2,3,4,5,6,7,8,9" \
     --min-coverage 1.0 \
     --priority 5 \
@@ -116,7 +116,7 @@ Balance property values across batch:
 
 ```bash
 uv run bead lists create-batch-balance \
-    --property-expression "item['condition']" \
+    --property-expression "item.metadata.condition" \
     --target-distribution "control=0.5,experimental=0.5" \
     --tolerance 0.05 \
     --priority 4 \
@@ -131,7 +131,7 @@ Limit values per list:
 
 ```bash
 uv run bead lists create-batch-diversity \
-    --property-expression "item['target_word']" \
+    --property-expression "item.metadata.target_word" \
     --max-lists-per-value 3 \
     --priority 3 \
     --output constraints/batch_diversity_word.jsonl
@@ -145,7 +145,7 @@ Ensure minimum occurrences:
 
 ```bash
 uv run bead lists create-batch-min-occurrence \
-    --property-expression "item['construction']" \
+    --property-expression "item.metadata.construction" \
     --min-occurrences 5 \
     --priority 4 \
     --output constraints/batch_min_occurrence.jsonl
@@ -231,12 +231,12 @@ Complete workflow from items to lists:
 ```bash
 # 1. Create list constraints
 uv run bead lists create-uniqueness \
-    --property-expression "item['verb']" \
+    --property-expression "item.metadata.verb" \
     --priority 5 \
     --output constraints/unique_verbs.jsonl
 
 uv run bead lists create-balance \
-    --property-expression "item['condition']" \
+    --property-expression "item.metadata.condition" \
     --target-counts "control=20,experimental=20" \
     --tolerance 0.1 \
     --priority 4 \
@@ -244,7 +244,7 @@ uv run bead lists create-balance \
 
 # 2. Create batch constraint
 uv run bead lists create-batch-coverage \
-    --property-expression "item['template_id']" \
+    --property-expression "item.metadata.template_id" \
     --target-values "0,1,2,3,4,5" \
     --min-coverage 1.0 \
     --priority 5 \

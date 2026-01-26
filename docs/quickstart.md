@@ -109,24 +109,23 @@ Create experimental items from filled templates.
 
 ### Generate Forced-Choice Pairs
 
-Create 2-alternative forced-choice items from filled templates:
+Create 2-alternative forced-choice items from a text file (one sentence per line):
 
 ```bash
 uv run bead items create-forced-choice-from-texts \
-    --texts-file filled_templates/transitive_filled.jsonl \
+    --texts-file sentences.txt \
     --n-alternatives 2 \
     --output items/2afc_pairs.jsonl
 ```
 
-This creates all possible pairs of alternatives from the filled templates.
+This creates all possible pairs of alternatives from the input sentences.
 
 ### Validate Items
 
 Verify items match the task type requirements:
 
 ```bash
-uv run bead items validate-for-task-type \
-    --items items/2afc_pairs.jsonl \
+uv run bead items validate-for-task-type items/2afc_pairs.jsonl \
     --task-type forced_choice
 ```
 
@@ -143,8 +142,7 @@ Define a uniqueness constraint on verbs:
 ```bash
 uv run bead lists create-uniqueness \
     --property-expression "item.metadata.verb" \
-    --priority 5 \
-    --output constraints/list_constraints.jsonl
+    -o constraints/list_constraints.jsonl
 ```
 
 This ensures each list has unique verbs (no duplicate verbs within a list).
@@ -263,13 +261,13 @@ Convergence threshold met (0.85)
 This quickstart demonstrated the basic CLI workflow. For detailed documentation:
 
 - [Core Concepts](user-guide/concepts.md): understand stand-off annotation and the 6-stage pipeline
-- [User Guide](user-guide/resources.md): explore all CLI commands for each pipeline stage
+- [CLI Guide](user-guide/cli/resources.md): explore all CLI commands for each pipeline stage
 - [API Reference](api/resources.md): view complete API documentation
 - [Examples Gallery](examples/gallery.md): see additional example projects
 
 To customize your experiment:
 
-- Add more [distribution strategies](user-guide/deployment.md#distribution-strategies) for participant assignment
-- Apply [list constraints](user-guide/lists.md#constraints) for balanced experimental design
-- Use [active learning](user-guide/active-learning.md) for efficient data collection
-- Configure [trial presentation](user-guide/deployment.md#trial-configuration) for timing and UI settings
+- Add more [distribution strategies](user-guide/cli/deployment.md#distribution-strategies) for participant assignment
+- Apply [list constraints](user-guide/cli/lists.md#list-constraints) for balanced experimental design
+- Use [active learning](user-guide/api/training.md) for efficient data collection
+- Configure [trial presentation](user-guide/cli/deployment.md#trial-configuration) for timing and UI settings
