@@ -72,7 +72,7 @@ behavioral-analysis = [
 bead = "bead.cli.main:cli"
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["tests", "docs/user-guide/cli"]
 norecursedirs = ["tests/fixtures"]
 addopts = ["-ra", "--strict-markers", "--cov=bead", "--cov-report=term-missing"]
 markers = [
