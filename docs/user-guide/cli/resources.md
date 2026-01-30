@@ -47,6 +47,7 @@ The CLI supports importing from VerbNet, UniMorph, PropBank, and FrameNet. These
 
 ### VerbNet Import
 
+<!--pytest.mark.skip(reason="requires network access")-->
 ```bash
 uv run bead resources import-verbnet \
     --verb-class put-9.1 \
@@ -56,6 +57,7 @@ uv run bead resources import-verbnet \
 
 ### UniMorph Import
 
+<!--pytest.mark.skip(reason="requires network access")-->
 ```bash
 uv run bead resources import-unimorph \
     --language-code eng \
@@ -67,6 +69,7 @@ uv run bead resources import-unimorph \
 
 ### PropBank Import
 
+<!--pytest.mark.skip(reason="requires network access")-->
 ```bash
 uv run bead resources import-propbank \
     --frameset eat.01 \
@@ -75,6 +78,7 @@ uv run bead resources import-propbank \
 
 ### FrameNet Import
 
+<!--pytest.mark.skip(reason="requires network access")-->
 ```bash
 uv run bead resources import-framenet \
     --frame Ingestion \

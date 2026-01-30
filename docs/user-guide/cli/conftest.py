@@ -2,10 +2,14 @@
 
 This conftest.py sets up the environment for testing bash code blocks
 in CLI documentation using pytest-codeblocks.
+
+The fixtures are copied to a temporary directory to avoid modifying
+the committed fixture files.
 """
 
 import os
 import shutil
+import tempfile
 from pathlib import Path
 
 import pytest
@@ -14,26 +18,19 @@ import pytest
 DOCS_CLI_DIR = Path(__file__).parent
 PROJECT_ROOT = DOCS_CLI_DIR.parent.parent.parent
 FIXTURES_SRC = PROJECT_ROOT / "tests" / "fixtures" / "api_docs"
-FIXTURES_WORK = PROJECT_ROOT / "tests" / "fixtures" / "cli_work"
+
+# Global temp directory for the test session
+_temp_dir: Path | None = None
 
 
 def pytest_configure(config: pytest.Config) -> None:
-    """Set up environment before test collection.
+    """Set up temporary fixtures directory before test collection."""
+    global _temp_dir
+    _temp_dir = Path(tempfile.mkdtemp(prefix="bead_cli_test_"))
 
-    This hook runs before test collection starts. We set up the fixtures
-    directory but do NOT change the cwd yet, as that would break collection.
-    """
-    # Create working directory and copy fixtures
-    FIXTURES_WORK.mkdir(parents=True, exist_ok=True)
-
+    # Copy fixtures to temp directory
     for item in FIXTURES_SRC.iterdir():
-        dest = FIXTURES_WORK / item.name
-        if dest.exists():
-            if dest.is_dir():
-                shutil.rmtree(dest)
-            else:
-                dest.unlink()
-
+        dest = _temp_dir / item.name
         if item.is_dir():
             shutil.copytree(item, dest)
         else:
@@ -47,11 +44,14 @@ def pytest_runtest_setup(item: pytest.Item) -> None:
     This hook runs just before each test executes. We change the cwd here
     so that bash commands in the markdown files can find the fixture files.
     """
+    if _temp_dir is None:
+        return
+
     # Store original directory on the item for restoration
     item._original_cwd = os.getcwd()  # type: ignore[attr-defined]
 
-    # Change to fixtures directory
-    os.chdir(FIXTURES_WORK)
+    # Change to temp fixtures directory
+    os.chdir(_temp_dir)
 
     # Add .venv/bin to PATH for bead CLI
     venv_bin = PROJECT_ROOT / ".venv" / "bin"
@@ -72,6 +72,8 @@ def pytest_runtest_teardown(item: pytest.Item) -> None:
 
 
 def pytest_unconfigure(config: pytest.Config) -> None:
-    """Clean up fixtures directory after all tests complete."""
-    if FIXTURES_WORK.exists():
-        shutil.rmtree(FIXTURES_WORK, ignore_errors=True)
+    """Clean up temporary fixtures directory after all tests complete."""
+    global _temp_dir
+    if _temp_dir is not None and _temp_dir.exists():
+        shutil.rmtree(_temp_dir, ignore_errors=True)
+        _temp_dir = None

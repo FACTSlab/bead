@@ -368,31 +368,64 @@ Thumbs.db
 """
 
 
-# Import command groups
-from bead.cli.active_learning import active_learning  # noqa: E402
-from bead.cli.completion import completion  # noqa: E402
-from bead.cli.config import config  # noqa: E402
-from bead.cli.deployment import deployment  # noqa: E402
-from bead.cli.items import items  # noqa: E402
-from bead.cli.lists import lists  # noqa: E402
-from bead.cli.models import models  # noqa: E402
-from bead.cli.resources import resources  # noqa: E402
-from bead.cli.shell import shell  # noqa: E402
-from bead.cli.simulate import simulate  # noqa: E402
-from bead.cli.templates import templates  # noqa: E402
-from bead.cli.training import training  # noqa: E402
-from bead.cli.workflow import workflow  # noqa: E402
+# Lazy command loading for fast startup
+# Each command group is only imported when actually invoked
 
-cli.add_command(active_learning)
-cli.add_command(completion)
-cli.add_command(config)
-cli.add_command(resources)
-cli.add_command(templates)
-cli.add_command(items)
-cli.add_command(lists)
-cli.add_command(deployment)
-cli.add_command(models)
-cli.add_command(simulate)
-cli.add_command(shell)
-cli.add_command(training)
-cli.add_command(workflow)
+
+class LazyGroup(click.Group):
+    """Click group that lazily loads subcommands."""
+
+    def __init__(
+        self,
+        name: str | None = None,
+        lazy_subcommands: dict[str, tuple[str, str]] | None = None,
+        **kwargs: object,
+    ) -> None:
+        super().__init__(name=name, **kwargs)
+        self._lazy_subcommands: dict[str, tuple[str, str]] = lazy_subcommands or {}
+
+    def list_commands(self, ctx: click.Context) -> list[str]:
+        """List all available commands."""
+        base = super().list_commands(ctx)
+        lazy = list(self._lazy_subcommands.keys())
+        return sorted(base + lazy)
+
+    def get_command(self, ctx: click.Context, cmd_name: str) -> click.Command | None:
+        """Get a command, loading it lazily if needed."""
+        if cmd_name in self._lazy_subcommands:
+            return self._lazy_load(cmd_name)
+        return super().get_command(ctx, cmd_name)
+
+    def _lazy_load(self, cmd_name: str) -> click.Command:
+        """Import and return a lazy command."""
+        import importlib
+
+        module_path, attr_name = self._lazy_subcommands[cmd_name]
+        module = importlib.import_module(module_path)
+        return getattr(module, attr_name)  # type: ignore[no-any-return]
+
+
+# Replace cli group with lazy version
+cli = LazyGroup(
+    name="bead",
+    help=cli.help,
+    params=cli.params,
+    callback=cli.callback,
+    lazy_subcommands={
+        "active-learning": ("bead.cli.active_learning", "active_learning"),
+        "completion": ("bead.cli.completion", "completion"),
+        "config": ("bead.cli.config", "config"),
+        "deployment": ("bead.cli.deployment", "deployment"),
+        "items": ("bead.cli.items", "items"),
+        "lists": ("bead.cli.lists", "lists"),
+        "models": ("bead.cli.models", "models"),
+        "resources": ("bead.cli.resources", "resources"),
+        "shell": ("bead.cli.shell", "shell"),
+        "simulate": ("bead.cli.simulate", "simulate"),
+        "templates": ("bead.cli.templates", "templates"),
+        "training": ("bead.cli.training", "training"),
+        "workflow": ("bead.cli.workflow", "workflow"),
+    },
+)
+# Re-add the init command which is defined above
+cli.add_command(init)

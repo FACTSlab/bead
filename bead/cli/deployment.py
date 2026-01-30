@@ -41,7 +41,7 @@ def deployment() -> None:
 
     \b
     Examples:
-        $ bead deployment generate lists/ items.jsonl experiment/
+        $ bead deployment generate lists.jsonl items.jsonl experiment/
         $ bead deployment export-jatos experiment/ study.jzip \\
             --title "My Study"
         $ bead deployment upload-jatos study.jzip \\
@@ -52,9 +52,9 @@ def deployment() -> None:
 
 @click.command()
 @click.argument(
-    "lists_dir", type=click.Path(exists=True, file_okay=False, path_type=Path)
+    "lists_file", type=click.Path(exists=True, dir_okay=False, path_type=Path)
 )
-@click.argument("items_file", type=click.Path(exists=True, path_type=Path))
+@click.argument("items_file", type=click.Path(exists=True, dir_okay=False, path_type=Path))
 @click.argument("output_dir", type=click.Path(path_type=Path))
 @click.option(
     "--experiment-type",
@@ -128,7 +128,7 @@ def deployment() -> None:
 @click.pass_context
 def generate(
     ctx: click.Context,
-    lists_dir: Path,
+    lists_file: Path,
     items_file: Path,
     output_dir: Path,
     experiment_type: str,
@@ -148,10 +148,10 @@ def generate(
     ----------
     ctx : click.Context
         Click context object.
-    lists_dir : Path
-        Directory containing experiment list files.
+    lists_file : Path
+        JSONL file containing experiment lists (one list per line).
     items_file : Path
-        Path to items file.
+        JSONL file containing items (one item per line).
     output_dir : Path
         Output directory for generated experiment.
     experiment_type : str
@@ -178,25 +178,25 @@ def generate(
     Examples
     --------
     # Basic balanced distribution
-    $ bead deployment generate lists/ items.jsonl experiment/ \\
+    $ bead deployment generate lists.jsonl items.jsonl experiment/ \\
         --experiment-type forced_choice \\
         --title "Acceptability Study" \\
         --distribution-strategy balanced
 
     # Quota-based with config
-    $ bead deployment generate lists/ items.jsonl experiment/ \\
+    $ bead deployment generate lists.jsonl items.jsonl experiment/ \\
         --experiment-type forced_choice \\
         --distribution-strategy quota_based \\
         --distribution-config '{"participants_per_list": 25, "allow_overflow": false}'
 
     # Stratified by factors
-    $ bead deployment generate lists/ items.jsonl experiment/ \\
+    $ bead deployment generate lists.jsonl items.jsonl experiment/ \\
         --experiment-type forced_choice \\
         --distribution-strategy stratified \\
         --distribution-config '{"factors": ["condition", "verb_type"]}'
 
     # Dry run to preview
-    $ bead deployment generate lists/ items.jsonl experiment/ \\
+    $ bead deployment generate lists.jsonl items.jsonl experiment/ \\
         --experiment-type forced_choice \\
         --distribution-strategy balanced \\
         --dry-run
@@ -227,21 +227,21 @@ def generate(
         except ValueError as e:
             print_error(f"Invalid distribution strategy configuration: {e}")
             ctx.exit(1)
-        # Load experiment lists
-        print_info(f"Loading experiment lists from {lists_dir}")
-        list_files = list(lists_dir.glob("*.jsonl"))
-        if not list_files:
-            print_error(f"No list files found in {lists_dir}")
-            ctx.exit(1)
-
+        # Load experiment lists from JSONL file (one list per line)
+        print_info(f"Loading experiment lists from {lists_file}")
         experiment_lists: list[ExperimentList] = []
-        for list_file in list_files:
-            with open(list_file, encoding="utf-8") as f:
-                first_line = f.readline().strip()
-                if first_line:
-                    list_data = json.loads(first_line)
-                    exp_list = ExperimentList(**list_data)
-                    experiment_lists.append(exp_list)
+        with open(lists_file, encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                list_data = json.loads(line)
+                exp_list = ExperimentList(**list_data)
+                experiment_lists.append(exp_list)
+
+        if not experiment_lists:
+            print_error(f"No lists found in {lists_file}")
+            ctx.exit(1)
 
         print_info(f"Loaded {len(experiment_lists)} experiment lists")
 

@@ -214,6 +214,7 @@ uv run bead training learning-curve \
 
 Compute agreement among human annotators:
 
+<!--pytest.mark.skip(reason="requires response data with multiple annotators")-->
 ```bash
 # Krippendorff's alpha (works with all task types)
 uv run bead training compute-agreement \
@@ -222,6 +223,7 @@ uv run bead training compute-agreement \
     --data-type ordinal
 ```
 
+<!--pytest.mark.skip(reason="requires response data with multiple annotators")-->
 ```bash
 # Fleiss' kappa (categorical data, multiple raters)
 uv run bead training compute-agreement \
@@ -229,6 +231,7 @@ uv run bead training compute-agreement \
     --metric fleiss_kappa
 ```
 
+<!--pytest.mark.skip(reason="requires response data with two annotators")-->
 ```bash
 # Cohen's kappa (pairwise agreement)
 uv run bead training compute-agreement \

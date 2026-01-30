@@ -20,7 +20,7 @@ Eight strategies control how participants are assigned to lists.
 ### Random Distribution
 
 ```bash
-uv run bead deployment generate lists/ items/2afc_pairs.jsonl experiment/ \
+uv run bead deployment generate lists/experiment_lists.jsonl items/2afc_pairs.jsonl experiment/ \
     --experiment-type forced_choice \
     --title "Experiment Title" \
     --instructions "Read and respond to each item." \
@@ -32,7 +32,7 @@ Participants receive lists uniformly at random.
 ### Sequential Distribution
 
 ```bash
-uv run bead deployment generate lists/ items/2afc_pairs.jsonl experiment/ \
+uv run bead deployment generate lists/experiment_lists.jsonl items/2afc_pairs.jsonl experiment/ \
     --experiment-type forced_choice \
     --title "Experiment Title" \
     --instructions "Instructions here." \
@@ -44,7 +44,7 @@ Round-robin assignment: participant 1 gets list 0, participant 2 gets list 1, ..
 ### Balanced Distribution
 
 ```bash
-uv run bead deployment generate lists/ items/2afc_pairs.jsonl experiment/ \
+uv run bead deployment generate lists/experiment_lists.jsonl items/2afc_pairs.jsonl experiment/ \
     --experiment-type forced_choice \
     --title "Experiment Title" \
     --instructions "Instructions here." \
@@ -56,7 +56,7 @@ Assigns participants to the least-used list, ensuring even distribution.
 ### Latin Square Distribution
 
 ```bash
-uv run bead deployment generate lists/ items/2afc_pairs.jsonl experiment/ \
+uv run bead deployment generate lists/experiment_lists.jsonl items/2afc_pairs.jsonl experiment/ \
     --experiment-type forced_choice \
     --title "Experiment Title" \
     --instructions "Instructions here." \
@@ -69,7 +69,7 @@ Counterbalancing using Bradley's balanced Latin square algorithm.
 ### Stratified Distribution
 
 ```bash
-uv run bead deployment generate lists/ items/2afc_pairs.jsonl experiment/ \
+uv run bead deployment generate lists/experiment_lists.jsonl items/2afc_pairs.jsonl experiment/ \
     --experiment-type forced_choice \
     --title "Experiment Title" \
     --instructions "Instructions here." \
@@ -82,7 +82,7 @@ Balances assignment across factors in list metadata.
 ### Weighted Random Distribution
 
 ```bash
-uv run bead deployment generate lists/ items/2afc_pairs.jsonl experiment/ \
+uv run bead deployment generate lists/experiment_lists.jsonl items/2afc_pairs.jsonl experiment/ \
     --experiment-type forced_choice \
     --title "Experiment Title" \
     --instructions "Instructions here." \
@@ -95,7 +95,7 @@ Non-uniform random assignment based on list metadata expressions.
 ### Quota-Based Distribution
 
 ```bash
-uv run bead deployment generate lists/ items/2afc_pairs.jsonl experiment/ \
+uv run bead deployment generate lists/experiment_lists.jsonl items/2afc_pairs.jsonl experiment/ \
     --experiment-type forced_choice \
     --title "Experiment Title" \
     --instructions "Instructions here." \
@@ -108,7 +108,7 @@ Fixed quota per list. Raises error when quotas filled if `allow_overflow` is fal
 ### Metadata-Based Distribution
 
 ```bash
-uv run bead deployment generate lists/ items/2afc_pairs.jsonl experiment/ \
+uv run bead deployment generate lists/experiment_lists.jsonl items/2afc_pairs.jsonl experiment/ \
     --experiment-type forced_choice \
     --title "Experiment Title" \
     --instructions "Instructions here." \
@@ -123,7 +123,7 @@ Filter and rank lists by metadata expressions.
 For development, force assignment to a specific list:
 
 ```bash
-uv run bead deployment generate lists/ items/2afc_pairs.jsonl experiment/ \
+uv run bead deployment generate lists/experiment_lists.jsonl items/2afc_pairs.jsonl experiment/ \
     --experiment-type forced_choice \
     --title "Experiment Title" \
     --instructions "Instructions here." \
@@ -168,6 +168,7 @@ Apply Material Design themes and custom styling.
 
 ### Generate CSS
 
+<!--pytest.mark.skip(reason="requires experiment directory from generate step")-->
 ```bash
 uv run bead deployment ui generate-css experiment/css/material.css \
     --theme dark \
@@ -181,6 +182,7 @@ Themes: `light`, `dark`, `auto` (respects system preference).
 
 Apply theme to existing experiment:
 
+<!--pytest.mark.skip(reason="requires experiment directory from generate step")-->
 ```bash
 uv run bead deployment ui customize experiment/ \
     --theme dark \
@@ -196,6 +198,7 @@ Export and upload experiments to JATOS servers.
 
 Package experiment as `.jzip`:
 
+<!--pytest.mark.skip(reason="requires experiment directory from generate step")-->
 ```bash
 uv run bead deployment export-jatos experiment/ argument_structure.jzip \
     --title "Argument Structure Study" \
@@ -208,12 +211,14 @@ Verify experiment structure before deployment.
 
 ### Basic Validation
 
+<!--pytest.mark.skip(reason="requires experiment directory from generate step")-->
 ```bash
 uv run bead deployment validate experiment/
 ```
 
 ### With Distribution Check
 
+<!--pytest.mark.skip(reason="requires experiment directory from generate step")-->
 ```bash
 uv run bead deployment validate experiment/ \
     --check-distribution
@@ -221,6 +226,7 @@ uv run bead deployment validate experiment/ \
 
 ### With Trial Config Check
 
+<!--pytest.mark.skip(reason="requires experiment directory from generate step")-->
 ```bash
 uv run bead deployment validate experiment/ \
     --check-trials
@@ -228,6 +234,7 @@ uv run bead deployment validate experiment/ \
 
 ### With Data Structure Check
 
+<!--pytest.mark.skip(reason="requires experiment directory from generate step")-->
 ```bash
 uv run bead deployment validate experiment/ \
     --check-data-structure
@@ -235,6 +242,7 @@ uv run bead deployment validate experiment/ \
 
 ### Strict Mode (All Checks)
 
+<!--pytest.mark.skip(reason="requires experiment directory from generate step")-->
 ```bash
 uv run bead deployment validate experiment/ \
     --strict
@@ -267,9 +275,10 @@ The `list_distributor.js` file uses JATOS batch sessions for server-side state m
 
 Complete deployment workflow:
 
+<!--pytest.mark.skip(reason="requires matching list/item UUIDs and sequential steps")-->
 ```bash
 # 1. Generate experiment with balanced strategy
-uv run bead deployment generate lists/ items/2afc_pairs.jsonl experiment/ \
+uv run bead deployment generate lists/experiment_lists.jsonl items/2afc_pairs.jsonl experiment/ \
     --experiment-type forced_choice \
     --title "Verb Argument Structure" \
     --instructions "Choose the more natural sentence." \

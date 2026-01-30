@@ -179,6 +179,7 @@ Three strategies balance different goals:
 
 Example with stratified:
 
+<!--pytest.mark.skip(reason="requires items with stratification metadata")-->
 ```bash
 uv run bead lists partition items/2afc_pairs.jsonl lists/ \
     --n-lists 5 \
@@ -189,6 +190,7 @@ uv run bead lists partition items/2afc_pairs.jsonl lists/ \
 
 After partitioning, validate and view statistics:
 
+<!--pytest.mark.skip(reason="multi-step workflow with dependencies")-->
 ```bash
 # Partition items first
 uv run bead lists partition items/2afc_pairs.jsonl lists/ \

@@ -181,12 +181,14 @@ uv run bead training collect-data results.jsonl \
 
 View data statistics:
 
+<!--pytest.mark.skip(reason="requires results.jsonl from data collection")-->
 ```bash
 uv run bead training show-data-stats results.jsonl
 ```
 
 Compute inter-annotator agreement:
 
+<!--pytest.mark.skip(reason="requires results.jsonl from data collection")-->
 ```bash
 uv run bead training compute-agreement \
   --annotations results.jsonl \
