@@ -8,10 +8,13 @@ The model supports:
 - Partitioning metadata tracking
 - Coverage validation (ensuring all items are assigned exactly once)
 - List lookup by number
+- JSONL serialization (one list per line)
 """
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
 from typing import TYPE_CHECKING, TypedDict
 from uuid import UUID
 
@@ -298,3 +301,78 @@ class ListCollection(BeadBaseModel):
             "duplicate_items": duplicate_items,
             "total_assigned": sum(item_counts.values()),
         }
+
+    def to_jsonl(self, path: Path | str) -> None:
+        """Write lists to a JSONL file (one list per line).
+
+        Parameters
+        ----------
+        path : Path | str
+            Path to output JSONL file.
+
+        Examples
+        --------
+        >>> from uuid import uuid4
+        >>> collection = ListCollection(
+        ...     name="test",
+        ...     source_items_id=uuid4(),
+        ...     partitioning_strategy="balanced"
+        ... )
+        >>> exp_list = ExperimentList(name="list_0", list_number=0)
+        >>> collection.add_list(exp_list)
+        >>> collection.to_jsonl("lists.jsonl")  # doctest: +SKIP
+        """
+        path = Path(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with open(path, "w", encoding="utf-8") as f:
+            for exp_list in self.lists:
+                f.write(exp_list.model_dump_json() + "\n")
+
+    @classmethod
+    def from_jsonl(
+        cls,
+        path: Path | str,
+        name: str = "loaded_lists",
+        source_items_id: UUID | None = None,
+        partitioning_strategy: str = "unknown",
+    ) -> ListCollection:
+        """Load lists from a JSONL file (one list per line).
+
+        Parameters
+        ----------
+        path : Path | str
+            Path to JSONL file containing experiment lists.
+        name : str
+            Name for the collection (default: "loaded_lists").
+        source_items_id : UUID | None
+            Source items UUID. If None, uses a nil UUID.
+        partitioning_strategy : str
+            Strategy name (default: "unknown").
+
+        Returns
+        -------
+        ListCollection
+            Collection containing the loaded lists.
+
+        Examples
+        --------
+        >>> collection = ListCollection.from_jsonl("lists.jsonl")  # doctest: +SKIP
+        """
+        path = Path(path)
+        lists: list[ExperimentList] = []
+
+        with open(path, encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                list_data = json.loads(line)
+                exp_list = ExperimentList(**list_data)
+                lists.append(exp_list)
+
+        return cls(
+            name=name,
+            source_items_id=source_items_id or UUID(int=0),
+            lists=lists,
+            partitioning_strategy=partitioning_strategy,
+        )

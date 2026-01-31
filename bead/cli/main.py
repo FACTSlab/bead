@@ -6,6 +6,7 @@ project scaffolding.
 
 from __future__ import annotations
 
+import importlib
 import re
 from pathlib import Path
 
@@ -398,8 +399,6 @@ class LazyGroup(click.Group):
 
     def _lazy_load(self, cmd_name: str) -> click.Command:
         """Import and return a lazy command."""
-        import importlib
-
         module_path, attr_name = self._lazy_subcommands[cmd_name]
         module = importlib.import_module(module_path)
         return getattr(module, attr_name)  # type: ignore[no-any-return]

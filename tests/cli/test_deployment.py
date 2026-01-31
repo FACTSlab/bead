@@ -76,10 +76,9 @@ def sample_items_file(tmp_path: Path, sample_template: ItemTemplate) -> Path:
 
 
 @pytest.fixture
-def sample_lists_dir(tmp_path: Path, sample_items_file: Path) -> Path:
-    """Create a sample lists directory with list files."""
-    lists_dir = tmp_path / "lists"
-    lists_dir.mkdir()
+def sample_lists_file(tmp_path: Path, sample_items_file: Path) -> Path:
+    """Create a sample lists JSONL file (one list per line)."""
+    lists_file = tmp_path / "lists.jsonl"
 
     # Read items to get their IDs
     items_data = [
@@ -88,7 +87,8 @@ def sample_lists_dir(tmp_path: Path, sample_items_file: Path) -> Path:
     ]
     item_ids = [item.id for item in items_data]
 
-    # Create 3 lists
+    # Create 3 lists and write them all to one file
+    lines = []
     for list_num in range(3):
         exp_list = ExperimentList(
             name=f"list_{list_num}",
@@ -101,11 +101,10 @@ def sample_lists_dir(tmp_path: Path, sample_items_file: Path) -> Path:
         for item_id in item_ids[start_idx:end_idx]:
             exp_list.add_item(item_id)
 
-        # Save list
-        list_file = lists_dir / f"list_{list_num}.jsonl"
-        list_file.write_text(exp_list.model_dump_json() + "\n")
+        lines.append(exp_list.model_dump_json())
 
-    return lists_dir
+    lists_file.write_text("\n".join(lines) + "\n")
+    return lists_file
 
 
 # ==================== Generate Command Tests ====================
@@ -117,7 +116,7 @@ class TestGenerateCommand:
     def test_generate_with_balanced_strategy(
         self,
         runner: CliRunner,
-        sample_lists_dir: Path,
+        sample_lists_file: Path,
         sample_items_file: Path,
         tmp_path: Path,
     ) -> None:
@@ -127,7 +126,7 @@ class TestGenerateCommand:
         result = runner.invoke(
             generate,
             [
-                str(sample_lists_dir),
+                str(sample_lists_file),
                 str(sample_items_file),
                 str(output_dir),
                 "--experiment-type",
@@ -155,7 +154,7 @@ class TestGenerateCommand:
     def test_generate_with_sequential_strategy(
         self,
         runner: CliRunner,
-        sample_lists_dir: Path,
+        sample_lists_file: Path,
         sample_items_file: Path,
         tmp_path: Path,
     ) -> None:
@@ -165,7 +164,7 @@ class TestGenerateCommand:
         result = runner.invoke(
             generate,
             [
-                str(sample_lists_dir),
+                str(sample_lists_file),
                 str(sample_items_file),
                 str(output_dir),
                 "--experiment-type",
@@ -186,7 +185,7 @@ class TestGenerateCommand:
     def test_generate_with_quota_strategy(
         self,
         runner: CliRunner,
-        sample_lists_dir: Path,
+        sample_lists_file: Path,
         sample_items_file: Path,
         tmp_path: Path,
     ) -> None:
@@ -198,7 +197,7 @@ class TestGenerateCommand:
         result = runner.invoke(
             generate,
             [
-                str(sample_lists_dir),
+                str(sample_lists_file),
                 str(sample_items_file),
                 str(output_dir),
                 "--experiment-type",
@@ -222,7 +221,7 @@ class TestGenerateCommand:
     def test_generate_with_debug_mode(
         self,
         runner: CliRunner,
-        sample_lists_dir: Path,
+        sample_lists_file: Path,
         sample_items_file: Path,
         tmp_path: Path,
     ) -> None:
@@ -232,7 +231,7 @@ class TestGenerateCommand:
         result = runner.invoke(
             generate,
             [
-                str(sample_lists_dir),
+                str(sample_lists_file),
                 str(sample_items_file),
                 str(output_dir),
                 "--experiment-type",
@@ -257,7 +256,7 @@ class TestGenerateCommand:
     def test_generate_missing_distribution_strategy(
         self,
         runner: CliRunner,
-        sample_lists_dir: Path,
+        sample_lists_file: Path,
         sample_items_file: Path,
         tmp_path: Path,
     ) -> None:
@@ -267,7 +266,7 @@ class TestGenerateCommand:
         result = runner.invoke(
             generate,
             [
-                str(sample_lists_dir),
+                str(sample_lists_file),
                 str(sample_items_file),
                 str(output_dir),
                 "--experiment-type",
@@ -282,7 +281,7 @@ class TestGenerateCommand:
     def test_generate_invalid_distribution_config(
         self,
         runner: CliRunner,
-        sample_lists_dir: Path,
+        sample_lists_file: Path,
         sample_items_file: Path,
         tmp_path: Path,
     ) -> None:
@@ -292,7 +291,7 @@ class TestGenerateCommand:
         result = runner.invoke(
             generate,
             [
-                str(sample_lists_dir),
+                str(sample_lists_file),
                 str(sample_items_file),
                 str(output_dir),
                 "--experiment-type",
@@ -318,7 +317,7 @@ class TestValidateCommand:
     def test_validate_valid_experiment(
         self,
         runner: CliRunner,
-        sample_lists_dir: Path,
+        sample_lists_file: Path,
         sample_items_file: Path,
         tmp_path: Path,
     ) -> None:
@@ -329,7 +328,7 @@ class TestValidateCommand:
         runner.invoke(
             generate,
             [
-                str(sample_lists_dir),
+                str(sample_lists_file),
                 str(sample_items_file),
                 str(output_dir),
                 "--experiment-type",
@@ -393,7 +392,7 @@ class TestExportJATOSCommand:
     def test_export_jatos_basic(
         self,
         runner: CliRunner,
-        sample_lists_dir: Path,
+        sample_lists_file: Path,
         sample_items_file: Path,
         tmp_path: Path,
     ) -> None:
@@ -405,7 +404,7 @@ class TestExportJATOSCommand:
         runner.invoke(
             generate,
             [
-                str(sample_lists_dir),
+                str(sample_lists_file),
                 str(sample_items_file),
                 str(output_dir),
                 "--experiment-type",
@@ -451,7 +450,7 @@ class TestDistributionStrategies:
     def test_simple_strategies(
         self,
         runner: CliRunner,
-        sample_lists_dir: Path,
+        sample_lists_file: Path,
         sample_items_file: Path,
         tmp_path: Path,
         strategy: str,
@@ -462,7 +461,7 @@ class TestDistributionStrategies:
         result = runner.invoke(
             generate,
             [
-                str(sample_lists_dir),
+                str(sample_lists_file),
                 str(sample_items_file),
                 str(output_dir),
                 "--experiment-type",
@@ -483,7 +482,7 @@ class TestDistributionStrategies:
     def test_stratified_strategy(
         self,
         runner: CliRunner,
-        sample_lists_dir: Path,
+        sample_lists_file: Path,
         sample_items_file: Path,
         tmp_path: Path,
     ) -> None:
@@ -495,7 +494,7 @@ class TestDistributionStrategies:
         result = runner.invoke(
             generate,
             [
-                str(sample_lists_dir),
+                str(sample_lists_file),
                 str(sample_items_file),
                 str(output_dir),
                 "--experiment-type",
@@ -519,7 +518,7 @@ class TestDistributionStrategies:
     def test_weighted_random_strategy(
         self,
         runner: CliRunner,
-        sample_lists_dir: Path,
+        sample_lists_file: Path,
         sample_items_file: Path,
         tmp_path: Path,
     ) -> None:
@@ -533,7 +532,7 @@ class TestDistributionStrategies:
         result = runner.invoke(
             generate,
             [
-                str(sample_lists_dir),
+                str(sample_lists_file),
                 str(sample_items_file),
                 str(output_dir),
                 "--experiment-type",
@@ -550,7 +549,7 @@ class TestDistributionStrategies:
     def test_metadata_based_strategy(
         self,
         runner: CliRunner,
-        sample_lists_dir: Path,
+        sample_lists_file: Path,
         sample_items_file: Path,
         tmp_path: Path,
     ) -> None:
@@ -568,7 +567,7 @@ class TestDistributionStrategies:
         result = runner.invoke(
             generate,
             [
-                str(sample_lists_dir),
+                str(sample_lists_file),
                 str(sample_items_file),
                 str(output_dir),
                 "--experiment-type",
@@ -1063,7 +1062,7 @@ class TestEnhancedValidateCommand:
     def test_validate_check_distribution(
         self,
         runner: CliRunner,
-        sample_lists_dir: Path,
+        sample_lists_file: Path,
         sample_items_file: Path,
         tmp_path: Path,
     ) -> None:
@@ -1074,7 +1073,7 @@ class TestEnhancedValidateCommand:
         runner.invoke(
             generate,
             [
-                str(sample_lists_dir),
+                str(sample_lists_file),
                 str(sample_items_file),
                 str(output_dir),
                 "--experiment-type",
@@ -1095,7 +1094,7 @@ class TestEnhancedValidateCommand:
     def test_validate_check_data_structure(
         self,
         runner: CliRunner,
-        sample_lists_dir: Path,
+        sample_lists_file: Path,
         sample_items_file: Path,
         tmp_path: Path,
     ) -> None:
@@ -1106,7 +1105,7 @@ class TestEnhancedValidateCommand:
         runner.invoke(
             generate,
             [
-                str(sample_lists_dir),
+                str(sample_lists_file),
                 str(sample_items_file),
                 str(output_dir),
                 "--experiment-type",
@@ -1127,7 +1126,7 @@ class TestEnhancedValidateCommand:
     def test_validate_strict_mode(
         self,
         runner: CliRunner,
-        sample_lists_dir: Path,
+        sample_lists_file: Path,
         sample_items_file: Path,
         tmp_path: Path,
     ) -> None:
@@ -1138,7 +1137,7 @@ class TestEnhancedValidateCommand:
         runner.invoke(
             generate,
             [
-                str(sample_lists_dir),
+                str(sample_lists_file),
                 str(sample_items_file),
                 str(output_dir),
                 "--experiment-type",
@@ -1159,7 +1158,7 @@ class TestEnhancedValidateCommand:
     def test_validate_check_trials_with_config(
         self,
         runner: CliRunner,
-        sample_lists_dir: Path,
+        sample_lists_file: Path,
         sample_items_file: Path,
         tmp_path: Path,
     ) -> None:
@@ -1170,7 +1169,7 @@ class TestEnhancedValidateCommand:
         runner.invoke(
             generate,
             [
-                str(sample_lists_dir),
+                str(sample_lists_file),
                 str(sample_items_file),
                 str(output_dir),
                 "--experiment-type",

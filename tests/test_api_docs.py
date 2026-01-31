@@ -24,7 +24,7 @@ FIXTURES_DIR = Path(__file__).parent / "fixtures" / "api_docs"
 GALLERY_DIR = Path(__file__).parent.parent / "gallery" / "eng" / "argument_structure"
 
 
-@pytest.fixture(scope="session", autouse=True)
+@pytest.fixture(scope="module")
 def setup_test_environment():
     """Set up environment for executing code examples.
 
@@ -71,7 +71,9 @@ def setup_test_environment():
 
 
 @pytest.mark.parametrize("example", find_examples(DOCS_DIR), ids=str)
-def test_api_docs_code_blocks(example: CodeExample, eval_example: EvalExample) -> None:
+def test_api_docs_code_blocks(
+    example: CodeExample, eval_example: EvalExample, setup_test_environment: None
+) -> None:
     """Test that code blocks in API docs are syntactically valid and executable.
 
     This uses pytest-examples to:

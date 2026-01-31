@@ -155,12 +155,12 @@ Each construction appears at least 5 times across all lists.
 
 ## Partitioning
 
-Divide items into experimental lists.
+Divide items into experimental lists. Output is a single JSONL file with one list per line.
 
 ### Basic Partitioning
 
 ```bash
-uv run bead lists partition items/2afc_pairs.jsonl lists/ \
+uv run bead lists partition items/2afc_pairs.jsonl lists/experiment_lists.jsonl \
     --n-lists 5 \
     --strategy balanced
 ```
@@ -181,7 +181,7 @@ Example with stratified:
 
 <!--pytest.mark.skip(reason="requires items with stratification metadata")-->
 ```bash
-uv run bead lists partition items/2afc_pairs.jsonl lists/ \
+uv run bead lists partition items/2afc_pairs.jsonl lists/experiment_lists.jsonl \
     --n-lists 5 \
     --strategy stratified
 ```
@@ -193,15 +193,15 @@ After partitioning, validate and view statistics:
 <!--pytest.mark.skip(reason="multi-step workflow with dependencies")-->
 ```bash
 # Partition items first
-uv run bead lists partition items/2afc_pairs.jsonl lists/ \
+uv run bead lists partition items/2afc_pairs.jsonl lists/experiment_lists.jsonl \
     --n-lists 3 \
     --strategy balanced
 
-# Validate a list file
-uv run bead lists validate lists/list_0.jsonl
+# List all lists in the file
+uv run bead lists list lists/experiment_lists.jsonl
 
 # Show statistics
-uv run bead lists show-stats lists/
+uv run bead lists show-stats lists/experiment_lists.jsonl
 ```
 
 Output includes:
@@ -253,17 +253,17 @@ uv run bead lists create-batch-coverage \
     --output constraints/batch_coverage.jsonl
 
 # 3. Partition with constraints
-uv run bead lists partition items/2afc_pairs.jsonl lists/ \
+uv run bead lists partition items/2afc_pairs.jsonl lists/experiment_lists.jsonl \
     --n-lists 5 \
     --list-constraints constraints/unique_verbs.jsonl constraints/balance_condition.jsonl \
     --batch-constraints constraints/batch_coverage.jsonl \
     --strategy balanced
 
-# 4. Validate a list file
-uv run bead lists validate lists/list_0.jsonl
+# 4. List all lists
+uv run bead lists list lists/experiment_lists.jsonl
 
 # 5. View statistics
-uv run bead lists show-stats lists/
+uv run bead lists show-stats lists/experiment_lists.jsonl
 ```
 
 ## Next Steps

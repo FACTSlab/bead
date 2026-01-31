@@ -22,14 +22,8 @@ from rich.table import Table
 if TYPE_CHECKING:
     from bead.config import BeadConfig
 
+from bead.config import load_config
 from bead.data.base import JsonValue
-
-
-def _load_config() -> "type":
-    """Lazily import load_config to avoid slow startup."""
-    from bead.config import load_config
-
-    return load_config
 
 console = Console()
 
@@ -65,7 +59,6 @@ def load_config_for_cli(
     config_path = Path(config_file) if config_file else None
 
     try:
-        load_config = _load_config()
         config = load_config(config_path=config_path, profile=profile)
 
         if verbose:

@@ -54,7 +54,9 @@ def deployment() -> None:
 @click.argument(
     "lists_file", type=click.Path(exists=True, dir_okay=False, path_type=Path)
 )
-@click.argument("items_file", type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.argument(
+    "items_file", type=click.Path(exists=True, dir_okay=False, path_type=Path)
+)
 @click.argument("output_dir", type=click.Path(path_type=Path))
 @click.option(
     "--experiment-type",

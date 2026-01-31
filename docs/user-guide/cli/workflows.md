@@ -36,6 +36,7 @@ argument_structure/
 
 Import verbs from VerbNet:
 
+<!--pytest.mark.skip(reason="requires glazing data")-->
 ```bash
 uv run bead resources import-verbnet \
   --verb-class "break-45.1" \
@@ -105,7 +106,7 @@ uv run bead items validate-for-task-type items/2afc_pairs.jsonl \
 Partition items into balanced lists:
 
 ```bash
-uv run bead lists partition items/2afc_pairs.jsonl lists/ \
+uv run bead lists partition items/2afc_pairs.jsonl lists/experiment_lists.jsonl \
   --n-lists 5 \
   --strategy balanced
 ```
@@ -131,7 +132,7 @@ uv run bead lists create-batch-coverage \
 <!--pytest.mark.skip(reason="requires items from previous pipeline stages")-->
 ```bash
 # Partition with constraints
-uv run bead lists partition items/2afc_pairs.jsonl lists/ \
+uv run bead lists partition items/2afc_pairs.jsonl lists/experiment_lists.jsonl \
   --n-lists 5 \
   --strategy balanced \
   --list-constraints constraints/unique_verbs.jsonl \
@@ -142,7 +143,7 @@ View list statistics:
 
 <!--pytest.mark.skip(reason="requires lists from previous pipeline stages")-->
 ```bash
-uv run bead lists show-stats lists/
+uv run bead lists show-stats lists/experiment_lists.jsonl
 ```
 
 ### Stage 5: Deploy Experiment
@@ -151,7 +152,7 @@ Generate jsPsych experiment:
 
 <!--pytest.mark.skip(reason="requires lists and items from previous pipeline stages")-->
 ```bash
-uv run bead deployment generate lists/ items/2afc_pairs.jsonl deployment/local \
+uv run bead deployment generate lists/experiment_lists.jsonl items/2afc_pairs.jsonl deployment/local \
   --experiment-type forced_choice \
   --title "Argument Structure Judgments" \
   --instructions "Choose the more natural sentence." \

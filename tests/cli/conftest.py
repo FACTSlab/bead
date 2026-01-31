@@ -307,8 +307,8 @@ def mock_items_file(tmp_path: Path) -> Path:
 
 
 @pytest.fixture
-def mock_experiment_lists_dir(tmp_path: Path) -> Path:
-    """Create mock experiment lists directory.
+def mock_experiment_lists_file(tmp_path: Path) -> Path:
+    """Create mock experiment lists JSONL file.
 
     Parameters
     ----------
@@ -318,22 +318,19 @@ def mock_experiment_lists_dir(tmp_path: Path) -> Path:
     Returns
     -------
     Path
-        Path to mock experiment lists directory.
+        Path to mock experiment lists JSONL file.
     """
-    lists_dir = tmp_path / "lists"
-    lists_dir.mkdir()
-
     exp_list = ExperimentList(
         name="list_1",
         list_number=1,
         item_refs=[uuid4(), uuid4(), uuid4()],
     )
 
-    list_file = lists_dir / "list_1.jsonl"
-    with open(list_file, "w") as f:
+    lists_file = tmp_path / "lists.jsonl"
+    with open(lists_file, "w") as f:
         f.write(exp_list.model_dump_json() + "\n")
 
-    return lists_dir
+    return lists_file
 
 
 @pytest.fixture

@@ -13,14 +13,14 @@ def test_partition_balanced(
     cli_runner: CliRunner, tmp_path: Path, mock_items_file: Path
 ) -> None:
     """Test partitioning items with balanced strategy."""
-    output_dir = tmp_path / "lists"
+    output_file = tmp_path / "lists.jsonl"
 
     result = cli_runner.invoke(
         lists,
         [
             "partition",
             str(mock_items_file),
-            str(output_dir),
+            str(output_file),
             "--n-lists",
             "2",
             "--strategy",
@@ -28,24 +28,25 @@ def test_partition_balanced(
         ],
     )
 
-    assert result.exit_code == 0
-    assert output_dir.exists()
-    assert (output_dir / "list_0.jsonl").exists()
-    assert (output_dir / "list_1.jsonl").exists()
+    assert result.exit_code == 0, f"Command failed: {result.output}"
+    assert output_file.exists()
+    # Verify the file contains 2 lists (one per line)
+    lines = output_file.read_text().strip().split("\n")
+    assert len(lines) == 2
 
 
 def test_partition_random(
     cli_runner: CliRunner, tmp_path: Path, mock_items_file: Path
 ) -> None:
     """Test partitioning items with random strategy."""
-    output_dir = tmp_path / "lists"
+    output_file = tmp_path / "lists.jsonl"
 
     result = cli_runner.invoke(
         lists,
         [
             "partition",
             str(mock_items_file),
-            str(output_dir),
+            str(output_file),
             "--n-lists",
             "3",
             "--strategy",
@@ -55,22 +56,25 @@ def test_partition_random(
         ],
     )
 
-    assert result.exit_code == 0
-    assert output_dir.exists()
+    assert result.exit_code == 0, f"Command failed: {result.output}"
+    assert output_file.exists()
+    # Verify the file contains 3 lists (one per line)
+    lines = output_file.read_text().strip().split("\n")
+    assert len(lines) == 3
 
 
 def test_partition_invalid_n_lists(
     cli_runner: CliRunner, tmp_path: Path, mock_items_file: Path
 ) -> None:
     """Test error with invalid n_lists."""
-    output_dir = tmp_path / "lists"
+    output_file = tmp_path / "lists.jsonl"
 
     result = cli_runner.invoke(
         lists,
         [
             "partition",
             str(mock_items_file),
-            str(output_dir),
+            str(output_file),
             "--n-lists",
             "0",
         ],
@@ -80,37 +84,39 @@ def test_partition_invalid_n_lists(
     assert "must be >= 1" in result.output
 
 
-def test_list_empty_directory(cli_runner: CliRunner, tmp_path: Path) -> None:
-    """Test listing lists in empty directory."""
+def test_list_empty_file(cli_runner: CliRunner, tmp_path: Path) -> None:
+    """Test listing lists from empty JSONL file."""
+    empty_file = tmp_path / "empty.jsonl"
+    empty_file.write_text("")
+
     result = cli_runner.invoke(
         lists,
-        ["list", "--directory", str(tmp_path)],
+        ["list", str(empty_file)],
     )
 
     assert result.exit_code == 0
-    assert "No files found" in result.output
 
 
 def test_list_experiment_lists(
-    cli_runner: CliRunner, tmp_path: Path, mock_experiment_lists_dir: Path
+    cli_runner: CliRunner, mock_experiment_lists_file: Path
 ) -> None:
     """Test listing experiment lists."""
     result = cli_runner.invoke(
         lists,
-        ["list", "--directory", str(mock_experiment_lists_dir)],
+        ["list", str(mock_experiment_lists_file)],
     )
 
     assert result.exit_code == 0
-    assert "list_1.jsonl" in result.output
+    assert "list_1" in result.output
 
 
-def test_validate_valid(cli_runner: CliRunner, mock_experiment_lists_dir: Path) -> None:
+def test_validate_valid(
+    cli_runner: CliRunner, mock_experiment_lists_file: Path
+) -> None:
     """Test validating valid experiment list."""
-    list_file = mock_experiment_lists_dir / "list_1.jsonl"
-
     result = cli_runner.invoke(
         lists,
-        ["validate", str(list_file)],
+        ["validate", str(mock_experiment_lists_file)],
     )
 
     assert result.exit_code == 0
@@ -131,11 +137,11 @@ def test_validate_empty_file(cli_runner: CliRunner, tmp_path: Path) -> None:
     assert "empty" in result.output.lower()
 
 
-def test_show_stats(cli_runner: CliRunner, mock_experiment_lists_dir: Path) -> None:
+def test_show_stats(cli_runner: CliRunner, mock_experiment_lists_file: Path) -> None:
     """Test showing statistics for experiment lists."""
     result = cli_runner.invoke(
         lists,
-        ["show-stats", str(mock_experiment_lists_dir)],
+        ["show-stats", str(mock_experiment_lists_file)],
     )
 
     assert result.exit_code == 0

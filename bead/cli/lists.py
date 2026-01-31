@@ -40,8 +40,10 @@ def lists() -> None:
 
 
 @click.command()
-@click.argument("items_file", type=click.Path(exists=True, path_type=Path))
-@click.argument("output_dir", type=click.Path(path_type=Path))
+@click.argument(
+    "items_file", type=click.Path(exists=True, dir_okay=False, path_type=Path)
+)
+@click.argument("output_file", type=click.Path(dir_okay=False, path_type=Path))
 @click.option(
     "--strategy",
     type=click.Choice(["balanced", "random", "stratified"]),
@@ -88,7 +90,7 @@ def lists() -> None:
 def partition(
     ctx: click.Context,
     items_file: Path,
-    output_dir: Path,
+    output_file: Path,
     strategy: str,
     n_lists: int,
     list_constraint_files: tuple[Path, ...],
@@ -104,9 +106,9 @@ def partition(
     ctx : click.Context
         Click context object.
     items_file : Path
-        Path to items file.
-    output_dir : Path
-        Output directory for list files.
+        Path to items JSONL file.
+    output_file : Path
+        Output JSONL file for experiment lists (one list per line).
     strategy : str
         Partitioning strategy.
     n_lists : int
@@ -125,24 +127,25 @@ def partition(
     Examples
     --------
     # Balanced partitioning
-    $ bead lists partition items.jsonl lists/ --n-lists 5 --strategy balanced
+    $ bead lists partition items.jsonl lists.jsonl --n-lists 5 --strategy balanced
 
     # With list constraints
-    $ bead lists partition items.jsonl lists/ --n-lists 5 \\
+    $ bead lists partition items.jsonl lists.jsonl --n-lists 5 \\
         --list-constraints constraints/unique.jsonl
 
     # With batch constraints
-    $ bead lists partition items.jsonl lists/ --n-lists 5 \\
+    $ bead lists partition items.jsonl lists.jsonl --n-lists 5 \\
         --batch-constraints constraints/coverage.jsonl
 
     # With both constraint types
-    $ bead lists partition items.jsonl lists/ --n-lists 5 \\
+    $ bead lists partition items.jsonl lists.jsonl --n-lists 5 \\
         --list-constraints constraints/unique.jsonl constraints/balance.jsonl \\
         --batch-constraints constraints/coverage.jsonl \\
         --max-iterations 10000
 
     # Dry run to preview
-    $ bead lists partition items.jsonl lists/ --n-lists 5 --strategy balanced --dry-run
+    $ bead lists partition items.jsonl lists.jsonl \\
+        --n-lists 5 --strategy balanced --dry-run
     """
     try:
         if n_lists < 1:
@@ -248,25 +251,26 @@ def partition(
 
         # Save lists (or show dry-run preview)
         if dry_run:
-            print_info("[DRY RUN] Would create the following files:")
+            print_info(f"[DRY RUN] Would write {len(experiment_lists)} lists to:")
+            console.print(f"  [dim]{output_file}[/dim]")
             for exp_list in experiment_lists:
-                list_file = output_dir / f"list_{exp_list.list_number}.jsonl"
                 console.print(
-                    f"  [dim]{list_file}[/dim] ({len(exp_list.item_refs)} items)"
+                    f"    list_{exp_list.list_number}: {len(exp_list.item_refs)} items"
                 )
             print_info(
                 f"[DRY RUN] Total: {len(experiment_lists)} lists, {len(items)} items"
             )
         else:
-            output_dir.mkdir(parents=True, exist_ok=True)
-            for exp_list in experiment_lists:
-                list_file = output_dir / f"list_{exp_list.list_number}.jsonl"
-                with open(list_file, "w", encoding="utf-8") as f:
+            # Ensure parent directory exists
+            output_file.parent.mkdir(parents=True, exist_ok=True)
+            # Write all lists to single JSONL file (one list per line)
+            with open(output_file, "w", encoding="utf-8") as f:
+                for exp_list in experiment_lists:
                     f.write(exp_list.model_dump_json() + "\n")
 
             print_success(
                 f"Created {len(experiment_lists)} lists "
-                f"with {len(items)} items: {output_dir}"
+                f"with {len(items)} items: {output_file}"
             )
 
         # Show distribution
@@ -285,71 +289,48 @@ def partition(
 
 
 @click.command(name="list")
-@click.option(
-    "--directory",
-    type=click.Path(exists=True, file_okay=False, path_type=Path),
-    default=Path.cwd(),
-    help="Directory to search for list files",
-)
-@click.option(
-    "--pattern",
-    default="*.jsonl",
-    help="File pattern to match (default: *.jsonl)",
+@click.argument(
+    "lists_file", type=click.Path(exists=True, dir_okay=False, path_type=Path)
 )
 @click.pass_context
 def list_lists(
     ctx: click.Context,
-    directory: Path,
-    pattern: str,
+    lists_file: Path,
 ) -> None:
-    """List experiment list files in a directory.
+    """List experiment lists in a JSONL file.
 
     Parameters
     ----------
     ctx : click.Context
         Click context object.
-    directory : Path
-        Directory to search.
-    pattern : str
-        File pattern to match.
+    lists_file : Path
+        JSONL file containing experiment lists (one list per line).
 
     Examples
     --------
-    $ bead lists list
-    $ bead lists list --directory experiment_lists/
-    $ bead lists list --pattern "list_*.jsonl"
+    $ bead lists list lists.jsonl
     """
     try:
-        files = list(directory.glob(pattern))
-
-        if not files:
-            print_info(f"No files found in {directory} matching {pattern}")
-            return
-
-        table = Table(title=f"Experiment Lists in {directory}")
-        table.add_column("File", style="cyan")
+        table = Table(title=f"Experiment Lists in {lists_file}")
         table.add_column("List #", justify="right", style="yellow")
+        table.add_column("Name", style="cyan")
         table.add_column("Items", justify="right", style="green")
-        table.add_column("Name", style="white")
 
-        for file_path in sorted(files):
-            try:
-                with open(file_path, encoding="utf-8") as f:
-                    first_line = f.readline().strip()
-                    if not first_line:
-                        continue
-
-                list_data = json.loads(first_line)
-                exp_list = ExperimentList(**list_data)
-
-                table.add_row(
-                    str(file_path.name),
-                    str(exp_list.list_number),
-                    str(len(exp_list.item_refs)),
-                    exp_list.name,
-                )
-            except Exception:
-                continue
+        with open(lists_file, encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    list_data = json.loads(line)
+                    exp_list = ExperimentList(**list_data)
+                    table.add_row(
+                        str(exp_list.list_number),
+                        exp_list.name,
+                        str(len(exp_list.item_refs)),
+                    )
+                except Exception:
+                    continue
 
         console.print(table)
 
@@ -405,43 +386,38 @@ def validate(ctx: click.Context, list_file: Path) -> None:
 
 @click.command()
 @click.argument(
-    "lists_dir", type=click.Path(exists=True, file_okay=False, path_type=Path)
+    "lists_file", type=click.Path(exists=True, dir_okay=False, path_type=Path)
 )
 @click.pass_context
-def show_stats(ctx: click.Context, lists_dir: Path) -> None:
-    """Show statistics about experiment lists in a directory.
+def show_stats(ctx: click.Context, lists_file: Path) -> None:
+    """Show statistics about experiment lists in a JSONL file.
 
     Parameters
     ----------
     ctx : click.Context
         Click context object.
-    lists_dir : Path
-        Directory containing list files.
+    lists_file : Path
+        JSONL file containing experiment lists (one list per line).
 
     Examples
     --------
-    $ bead lists show-stats lists/
+    $ bead lists show-stats lists.jsonl
     """
     try:
-        print_info(f"Analyzing experiment lists in: {lists_dir}")
-
-        list_files = list(lists_dir.glob("*.jsonl"))
-
-        if not list_files:
-            print_error("No list files found")
-            ctx.exit(1)
+        print_info(f"Analyzing experiment lists in: {lists_file}")
 
         lists_data: list[ExperimentList] = []
-        for file_path in list_files:
-            try:
-                with open(file_path, encoding="utf-8") as f:
-                    first_line = f.readline().strip()
-                    if first_line:
-                        list_data = json.loads(first_line)
-                        exp_list = ExperimentList(**list_data)
-                        lists_data.append(exp_list)
-            except Exception:
-                continue
+        with open(lists_file, encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    list_data = json.loads(line)
+                    exp_list = ExperimentList(**list_data)
+                    lists_data.append(exp_list)
+                except Exception:
+                    continue
 
         if not lists_data:
             print_error("No valid experiment lists found")
