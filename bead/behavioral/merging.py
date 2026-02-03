@@ -175,8 +175,10 @@ def filter_flagged_judgments(
         df_with_flag = judgments_df.with_columns(
             pl.struct([item_id_column, participant_id_column])
             .map_elements(
-                lambda row: (str(row[item_id_column]), str(row[participant_id_column]))
-                in flagged_pairs,
+                lambda row: (
+                    (str(row[item_id_column]), str(row[participant_id_column]))
+                    in flagged_pairs
+                ),
                 return_dtype=pl.Boolean,
             )
             .alias("_is_flagged")
@@ -194,8 +196,10 @@ def filter_flagged_judgments(
 
         # Create mask
         mask = judgments_df.apply(
-            lambda row: (str(row[item_id_column]), str(row[participant_id_column]))
-            in flagged_pairs,
+            lambda row: (
+                (str(row[item_id_column]), str(row[participant_id_column]))
+                in flagged_pairs
+            ),
             axis=1,
         )
 

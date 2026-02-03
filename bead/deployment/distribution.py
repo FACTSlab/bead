@@ -7,7 +7,7 @@ assigning participants to experiment lists.
 
 from __future__ import annotations
 
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from pydantic import Field, field_validator, model_validator
@@ -15,7 +15,7 @@ from pydantic import Field, field_validator, model_validator
 from bead.data.base import BeadBaseModel
 
 
-class DistributionStrategyType(str, Enum):
+class DistributionStrategyType(StrEnum):
     """Available distribution strategies for list assignment.
 
     Attributes

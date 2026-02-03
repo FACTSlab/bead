@@ -314,8 +314,9 @@ class Lexicon(BeadBaseModel):
         1
         """
         return self.filter(
-            lambda item: item.features.get("pos") is not None
-            and item.features.get("pos") == pos
+            lambda item: (
+                item.features.get("pos") is not None and item.features.get("pos") == pos
+            )
         )
 
     def filter_by_lemma(self, lemma: str) -> Lexicon:
@@ -367,8 +368,10 @@ class Lexicon(BeadBaseModel):
         1
         """
         return self.filter(
-            lambda item: feature_name in item.features
-            and item.features[feature_name] == feature_value
+            lambda item: (
+                feature_name in item.features
+                and item.features[feature_name] == feature_value
+            )
         )
 
     def filter_by_attribute(self, attr_name: str, attr_value: Any) -> Lexicon:
@@ -400,8 +403,9 @@ class Lexicon(BeadBaseModel):
         1
         """
         return self.filter(
-            lambda item: attr_name in item.features
-            and item.features[attr_name] == attr_value
+            lambda item: (
+                attr_name in item.features and item.features[attr_name] == attr_value
+            )
         )
 
     def search(self, query: str, field: str = "lemma") -> Lexicon:
@@ -439,8 +443,10 @@ class Lexicon(BeadBaseModel):
             return self.filter(lambda item: query_lower in item.lemma.lower())
         elif field == "pos":
             return self.filter(
-                lambda item: item.features.get("pos") is not None
-                and query_lower in str(item.features.get("pos")).lower()
+                lambda item: (
+                    item.features.get("pos") is not None
+                    and query_lower in str(item.features.get("pos")).lower()
+                )
             )
         elif field == "form":
             return self.filter(
