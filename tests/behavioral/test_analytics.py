@@ -411,7 +411,9 @@ class TestAnalyticsCollection:
         )
 
         # Filter for high severity only
-        high_only = collection.filter_flagged(min_severity="high", exclude_flagged=False)
+        high_only = collection.filter_flagged(
+            min_severity="high", exclude_flagged=False
+        )
         assert len(high_only) == 1
         assert high_only.analytics[0].participant_id == "p002"
 

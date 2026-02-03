@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 
 
 def _empty_field_spec_list() -> list[FieldSpec]:
-    """Factory for empty field spec list."""
+    """Return empty field spec list."""
     return []
 
 
@@ -410,7 +410,9 @@ class ParticipantMetadataSpec(BaseModel):
             if not field_spec.validate_value(value):
                 range_str = ""
                 if field_spec.range is not None:
-                    range_str = f", range=[{field_spec.range.min}, {field_spec.range.max}]"
+                    range_str = (
+                        f", range=[{field_spec.range.min}, {field_spec.range.max}]"
+                    )
                 allowed_str = ""
                 if field_spec.allowed_values is not None:
                     allowed_str = f", allowed={field_spec.allowed_values}"

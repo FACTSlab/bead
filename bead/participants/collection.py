@@ -199,9 +199,7 @@ class ParticipantCollection(BeadBaseModel):
             p for p in self.participants if p.participant_metadata.get(key) == value
         ]
 
-    def validate_all(
-        self, spec: ParticipantMetadataSpec
-    ) -> dict[UUID, list[str]]:
+    def validate_all(self, spec: ParticipantMetadataSpec) -> dict[UUID, list[str]]:
         """Validate all participants against a specification.
 
         Parameters

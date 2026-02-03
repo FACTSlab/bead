@@ -41,26 +41,6 @@ Save and load analytics:
 >>> loaded = AnalyticsCollection.from_jsonl("analytics.jsonl", name="study_001")
 """
 
-from bead.behavioral.analytics import (
-    AnalyticsCollection,
-    JudgmentAnalytics,
-    ParticipantBehavioralSummary,
-)
-from bead.behavioral.extraction import (
-    analyze_sessions,
-    extract_from_directory,
-    extract_from_file,
-    extract_from_session,
-    extract_from_trial,
-    extract_with_analysis,
-)
-from bead.behavioral.merging import (
-    create_analysis_dataframe_with_behavior,
-    filter_flagged_judgments,
-    get_exclusion_list,
-    merge_behavioral_analytics,
-)
-
 # Re-export key slopit types for convenience
 from slopit.behavioral import (
     Analyzer,
@@ -79,6 +59,26 @@ from slopit.schemas import (
     SlopitSession,
     SlopitTrial,
     TimingMetrics,
+)
+
+from bead.behavioral.analytics import (
+    AnalyticsCollection,
+    JudgmentAnalytics,
+    ParticipantBehavioralSummary,
+)
+from bead.behavioral.extraction import (
+    analyze_sessions,
+    extract_from_directory,
+    extract_from_file,
+    extract_from_session,
+    extract_from_trial,
+    extract_with_analysis,
+)
+from bead.behavioral.merging import (
+    create_analysis_dataframe_with_behavior,
+    filter_flagged_judgments,
+    get_exclusion_list,
+    merge_behavioral_analytics,
 )
 
 __all__ = [

@@ -220,7 +220,7 @@ def create_analysis_dataframe_with_behavior(
     include_metrics: bool = True,
     include_flags: bool = True,
 ) -> DataFrame:
-    """Create analysis-ready DataFrame with participant metadata AND behavioral analytics.
+    """Create analysis-ready DataFrame with metadata and behavioral analytics.
 
     Combines both participant and behavioral merging in one step.
     Preserves input DataFrame type.
@@ -264,7 +264,7 @@ def create_analysis_dataframe_with_behavior(
     ... )
     """
     # Import here to avoid circular imports
-    from bead.participants.merging import (
+    from bead.participants.merging import (  # noqa: PLC0415
         merge_participant_metadata,
         resolve_external_ids,
     )
@@ -331,7 +331,9 @@ def get_exclusion_list(
     """
     # Apply severity filter if specified
     if min_severity is not None:
-        filtered = analytics.filter_flagged(min_severity=min_severity, exclude_flagged=False)
+        filtered = analytics.filter_flagged(
+            min_severity=min_severity, exclude_flagged=False
+        )
     else:
         filtered = analytics
 

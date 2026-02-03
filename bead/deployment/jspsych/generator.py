@@ -517,10 +517,12 @@ class JsPsychExperimentGenerator:
             instructions_button_next = self.config.instructions.button_label_next
             instructions_button_finish = self.config.instructions.button_label_finish
             for page in self.config.instructions.pages:
-                instructions_pages.append({
-                    "title": page.title,
-                    "content": page.content,
-                })
+                instructions_pages.append(
+                    {
+                        "title": page.title,
+                        "content": page.content,
+                    }
+                )
         else:
             # Simple string instructions
             simple_instructions = (

@@ -16,7 +16,6 @@ from bead.behavioral.merging import (
     merge_behavioral_analytics,
 )
 
-
 # Use fixed UUIDs for consistent testing
 ITEM_IDS = [
     "11111111-1111-1111-1111-111111111111",
@@ -197,7 +196,9 @@ class TestFilterFlaggedJudgments:
         return collection
 
     def test_exclude_flagged_pandas(
-        self, sample_judgments_df: pd.DataFrame, collection_with_flags: AnalyticsCollection
+        self,
+        sample_judgments_df: pd.DataFrame,
+        collection_with_flags: AnalyticsCollection,
     ) -> None:
         """Test excluding flagged judgments with pandas."""
         # Only use first two rows to match collection
@@ -214,7 +215,9 @@ class TestFilterFlaggedJudgments:
         assert filtered.iloc[0]["item_id"] == ITEM_IDS[0]
 
     def test_keep_flagged_only_pandas(
-        self, sample_judgments_df: pd.DataFrame, collection_with_flags: AnalyticsCollection
+        self,
+        sample_judgments_df: pd.DataFrame,
+        collection_with_flags: AnalyticsCollection,
     ) -> None:
         """Test keeping only flagged judgments."""
         df = sample_judgments_df.head(2)
@@ -229,7 +232,9 @@ class TestFilterFlaggedJudgments:
         assert filtered.iloc[0]["item_id"] == ITEM_IDS[1]
 
     def test_exclude_flagged_polars(
-        self, sample_judgments_df: pd.DataFrame, collection_with_flags: AnalyticsCollection
+        self,
+        sample_judgments_df: pd.DataFrame,
+        collection_with_flags: AnalyticsCollection,
     ) -> None:
         """Test excluding flagged judgments with polars."""
         df = pl.from_pandas(sample_judgments_df.head(2))

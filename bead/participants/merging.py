@@ -7,8 +7,6 @@ and polars DataFrames, preserving the input type.
 
 from __future__ import annotations
 
-from uuid import UUID
-
 import pandas as pd
 import polars as pl
 
@@ -153,7 +151,9 @@ def resolve_external_ids(
 
     # Create lookup dict
     lookup: dict[str, str] = {
-        m.external_id: str(m.participant_id) for m in id_mappings.mappings if m.is_active
+        m.external_id: str(m.participant_id)
+        for m in id_mappings.mappings
+        if m.is_active
     }
 
     if is_polars:

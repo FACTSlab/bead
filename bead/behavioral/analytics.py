@@ -7,6 +7,7 @@ bead's item-based experimental structure.
 
 from __future__ import annotations
 
+from collections import defaultdict
 from pathlib import Path
 from typing import Literal
 from uuid import UUID
@@ -102,8 +103,12 @@ class JudgmentAnalytics(BeadBaseModel):
     session_id: str = Field(..., description="Slopit session identifier")
 
     # Response data
-    response_value: JsonValue = Field(default=None, description="Judgment response value")
-    response_time_ms: int = Field(..., ge=0, description="Response time in milliseconds")
+    response_value: JsonValue = Field(
+        default=None, description="Judgment response value"
+    )
+    response_time_ms: int = Field(
+        ..., ge=0, description="Response time in milliseconds"
+    )
 
     # Behavioral metrics (from slopit)
     keystroke_metrics: KeystrokeMetrics | None = Field(
@@ -117,7 +122,9 @@ class JudgmentAnalytics(BeadBaseModel):
     )
 
     # Paste tracking
-    paste_event_count: int = Field(default=0, ge=0, description="Number of paste events")
+    paste_event_count: int = Field(
+        default=0, ge=0, description="Number of paste events"
+    )
 
     # Flags (from slopit analyzers)
     flags: list[AnalysisFlag] = Field(
@@ -216,11 +223,15 @@ class ParticipantBehavioralSummary(BeadBaseModel):
 
     # Aggregated counts
     total_judgments: int = Field(..., ge=0, description="Total judgments")
-    flagged_judgments: int = Field(default=0, ge=0, description="Flagged judgment count")
+    flagged_judgments: int = Field(
+        default=0, ge=0, description="Flagged judgment count"
+    )
     mean_response_time_ms: float = Field(..., ge=0.0, description="Mean response time")
 
     # Keystroke aggregates
-    mean_iki: float | None = Field(default=None, description="Mean inter-keystroke interval")
+    mean_iki: float | None = Field(
+        default=None, description="Mean inter-keystroke interval"
+    )
     total_keystrokes: int = Field(default=0, ge=0, description="Total keystrokes")
     total_paste_events: int = Field(default=0, ge=0, description="Total paste events")
 
@@ -425,8 +436,6 @@ class AnalyticsCollection(BeadBaseModel):
         list[ParticipantBehavioralSummary]
             Summary for each participant in the collection.
         """
-        from collections import defaultdict
-
         severity_order: dict[str, int] = {"info": 0, "low": 1, "medium": 2, "high": 3}
 
         # Group by participant
@@ -613,8 +622,12 @@ class AnalyticsCollection(BeadBaseModel):
 
                 # Timing metrics
                 if a.timing_metrics is not None:
-                    record["timing_first_keystroke"] = a.timing_metrics.first_keystroke_latency
-                    record["timing_total_response"] = a.timing_metrics.total_response_time
+                    record["timing_first_keystroke"] = (
+                        a.timing_metrics.first_keystroke_latency
+                    )
+                    record["timing_total_response"] = (
+                        a.timing_metrics.total_response_time
+                    )
                 else:
                     record["timing_first_keystroke"] = None
                     record["timing_total_response"] = None

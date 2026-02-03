@@ -408,8 +408,12 @@ class TestSpecialTrials:
         """Test instruction trial creation with multi-page config."""
         config = InstructionsConfig(
             pages=[
-                InstructionPage(title="Welcome", content="<p>Welcome to the study!</p>"),
-                InstructionPage(title="Task", content="<p>Your task is to rate sentences.</p>"),
+                InstructionPage(
+                    title="Welcome", content="<p>Welcome to the study!</p>"
+                ),
+                InstructionPage(
+                    title="Task", content="<p>Your task is to rate sentences.</p>"
+                ),
             ],
             allow_backwards=True,
             button_label_next="Continue",
