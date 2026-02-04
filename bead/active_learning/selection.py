@@ -196,8 +196,8 @@ class UncertaintySampler(ItemSelector):
         # Select top k items
         selected_indices = self.strategy.select_top_k(scores, k=budget)
 
-        # Return selected items
-        return [items[i] for i in selected_indices]
+        # Return selected items (convert numpy array to list of Python ints)
+        return [items[i] for i in selected_indices.tolist()]
 
     def _batch_predict(
         self,
@@ -350,5 +350,5 @@ class RandomSelector(ItemSelector):
         # Select random indices without replacement
         selected_indices = self.rng.choice(len(items), size=budget, replace=False)
 
-        # Return selected items
-        return [items[i] for i in selected_indices]
+        # Return selected items (convert numpy array to list of Python ints)
+        return [items[i] for i in selected_indices.tolist()]

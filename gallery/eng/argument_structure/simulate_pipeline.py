@@ -343,6 +343,7 @@ def run_simulation(
         converged = convergence_detector.check_convergence(
             model_accuracy=test_accuracy,
             iteration=iteration + 1,
+            human_agreement=human_agreement,
         )
 
         gap = abs(test_accuracy - human_agreement)
@@ -363,7 +364,7 @@ def run_simulation(
         selected_items = item_selector.select(
             items=current_unlabeled,
             model=model,
-            predict_fn=lambda m, i: m.predict_proba([i]),
+            predict_fn=lambda m, i: m.predict_proba([i])[0],  # Return 1D array
             budget=n_select,
         )
 
