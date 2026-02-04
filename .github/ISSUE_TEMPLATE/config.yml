@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions & Help
+    url: https://github.com/FACTSlab/bead/discussions
+    about: Please ask questions in GitHub Discussions instead of opening an issue.
+  - name: Documentation
+    url: https://bead.readthedocs.io
+    about: Check the documentation for guides and API reference.

@@ -1,0 +1,70 @@
+name: Feature Request
+description: Suggest a new feature or enhancement
+labels: ["enhancement", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a feature! Please fill out the form below.
+
+        **Note**: For questions or discussion, please use [GitHub Discussions](https://github.com/FACTSlab/bead/discussions) first.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I have searched the existing issues and this feature has not been requested
+          required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: What problem does this feature solve? Why is it needed?
+      placeholder: I'm always frustrated when...
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: How do you envision this feature working?
+      placeholder: |
+        I would like to be able to...
+
+        ```python
+        # Example of how it might work
+        ```
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Have you considered other approaches or workarounds?
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      description: Which part of bead does this relate to?
+      options:
+        - Resources (lexicons, templates)
+        - Template filling
+        - Items (construction, models)
+        - Lists (partitioning, constraints)
+        - Deployment (jsPsych, JATOS)
+        - Active learning
+        - Simulation
+        - CLI
+        - Documentation
+        - Other
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any other context, mockups, or examples.
