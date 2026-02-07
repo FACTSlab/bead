@@ -16,19 +16,16 @@
 
 import type { JsPsych, JsPsychPlugin, KeyboardResponseInfo, PluginInfo } from "../types/jspsych.js";
 
-/** Bead rendered elements from metadata */
-interface RenderedElements {
-  [key: string]: string;
-}
-
 /** Bead item/template metadata */
 interface BeadMetadata {
-  rendered_elements?: RenderedElements;
   [key: string]: unknown;
 }
 
 /** Position type for left/right alternatives */
 type Position = "left" | "right";
+
+/** Layout direction for alternatives */
+type Layout = "horizontal" | "vertical";
 
 /** Forced choice trial parameters */
 export interface ForcedChoiceTrialParams {
@@ -36,6 +33,8 @@ export interface ForcedChoiceTrialParams {
   prompt: string;
   /** Array of alternatives to choose from */
   alternatives: string[];
+  /** Layout direction for alternatives */
+  layout: Layout;
   /** Whether to randomize left/right position */
   randomize_position: boolean;
   /** Enable keyboard responses (1/2 or left/right arrow) */
@@ -68,6 +67,10 @@ const info: PluginInfo = {
       type: 1, // ParameterType.STRING
       default: [],
       array: true,
+    },
+    layout: {
+      type: 1, // ParameterType.STRING
+      default: "horizontal",
     },
     randomize_position: {
       type: 0, // ParameterType.BOOL
@@ -114,23 +117,6 @@ class BeadForcedChoicePlugin implements JsPsychPlugin<typeof info, ForcedChoiceT
 
     const start_time = performance.now();
 
-    // Extract alternatives from metadata if not provided
-    if (trial.alternatives.length === 0 && trial.metadata.rendered_elements) {
-      const elements = trial.metadata.rendered_elements;
-      const choice_keys = Object.keys(elements)
-        .filter(
-          (k) => k.startsWith("choice_") || k.startsWith("option_"), // Fixed: startswith -> startsWith
-        )
-        .sort();
-
-      if (choice_keys.length >= 2) {
-        trial.alternatives = choice_keys.map((k) => elements[k] ?? "");
-      } else {
-        // Fallback: use all rendered elements
-        trial.alternatives = Object.values(elements);
-      }
-    }
-
     // Randomize position if requested
     let left_index = 0;
     let right_index = 1;
@@ -146,7 +132,7 @@ class BeadForcedChoicePlugin implements JsPsychPlugin<typeof info, ForcedChoiceT
       html += `<div class="bead-forced-choice-prompt">${trial.prompt}</div>`;
     }
 
-    html += '<div class="bead-forced-choice-alternatives">';
+    html += `<div class="bead-forced-choice-alternatives bead-layout-${trial.layout}">`;
 
     // Left alternative
     html += `

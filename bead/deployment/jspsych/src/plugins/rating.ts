@@ -17,16 +17,8 @@
 
 import type { JsPsych, JsPsychPlugin, KeyboardResponseInfo, PluginInfo } from "../types/jspsych.js";
 
-/** Task specification from bead metadata */
-interface TaskSpec {
-  scale_bounds?: [number, number];
-  scale_labels?: Record<number, string>;
-  prompt?: string;
-}
-
 /** Bead item/template metadata */
 interface BeadMetadata {
-  task_spec?: TaskSpec;
   [key: string]: unknown;
 }
 
@@ -108,22 +100,6 @@ class BeadRatingPlugin implements JsPsychPlugin<typeof info, RatingTrialParams> 
     };
 
     const start_time = performance.now();
-
-    // Override scale bounds from metadata if available
-    if (trial.metadata.task_spec?.scale_bounds) {
-      trial.scale_min = trial.metadata.task_spec.scale_bounds[0];
-      trial.scale_max = trial.metadata.task_spec.scale_bounds[1];
-    }
-
-    // Override scale labels from metadata if available
-    if (trial.metadata.task_spec?.scale_labels) {
-      trial.scale_labels = trial.metadata.task_spec.scale_labels;
-    }
-
-    // Override prompt from metadata if available
-    if (trial.metadata.task_spec?.prompt && !trial.prompt) {
-      trial.prompt = trial.metadata.task_spec.prompt;
-    }
 
     // Create HTML
     let html = '<div class="bead-rating-container">';
