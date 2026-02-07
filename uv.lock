@@ -177,7 +177,7 @@ wheels = [
 
 [[package]]
 name = "bead"
-version = "0.1.0"
+version = "0.2.0"
 source = { editable = "." }
 dependencies = [
     { name = "accelerate" },
@@ -231,6 +231,10 @@ dev = [
 stats = [
     { name = "statsmodels" },
 ]
+tokenization = [
+    { name = "spacy" },
+    { name = "stanza" },
+]
 training = [
     { name = "pytorch-lightning" },
     { name = "tensorboard" },
@@ -275,6 +279,8 @@ requires-dist = [
     { name = "scipy", specifier = ">=1.11.0" },
     { name = "sentence-transformers", specifier = ">=2.0.0" },
     { name = "slopit", marker = "extra == 'behavioral-analysis'", specifier = ">=0.1.0" },
+    { name = "spacy", marker = "extra == 'tokenization'", specifier = ">=3.7" },
+    { name = "stanza", marker = "extra == 'tokenization'", specifier = ">=1.8" },
     { name = "statsmodels", specifier = ">=0.14.6" },
     { name = "statsmodels", marker = "extra == 'stats'", specifier = ">=0.14.0" },
     { name = "tensorboard", marker = "extra == 'training'", specifier = ">=2.13.0" },
@@ -285,7 +291,7 @@ requires-dist = [
     { name = "unimorph", specifier = ">=0.0.4" },
     { name = "uuid-utils", specifier = ">=0.7.0" },
 ]
-provides-extras = ["dev", "api", "training", "stats", "ui", "behavioral-analysis"]
+provides-extras = ["dev", "api", "training", "stats", "ui", "behavioral-analysis", "tokenization"]
 
 [[package]]
 name = "black"
@@ -614,6 +620,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/b2/9d/c3b43da9515bd270df0f80548d9944e389870713cc1fe2b8fb35fe2bcefd/docstring_parser-0.17.0.tar.gz", hash = "sha256:583de4a309722b3315439bb31d64ba3eebada841f2e2cee23b99df001434c912", size = 27442, upload-time = "2025-07-21T07:35:01.868Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/55/e2/2537ebcff11c1ee1ff17d8d0b6f4db75873e3b0fb32c2d4a2ee31ecb310a/docstring_parser-0.17.0-py3-none-any.whl", hash = "sha256:cf2569abd23dce8099b300f9b4fa8191e9582dda731fd533daf54c4551658708", size = 36896, upload-time = "2025-07-21T07:35:00.684Z" },
+]
+
+[[package]]
+name = "emoji"
+version = "2.15.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/a2/78/0d2db9382c92a163d7095fc08efff7800880f830a152cfced40161e7638d/emoji-2.15.0.tar.gz", hash = "sha256:eae4ab7d86456a70a00a985125a03263a5eac54cd55e51d7e184b1ed3b6757e4", size = 615483, upload-time = "2025-09-21T12:13:02.755Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e1/5e/4b5aaaabddfacfe36ba7768817bd1f71a7a810a43705e531f3ae4c690767/emoji-2.15.0-py3-none-any.whl", hash = "sha256:205296793d66a89d88af4688fa57fd6496732eb48917a87175a023c8138995eb", size = 608433, upload-time = "2025-09-21T12:13:01.197Z" },
 ]
 
 [[package]]
@@ -2947,6 +2962,24 @@ wheels = [
 ]
 
 [[package]]
+name = "stanza"
+version = "1.11.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "emoji" },
+    { name = "networkx" },
+    { name = "numpy" },
+    { name = "protobuf" },
+    { name = "requests" },
+    { name = "torch" },
+    { name = "tqdm" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/07/e5/acd22862a75f424d98bb690fec9ab292da6e797cab367fa8fa451c547637/stanza-1.11.0.tar.gz", hash = "sha256:42ba9d4752e74c4e1e6fc2ca96e98bb8fa194049782cc35fde2a5118fd5f75ab", size = 1484551, upload-time = "2025-10-05T06:44:03.665Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e0/47/c6f8dd24ca100f6c260209b27be4d2e0ae68f13d4b2b4b1b343876c9e765/stanza-1.11.0-py3-none-any.whl", hash = "sha256:3a0bcf24830e32e88f6d0cff1e757661e53ed1b60149fa7f72211d61c6dab063", size = 1706081, upload-time = "2025-10-05T06:43:59.247Z" },
+]
+
+[[package]]
 name = "statsmodels"
 version = "0.14.6"
 source = { registry = "https://pypi.org/simple" }
@@ -3136,6 +3169,7 @@ dependencies = [
     { name = "typing-extensions" },
 ]
 wheels = [
+    { url = "https://files.pythonhosted.org/packages/a4/1b/af5fccb50c341bd69dc016769503cb0857c1423fbe9343410dfeb65240f2/torch-2.10.0-1-cp313-none-macosx_11_0_arm64.whl", hash = "sha256:7350f6652dfd761f11f9ecb590bfe95b573e2961f7a242eccb3c8e78348d26fe", size = 79498248, upload-time = "2026-02-06T17:37:31.982Z" },
     { url = "https://files.pythonhosted.org/packages/c9/6f/f2e91e34e3fcba2e3fc8d8f74e7d6c22e74e480bbd1db7bc8900fdf3e95c/torch-2.10.0-cp313-cp313-manylinux_2_28_aarch64.whl", hash = "sha256:5c4d217b14741e40776dd7074d9006fd28b8a97ef5654db959d8635b2fe5f29b", size = 146004247, upload-time = "2026-01-21T16:24:29.335Z" },
     { url = "https://files.pythonhosted.org/packages/98/fb/5160261aeb5e1ee12ee95fe599d0541f7c976c3701d607d8fc29e623229f/torch-2.10.0-cp313-cp313-manylinux_2_28_x86_64.whl", hash = "sha256:6b71486353fce0f9714ca0c9ef1c850a2ae766b409808acd58e9678a3edb7738", size = 915716445, upload-time = "2026-01-21T16:22:45.353Z" },
     { url = "https://files.pythonhosted.org/packages/6a/16/502fb1b41e6d868e8deb5b0e3ae926bbb36dab8ceb0d1b769b266ad7b0c3/torch-2.10.0-cp313-cp313-win_amd64.whl", hash = "sha256:c2ee399c644dc92ef7bc0d4f7e74b5360c37cdbe7c5ba11318dda49ffac2bc57", size = 113757050, upload-time = "2026-01-21T16:24:19.204Z" },

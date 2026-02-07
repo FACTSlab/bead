@@ -292,7 +292,7 @@ def create_trial(
     >>> rating_config = RatingScaleConfig()
     >>> trial = create_trial(item, template, config, 0, rating_config=rating_config)
     >>> trial["type"]
-    'html-slider-response'
+    'bead-slider-rating'
     """
     # Standalone span_labeling experiment type
     if experiment_config.experiment_type == "span_labeling":
@@ -371,7 +371,7 @@ def _create_likert_trial(
     Returns
     -------
     dict[str, JsonValue]
-        A jsPsych html-button-response trial object.
+        A jsPsych bead-rating trial object.
     """
     # Generate stimulus HTML from rendered elements
     if has_spans and span_display:
@@ -379,20 +379,18 @@ def _create_likert_trial(
     else:
         stimulus_html = _generate_stimulus_html(item)
 
-    # Generate button labels for Likert scale
-    labels: list[str] = []
-    for i in range(config.scale.min, config.scale.max + 1, config.step):
-        if config.show_numeric_labels:
-            labels.append(str(i))
-        else:
-            labels.append("")
+    # Build scale labels dict for endpoint labels
+    # Keys are stringified ints (JSON object keys are always strings)
+    scale_labels: dict[str, JsonValue] = {}
+    if config.min_label:
+        scale_labels[str(config.scale.min)] = config.min_label
+    if config.max_label:
+        scale_labels[str(config.scale.max)] = config.max_label
 
-    prompt_html = (
-        f'<p style="margin-top: 20px;">'
-        f'<span style="float: left;">{config.min_label}</span>'
-        f'<span style="float: right;">{config.max_label}</span>'
-        f"</p>"
-    )
+    # Build prompt: stimulus HTML + task prompt if available
+    prompt = stimulus_html
+    if template.task_spec and template.task_spec.prompt:
+        prompt += f'<p class="bead-task-prompt">{template.task_spec.prompt}</p>'
 
     # Serialize complete metadata
     metadata = _serialize_item_metadata(item, template)
@@ -400,12 +398,14 @@ def _create_likert_trial(
     metadata["trial_type"] = "likert_rating"
 
     return {
-        "type": "html-button-response",
-        "stimulus": stimulus_html,
-        "choices": labels,
-        "prompt": prompt_html,
-        "data": metadata,
-        "button_html": '<button class="jspsych-btn likert-button">%choice%</button>',
+        "type": "bead-rating",
+        "prompt": prompt,
+        "scale_min": config.scale.min,
+        "scale_max": config.scale.max,
+        "scale_labels": scale_labels,
+        "require_response": config.required,
+        "button_label": "Continue",
+        "metadata": metadata,
     }
 
 
@@ -437,7 +437,7 @@ def _create_slider_trial(
     Returns
     -------
     dict[str, JsonValue]
-        A jsPsych html-slider-response trial object.
+        A jsPsych bead-slider-rating trial object.
     """
     if has_spans and span_display:
         stimulus_html = _generate_span_stimulus_html(item, span_display)
@@ -450,15 +450,16 @@ def _create_slider_trial(
     metadata["trial_type"] = "slider_rating"
 
     return {
-        "type": "html-slider-response",
-        "stimulus": stimulus_html,
+        "type": "bead-slider-rating",
+        "prompt": stimulus_html,
         "labels": [config.min_label, config.max_label],
-        "min": config.scale.min,
-        "max": config.scale.max,
+        "slider_min": config.scale.min,
+        "slider_max": config.scale.max,
         "step": config.step,
         "slider_start": (config.scale.min + config.scale.max) // 2,
         "require_movement": config.required,
-        "data": metadata,
+        "button_label": "Continue",
+        "metadata": metadata,
     }
 
 
@@ -490,7 +491,7 @@ def _create_binary_choice_trial(
     Returns
     -------
     dict[str, JsonValue]
-        A jsPsych html-button-response trial object.
+        A jsPsych bead-binary-choice trial object.
     """
     if has_spans and span_display:
         stimulus_html = _generate_span_stimulus_html(item, span_display)
@@ -502,13 +503,19 @@ def _create_binary_choice_trial(
     metadata["trial_number"] = trial_number
     metadata["trial_type"] = "binary_choice"
 
+    prompt = (
+        template.task_spec.prompt
+        if template.task_spec
+        else "Is this sentence acceptable?"
+    )
+
     return {
-        "type": "html-button-response",
+        "type": "bead-binary-choice",
+        "prompt": prompt,
         "stimulus": stimulus_html,
         "choices": ["Yes", "No"],
-        "data": metadata,
-        "button_html": config.button_html
-        or '<button class="jspsych-btn">%choice%</button>',
+        "require_response": config.required,
+        "metadata": metadata,
     }
 
 
@@ -541,25 +548,20 @@ def _create_forced_choice_trial(
     Returns
     -------
     dict[str, JsonValue]
-        A jsPsych html-button-response trial object.
+        A jsPsych bead-forced-choice trial object.
 
     Raises
     ------
     ValueError
         If item.options is empty or has fewer than 2 options.
     """
-    # For forced choice, use the prompt from the template as the stimulus
-    # (not the choices themselves)
     prompt = (
         template.task_spec.prompt
         if template.task_spec
         else "Which option do you choose?"
     )
-    stimulus_html = (
-        f'<div class="stimulus-container"><p class="prompt">{prompt}</p></div>'
-    )
 
-    # Extract choices from item.options
+    # Extract alternatives from item.options (single source of truth)
     if not item.options:
         raise ValueError(
             f"Item {item.id} has no options. "
@@ -571,7 +573,12 @@ def _create_forced_choice_trial(
             f"Item {item.id} has only {len(item.options)} option(s). "
             f"Forced choice items require at least 2 options."
         )
-    choices = list(item.options)
+
+    # For composite span tasks, render span-highlighted HTML into each alternative
+    alternatives: list[str] = list(item.options)
+    if has_spans and span_display:
+        stimulus_html = _generate_span_stimulus_html(item, span_display)
+        prompt = stimulus_html + f"<p>{prompt}</p>"
 
     # Serialize complete metadata
     metadata = _serialize_item_metadata(item, template)
@@ -579,12 +586,15 @@ def _create_forced_choice_trial(
     metadata["trial_type"] = "forced_choice"
 
     return {
-        "type": "html-button-response",
-        "stimulus": stimulus_html,
-        "choices": choices,
-        "data": metadata,
-        "button_html": config.button_html
-        or '<button class="jspsych-btn">%choice%</button>',
+        "type": "bead-forced-choice",
+        "prompt": prompt,
+        "alternatives": alternatives,
+        "layout": config.layout,
+        "randomize_position": config.randomize_choice_order,
+        "enable_keyboard": True,
+        "require_response": config.required,
+        "button_label": "Select",
+        "metadata": metadata,
     }
 
 
@@ -1107,5 +1117,5 @@ def _create_span_labeling_trial(
         "prompt": prompt,
         "button_label": "Continue",
         "require_response": True,
-        "data": metadata,
+        "metadata": metadata,
     }

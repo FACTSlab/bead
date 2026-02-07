@@ -92,16 +92,16 @@ def test_forced_choice_plugin_preserves_metadata() -> None:
 
 
 def test_all_plugins_have_version() -> None:
-    """Test that all plugins have version 0.1.0."""
+    """Test that all plugins have version 0.2.0."""
     plugin_dir = Path("bead/deployment/jspsych/src/plugins")
     # exclude test files
     plugins = [p for p in plugin_dir.glob("*.ts") if not p.name.endswith(".test.ts")]
 
-    assert len(plugins) == 3, "Expected 3 plugins"
+    assert len(plugins) == 10, f"Expected 10 plugins, found {len(plugins)}"
 
     for plugin_path in plugins:
         content = plugin_path.read_text()
-        assert "0.1.0" in content, f"Plugin {plugin_path.name} missing version"
+        assert "0.2.0" in content, f"Plugin {plugin_path.name} missing version"
 
 
 def test_all_plugins_have_author() -> None:
@@ -120,7 +120,12 @@ def test_compiled_plugins_exist() -> None:
     dist_dir = Path("bead/deployment/jspsych/dist/plugins")
     assert dist_dir.exists(), "dist/plugins directory should exist after build"
 
-    expected_plugins = ["rating.js", "forced-choice.js", "cloze-dropdown.js"]
+    expected_plugins = [
+        "rating.js",
+        "forced-choice.js",
+        "cloze-dropdown.js",
+        "span-label.js",
+    ]
     for plugin in expected_plugins:
         plugin_path = dist_dir / plugin
         assert plugin_path.exists(), f"Compiled plugin {plugin} should exist"

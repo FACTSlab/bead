@@ -254,7 +254,7 @@ class TestSpanLabelingTrial:
         assert trial["type"] == "bead-span-label"
         assert trial["prompt"] == "Select entities"
         assert trial["button_label"] == "Continue"
-        assert trial["data"]["trial_type"] == "span_labeling"
+        assert trial["metadata"]["trial_type"] == "span_labeling"
 
     def test_trial_metadata(self) -> None:
         """Test span labeling trial includes metadata."""
@@ -275,8 +275,8 @@ class TestSpanLabelingTrial:
         config = SpanDisplayConfig()
         trial = _create_span_labeling_trial(item, template, config, 5)
 
-        assert trial["data"]["trial_number"] == 5
-        assert trial["data"]["item_id"] == str(item.id)
+        assert trial["metadata"]["trial_number"] == 5
+        assert trial["metadata"]["item_id"] == str(item.id)
 
     def test_trial_includes_span_data(self) -> None:
         """Test span labeling trial includes spans, relations, spec, config."""

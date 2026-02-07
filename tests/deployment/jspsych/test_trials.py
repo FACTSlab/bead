@@ -52,10 +52,11 @@ class TestCreateTrial:
             rating_config=sample_rating_config,
         )
 
-        assert trial["type"] == "html-button-response"
-        assert len(trial["choices"]) == 7
-        assert trial["data"]["item_id"] == str(sample_item.id)
-        assert trial["data"]["trial_type"] == "likert_rating"
+        assert trial["type"] == "bead-rating"
+        assert trial["scale_min"] == 1
+        assert trial["scale_max"] == 7
+        assert trial["metadata"]["item_id"] == str(sample_item.id)
+        assert trial["metadata"]["trial_type"] == "likert_rating"
 
     def test_slider_rating(
         self, sample_item: Item, sample_item_template: ItemTemplate
@@ -80,10 +81,10 @@ class TestCreateTrial:
             rating_config=rating_config,
         )
 
-        assert trial["type"] == "html-slider-response"
-        assert trial["min"] == 1
-        assert trial["max"] == 7
-        assert trial["data"]["trial_type"] == "slider_rating"
+        assert trial["type"] == "bead-slider-rating"
+        assert trial["slider_min"] == 1
+        assert trial["slider_max"] == 7
+        assert trial["metadata"]["trial_type"] == "slider_rating"
 
     def test_binary_choice(
         self, sample_item: Item, sample_item_template: ItemTemplate
@@ -108,9 +109,9 @@ class TestCreateTrial:
             choice_config=choice_config,
         )
 
-        assert trial["type"] == "html-button-response"
+        assert trial["type"] == "bead-binary-choice"
         assert trial["choices"] == ["Yes", "No"]
-        assert trial["data"]["trial_type"] == "binary_choice"
+        assert trial["metadata"]["trial_type"] == "binary_choice"
 
     def test_forced_choice(self) -> None:
         """Test forced choice trial creation."""
@@ -152,9 +153,9 @@ class TestCreateTrial:
             choice_config=choice_config,
         )
 
-        assert trial["type"] == "html-button-response"
-        assert len(trial["choices"]) == 2
-        assert trial["data"]["trial_type"] == "forced_choice"
+        assert trial["type"] == "bead-forced-choice"
+        assert len(trial["alternatives"]) == 2
+        assert trial["metadata"]["trial_type"] == "forced_choice"
 
     def test_missing_config_raises_error(self) -> None:
         """Test trial creation with missing required config."""
@@ -235,8 +236,8 @@ class TestCreateTrial:
             rating_config=rating_config,
         )
 
-        assert trial["data"]["trial_number"] == 5
-        assert trial["data"]["item_metadata"] == sample_item.item_metadata
+        assert trial["metadata"]["trial_number"] == 5
+        assert trial["metadata"]["item_metadata"] == sample_item.item_metadata
 
 
 class TestLikertConfiguration:
@@ -285,9 +286,10 @@ class TestLikertConfiguration:
             rating_config=rating_config,
         )
 
-        assert "Strongly disagree" in trial["prompt"]
-        assert "Strongly agree" in trial["prompt"]
-        assert len(trial["choices"]) == 5
+        assert trial["scale_labels"]["1"] == "Strongly disagree"
+        assert trial["scale_labels"]["5"] == "Strongly agree"
+        assert trial["scale_min"] == 1
+        assert trial["scale_max"] == 5
 
 
 class TestSliderConfiguration:

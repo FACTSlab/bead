@@ -459,3 +459,4 @@ class ChoiceConfig(BaseModel):
     button_html: str | None = Field(default=None)
     required: bool = Field(default=True)
     randomize_choice_order: bool = Field(default=False)
+    layout: Literal["horizontal", "vertical"] = Field(default="horizontal")
