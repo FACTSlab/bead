@@ -121,10 +121,10 @@ Contributions welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 ## Citation
 
 ```bibtex
-@software{white2025bead,
+@software{white2026bead,
   author = {White, Aaron Steven},
-  title = {bead: A framework for linguistic judgment experiments},
-  year = {2025},
+  title = {bead: A framework for large-scale linguistic judgment experiments},
+  year = {2026},
   url = {https://github.com/FACTSlab/bead},
 }
 ```
@@ -135,4 +135,4 @@ MIT License. See [LICENSE](LICENSE) for details.
 
 ## Acknowledgments
 
-This project was developed by Aaron Steven White at the University of Rochester with support from the National Science Foundation (NSF-BCS-2237175 *CAREER: Logical Form Induction*, NSF-BCS-2040831 *Computational Modeling of the Internal Structure of Events*). It was architected and implemented with the assistance of Claude Code.
+This project was developed by [Aaron Steven White](https://aaronstevenwhite.io/) at the University of Rochester with support from the National Science Foundation (NSF-BCS-2237175 *CAREER: Logical Form Induction*, NSF-BCS-2040831 *Computational Modeling of the Internal Structure of Events*). It was architected and implemented with the assistance of Claude Code.
