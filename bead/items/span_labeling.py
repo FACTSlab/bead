@@ -13,6 +13,8 @@ Integration Points
 
 from __future__ import annotations
 
+import re
+import warnings
 from collections.abc import Callable
 from uuid import UUID, uuid4
 
@@ -24,6 +26,8 @@ from bead.items.spans import (
 )
 from bead.tokenization.config import TokenizerConfig
 from bead.tokenization.tokenizers import TokenizedText, create_tokenizer
+
+_SPAN_REF_PATTERN = re.compile(r"\[\[([^\]:]+?)(?::([^\]]+?))?\]\]")
 
 
 def tokenize_item(
@@ -314,6 +318,24 @@ def add_spans_to_item(
 
     # Validate spans
     _validate_span_indices(spans, item.tokenized_elements)
+
+    # Warn if prompt contains [[label]] references to nonexistent span labels
+    prompt_text = item.rendered_elements.get("prompt", "")
+    if prompt_text:
+        all_spans = list(item.spans) + spans
+        span_labels = {
+            s.label.label for s in all_spans if s.label is not None
+        }
+        for match in _SPAN_REF_PATTERN.finditer(prompt_text):
+            ref_label = match.group(1)
+            if ref_label not in span_labels:
+                warnings.warn(
+                    f"Prompt contains [[{ref_label}]] but no span with "
+                    f"label '{ref_label}' exists. Available labels: "
+                    f"{sorted(span_labels)}",
+                    UserWarning,
+                    stacklevel=2,
+                )
 
     # Build new item with spans
     data = item.model_dump()

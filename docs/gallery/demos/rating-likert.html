@@ -33,24 +33,23 @@
       });
       var trial = {
         type: BeadRatingPlugin,
-        prompt: '<p style="color:#424242;font-size:1.1em;margin-bottom:12px">How acceptable is this sentence?</p><div style="font-size:1.15em;padding:16px 24px;background:white;border:1px solid #e0e0e0;border-radius:6px;display:inline-block;margin-bottom:8px">Someone <em>hoped</em> someone to leave.</div>',
+        prompt: "How natural is this sentence?",
+        stimulus: "Someone hoped someone to leave.",
         scale_min: 1,
         scale_max: 7,
-        scale_labels: {1: "Completely unacceptable", 4: "Neutral", 7: "Completely acceptable"},
+        scale_labels: {1: "Extremely unnatural", 7: "Totally natural"},
         require_response: true,
         button_label: "Continue",
         metadata: {
-          rendered_elements: {text: "Someone hoped someone to leave."},
           verb: "hope",
           frame: "NP_to_VP",
-          item_id: "mega-acceptability-hope-np-to-vp",
-          source: "MegaAcceptability (White & Rawlins, 2016)"
+          item_id: "naturalness-hope-np-to-vp"
         }
       };
       jsPsych.run([trial]);
     }
     runDemo();
   </script>
-  <script>new ResizeObserver(() => { window.parent.postMessage({ type: 'bead-resize', height: document.documentElement.scrollHeight }, '*'); }).observe(document.body);</script>
+  <script>(function(){var last=0;new ResizeObserver(function(){var h=document.documentElement.scrollHeight;if(h!==last){last=h;window.parent.postMessage({type:'bead-resize',height:h},'*');}}).observe(document.body);})()</script>
 </body>
 </html>

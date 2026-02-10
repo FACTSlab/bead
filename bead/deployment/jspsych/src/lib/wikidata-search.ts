@@ -86,14 +86,12 @@ export async function searchWikidata(
     }
 
     const data = await response.json();
-    const results: WikidataEntity[] = (data.search ?? []).map(
-      (item: Record<string, unknown>) => ({
-        id: String(item["id"] ?? ""),
-        label: String(item["label"] ?? ""),
-        description: String(item["description"] ?? ""),
-        aliases: Array.isArray(item["aliases"]) ? item["aliases"].map(String) : [],
-      }),
-    );
+    const results: WikidataEntity[] = (data.search ?? []).map((item: Record<string, unknown>) => ({
+      id: String(item["id"] ?? ""),
+      label: String(item["label"] ?? ""),
+      description: String(item["description"] ?? ""),
+      aliases: Array.isArray(item["aliases"]) ? item["aliases"].map(String) : [],
+    }));
 
     putCache(key, results);
     return results;

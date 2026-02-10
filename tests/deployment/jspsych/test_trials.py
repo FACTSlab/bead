@@ -20,9 +20,14 @@ from bead.deployment.jspsych.config import (
     InstructionPage,
     InstructionsConfig,
     RatingScaleConfig,
+    SpanDisplayConfig,
 )
 from bead.deployment.jspsych.trials import (
+    SpanColorMap,
+    _assign_span_colors,
     _generate_stimulus_html,
+    _parse_prompt_references,
+    _resolve_prompt_references,
     create_completion_trial,
     create_consent_trial,
     create_demographics_trial,
@@ -31,6 +36,7 @@ from bead.deployment.jspsych.trials import (
 )
 from bead.items.item import Item
 from bead.items.item_template import ItemTemplate, PresentationSpec, TaskSpec
+from bead.items.spans import Span, SpanLabel, SpanSegment
 
 
 class TestCreateTrial:
@@ -485,3 +491,216 @@ class TestSpecialTrials:
         trial = create_completion_trial(completion_message=custom_message)
 
         assert custom_message in trial["stimulus"]
+
+
+class TestParsePromptReferences:
+    """Tests for _parse_prompt_references()."""
+
+    def test_no_references(self) -> None:
+        """Plain text without references returns an empty list."""
+        refs = _parse_prompt_references("How natural is this sentence?")
+
+        assert refs == []
+
+    def test_auto_fill_reference(self) -> None:
+        """Single auto-fill reference is parsed with label and no display_text."""
+        refs = _parse_prompt_references("How natural is [[agent]]?")
+
+        assert len(refs) == 1
+        assert refs[0].label == "agent"
+        assert refs[0].display_text is None
+
+    def test_explicit_text_reference(self) -> None:
+        """Explicit text reference is parsed with both label and display_text."""
+        refs = _parse_prompt_references("Did [[event:the breaking]] happen?")
+
+        assert len(refs) == 1
+        assert refs[0].label == "event"
+        assert refs[0].display_text == "the breaking"
+
+    def test_multiple_references(self) -> None:
+        """Multiple references are parsed in order of appearance."""
+        refs = _parse_prompt_references(
+            "Did [[agent]] cause [[event:the breaking]]?"
+        )
+
+        assert len(refs) == 2
+        assert refs[0].label == "agent"
+        assert refs[0].display_text is None
+        assert refs[1].label == "event"
+        assert refs[1].display_text == "the breaking"
+
+
+class TestAssignSpanColors:
+    """Tests for _assign_span_colors() and SpanColorMap."""
+
+    def test_same_label_same_color(self) -> None:
+        """Two spans with the same label receive identical colors."""
+        spans = [
+            Span(
+                span_id="s0",
+                segments=[SpanSegment(element_name="text", indices=[0])],
+                label=SpanLabel(label="agent"),
+            ),
+            Span(
+                span_id="s1",
+                segments=[SpanSegment(element_name="text", indices=[1])],
+                label=SpanLabel(label="agent"),
+            ),
+        ]
+        span_display = SpanDisplayConfig()
+
+        color_map = _assign_span_colors(spans, span_display)
+
+        assert color_map.light_by_span_id["s0"] == color_map.light_by_span_id["s1"]
+        assert color_map.dark_by_span_id["s0"] == color_map.dark_by_span_id["s1"]
+
+    def test_different_labels_different_colors(self) -> None:
+        """Two spans with different labels receive different light colors."""
+        spans = [
+            Span(
+                span_id="s0",
+                segments=[SpanSegment(element_name="text", indices=[0])],
+                label=SpanLabel(label="agent"),
+            ),
+            Span(
+                span_id="s1",
+                segments=[SpanSegment(element_name="text", indices=[1])],
+                label=SpanLabel(label="patient"),
+            ),
+        ]
+        span_display = SpanDisplayConfig()
+
+        color_map = _assign_span_colors(spans, span_display)
+
+        assert (
+            color_map.light_by_span_id["s0"] != color_map.light_by_span_id["s1"]
+        )
+
+    def test_unlabeled_span_gets_own_color(self) -> None:
+        """An unlabeled span receives its own unique color."""
+        spans = [
+            Span(
+                span_id="s0",
+                segments=[SpanSegment(element_name="text", indices=[0])],
+                label=SpanLabel(label="agent"),
+            ),
+            Span(
+                span_id="s1",
+                segments=[SpanSegment(element_name="text", indices=[1])],
+                label=None,
+            ),
+        ]
+        span_display = SpanDisplayConfig()
+
+        color_map = _assign_span_colors(spans, span_display)
+
+        assert "s1" in color_map.light_by_span_id
+        assert (
+            color_map.light_by_span_id["s1"] != color_map.light_by_span_id["s0"]
+        )
+
+
+class TestResolvePromptReferences:
+    """Tests for _resolve_prompt_references()."""
+
+    @pytest.fixture
+    def span_item(self) -> Item:
+        """Create an item with tokenized elements and spans."""
+        return Item(
+            item_template_id=uuid4(),
+            rendered_elements={"text": "The boy broke the vase."},
+            tokenized_elements={
+                "text": ["The", "boy", "broke", "the", "vase", "."],
+            },
+            token_space_after={"text": [True, True, True, True, False, False]},
+            spans=[
+                Span(
+                    span_id="span_0",
+                    segments=[
+                        SpanSegment(element_name="text", indices=[0, 1]),
+                    ],
+                    label=SpanLabel(label="breaker"),
+                ),
+                Span(
+                    span_id="span_1",
+                    segments=[
+                        SpanSegment(element_name="text", indices=[2]),
+                    ],
+                    label=SpanLabel(label="event"),
+                ),
+            ],
+        )
+
+    @pytest.fixture
+    def color_map(self, span_item: Item) -> SpanColorMap:
+        """Assign colors to the span_item's spans."""
+        span_display = SpanDisplayConfig()
+        return _assign_span_colors(span_item.spans, span_display)
+
+    def test_no_refs_backward_compat(
+        self, span_item: Item, color_map: SpanColorMap
+    ) -> None:
+        """Prompt without references is returned unchanged."""
+        result = _resolve_prompt_references("How natural?", span_item, color_map)
+
+        assert result == "How natural?"
+
+    def test_auto_fill_produces_html(
+        self, span_item: Item, color_map: SpanColorMap
+    ) -> None:
+        """Auto-fill reference produces highlighted HTML with span text."""
+        result = _resolve_prompt_references(
+            "Did [[breaker]] do it?", span_item, color_map
+        )
+
+        assert "bead-q-highlight" in result
+        assert "bead-q-chip" in result
+        assert "breaker" in result
+        assert "The boy" in result
+
+    def test_explicit_text_produces_html(
+        self, span_item: Item, color_map: SpanColorMap
+    ) -> None:
+        """Explicit text reference renders the specified text with label."""
+        result = _resolve_prompt_references(
+            "Did [[event:the breaking]] happen?", span_item, color_map
+        )
+
+        assert "the breaking" in result
+        assert "event" in result
+        assert "bead-q-highlight" in result
+
+    def test_nonexistent_label_raises_value_error(
+        self, span_item: Item, color_map: SpanColorMap
+    ) -> None:
+        """Reference to a nonexistent label raises ValueError."""
+        with pytest.raises(ValueError, match="nonexistent"):
+            _resolve_prompt_references(
+                "Did [[nonexistent]] do it?", span_item, color_map
+            )
+
+    def test_color_consistency(
+        self, span_item: Item, color_map: SpanColorMap
+    ) -> None:
+        """Resolved HTML uses the same colors as the color map."""
+        result = _resolve_prompt_references(
+            "Did [[breaker]] do it?", span_item, color_map
+        )
+
+        expected_light = color_map.light_by_label["breaker"]
+        expected_dark = color_map.dark_by_label["breaker"]
+
+        assert expected_light in result
+        assert expected_dark in result
+
+    def test_same_label_twice(
+        self, span_item: Item, color_map: SpanColorMap
+    ) -> None:
+        """Two references to the same label use the same background color."""
+        result = _resolve_prompt_references(
+            "Did [[breaker]] meet [[breaker:him]]?", span_item, color_map
+        )
+
+        expected_light = color_map.light_by_label["breaker"]
+        assert result.count(expected_light) == 2

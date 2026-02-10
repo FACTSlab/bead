@@ -121,39 +121,40 @@
         }
       });
 
-      var tokens1 = ["Someone", "threw", "something", "."];
-      var spaceAfter1 = [true, true, false, false];
+      var tokens1 = ["The", "boy", "tapped", "the", "vase", "."];
+      var spaceAfter1 = [true, true, true, true, false, false];
       var spans1 = [
-        {span_id: "span_0", segments: [{element_name: "text", indices: [0]}], label: {label: "arg0"}},
-        {span_id: "span_1", segments: [{element_name: "text", indices: [2]}], label: {label: "arg1"}}
+        {span_id: "span_0", segments: [{element_name: "text", indices: [0, 1]}], label: {label: "tapper"}},
+        {span_id: "span_1", segments: [{element_name: "text", indices: [3, 4]}], label: {label: "tappee"}}
       ];
 
-      var tokens2 = ["Someone", "received", "something", "."];
-      var spaceAfter2 = [true, true, false, false];
+      var tokens2 = ["The", "boy", "hit", "the", "vase", "."];
+      var spaceAfter2 = [true, true, true, true, false, false];
       var spans2 = [
-        {span_id: "span_0", segments: [{element_name: "text", indices: [0]}], label: {label: "arg0"}},
-        {span_id: "span_1", segments: [{element_name: "text", indices: [2]}], label: {label: "arg1"}}
+        {span_id: "span_0", segments: [{element_name: "text", indices: [0, 1]}], label: {label: "hitter"}},
+        {span_id: "span_1", segments: [{element_name: "text", indices: [3, 4]}], label: {label: "hitee"}}
       ];
 
       var palette = ["#BBDEFB", "#C8E6C9", "#FFE0B2", "#F8BBD0", "#D1C4E9", "#B2EBF2", "#DCEDC8", "#FFD54F"];
       var stimA = renderSpanStimulus(tokens1, spaceAfter1, spans1, palette);
       var stimB = renderSpanStimulus(tokens2, spaceAfter2, spans2, palette);
 
+      var question = 'In which event is it more likely that ' +
+        '<span class="bead-q-highlight" style="background:#C8E6C9">the vase</span> broke?';
+
       var trial = {
         type: BeadForcedChoicePlugin,
-        prompt: "In which sentence is arg0 (someone) more likely to have <em>caused</em> the event?",
+        prompt: question,
         alternatives: [stimA, stimB],
-        alternative_labels: ["A", "B"],
         layout: "horizontal",
         randomize_position: false,
         enable_keyboard: true,
         on_load: function() { fixSubscriptOverlaps(document.getElementById("jspsych-target")); },
         metadata: {
-          predicates: ["threw", "received"],
-          property: "instigation",
-          argument: "arg0",
-          item_id: "spr-instigation-threw-vs-received",
-          source: "Semantic Proto-Roles (Reisinger et al., 2015)"
+          predicates: ["tapped", "hit"],
+          property: "change_of_state",
+          argument: "patient",
+          item_id: "spr-change-of-state-tap-vs-hit"
         }
       };
 
@@ -162,6 +163,6 @@
 
     runDemo();
   </script>
-  <script>new ResizeObserver(() => { window.parent.postMessage({ type: 'bead-resize', height: document.documentElement.scrollHeight }, '*'); }).observe(document.body);</script>
+  <script>(function(){var last=0;new ResizeObserver(function(){var h=document.documentElement.scrollHeight;if(h!==last){last=h;window.parent.postMessage({type:'bead-resize',height:h},'*');}}).observe(document.body);})()</script>
 </body>
 </html>

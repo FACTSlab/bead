@@ -52,6 +52,20 @@ def _default_span_color_palette() -> list[str]:
     ]
 
 
+def _default_span_dark_palette() -> list[str]:
+    """Return default dark color palette for span subscript badges."""
+    return [
+        "#1565C0",
+        "#2E7D32",
+        "#E65100",
+        "#AD1457",
+        "#4527A0",
+        "#00838F",
+        "#558B2F",
+        "#F9A825",
+    ]
+
+
 class SpanDisplayConfig(BaseModel):
     """Visual configuration for span rendering in experiments.
 
@@ -60,7 +74,10 @@ class SpanDisplayConfig(BaseModel):
     highlight_style : Literal["background", "underline", "border"]
         How to visually indicate spans.
     color_palette : list[str]
-        CSS color values for span highlighting.
+        CSS color values for span highlighting (light backgrounds).
+    dark_color_palette : list[str]
+        CSS color values for subscript label badges (dark, index-aligned
+        with color_palette).
     show_labels : bool
         Whether to show span labels inline.
     show_tooltips : bool
@@ -76,6 +93,9 @@ class SpanDisplayConfig(BaseModel):
     highlight_style: Literal["background", "underline", "border"] = "background"
     color_palette: list[str] = Field(
         default_factory=_default_span_color_palette
+    )
+    dark_color_palette: list[str] = Field(
+        default_factory=_default_span_dark_palette
     )
     show_labels: bool = True
     show_tooltips: bool = True

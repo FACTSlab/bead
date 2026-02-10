@@ -285,6 +285,49 @@ print(f"Original spans: {len(rating_item.spans)}")
 print(f"After adding: {len(item_with_spans.spans)}")
 ```
 
+### Prompt Span References
+
+When composing spans with other task types, prompts can reference span labels using `[[label]]` syntax. At deployment time, these references are replaced with color-highlighted HTML that matches the span colors in the stimulus text.
+
+**Syntax**:
+
+| Pattern | Behavior |
+|---------|----------|
+| `[[label]]` | Auto-fills with the span's token text (e.g., "The boy") |
+| `[[label:custom text]]` | Uses the provided text instead (e.g., "the breaking") |
+
+**Example**: a rating item with highlighted prompt references:
+
+```python
+from bead.items.ordinal_scale import create_ordinal_scale_item
+from bead.items.span_labeling import add_spans_to_item
+from bead.items.spans import Span, SpanLabel, SpanSegment
+
+item = create_ordinal_scale_item(
+    text="The boy broke the vase.",
+    prompt="How likely is it that [[breaker]] existed after [[event:the breaking]]?",
+    scale_bounds=(1, 5),
+    scale_labels={1: "Very unlikely", 5: "Very likely"},
+)
+
+item = add_spans_to_item(item, spans=[
+    Span(span_id="span_0",
+         segments=[SpanSegment(element_name="text", indices=[0, 1])],
+         label=SpanLabel(label="breaker")),
+    Span(span_id="span_1",
+         segments=[SpanSegment(element_name="text", indices=[2])],
+         label=SpanLabel(label="event")),
+])
+```
+
+When this item is deployed, the prompt renders as:
+
+> How likely is it that <span style="background:#BBDEFB;padding:1px 4px;border-radius:3px">The boy</span> existed after <span style="background:#C8E6C9;padding:1px 4px;border-radius:3px">the breaking</span>?
+
+Colors are assigned deterministically: the same label always gets the same color pair in both the stimulus and the prompt. Auto-fill (`[[breaker]]`) reconstructs the span's token text by joining tokens from `tokenized_elements` and respecting `token_space_after` flags. Custom text (`[[event:the breaking]]`) lets you use a different surface form when the prompt needs a morphological variant of the span text (e.g., "ran" in the target vs. "the running" in the prompt).
+
+If a prompt references a label that doesn't exist among the item's spans, `add_spans_to_item()` issues a warning at item construction time, and trial generation raises a `ValueError`.
+
 **Adding tokenization to an existing item**:
 
 ```python

@@ -12,8 +12,8 @@ import {
   type SpanDisplayConfig,
   assignSpanColors,
   computeTokenSpanMap,
-  renderTokenizedText,
   renderRelationArcs,
+  renderTokenizedText,
 } from "./span-renderer.js";
 
 const DEFAULT_CONFIG: SpanDisplayConfig = {
@@ -144,11 +144,7 @@ describe("assignSpanColors", () => {
       { span_id: "span_1", segments: [], label: { label: "Location" } },
     ];
 
-    const colors = assignSpanColors(
-      spans,
-      ["#000000"],
-      { "Person": "#CUSTOM1" },
-    );
+    const colors = assignSpanColors(spans, ["#000000"], { Person: "#CUSTOM1" });
 
     expect(colors.get("span_0")).toBe("#CUSTOM1");
     expect(colors.get("span_1")).toBe("#000000"); // from palette
@@ -169,12 +165,7 @@ describe("assignSpanColors", () => {
 
 describe("renderTokenizedText", () => {
   test("renders tokens as span elements", () => {
-    const el = renderTokenizedText(
-      ["Hello", "world"],
-      [true, false],
-      [],
-      DEFAULT_CONFIG,
-    );
+    const el = renderTokenizedText(["Hello", "world"], [true, false], [], DEFAULT_CONFIG);
 
     const tokens = el.querySelectorAll(".bead-token");
     expect(tokens).toHaveLength(2);
@@ -183,12 +174,7 @@ describe("renderTokenizedText", () => {
   });
 
   test("adds space after tokens with space_after=true", () => {
-    const el = renderTokenizedText(
-      ["Hello", "world"],
-      [true, false],
-      [],
-      DEFAULT_CONFIG,
-    );
+    const el = renderTokenizedText(["Hello", "world"], [true, false], [], DEFAULT_CONFIG);
 
     // Container should have: <span>Hello</span> " " <span>world</span>
     const textContent = el.textContent;
@@ -205,12 +191,7 @@ describe("renderTokenizedText", () => {
       },
     ];
 
-    const el = renderTokenizedText(
-      ["John", "sat"],
-      [true, false],
-      spans,
-      DEFAULT_CONFIG,
-    );
+    const el = renderTokenizedText(["John", "sat"], [true, false], spans, DEFAULT_CONFIG);
 
     const highlighted = el.querySelectorAll(".highlighted");
     expect(highlighted).toHaveLength(1);
@@ -227,24 +208,14 @@ describe("renderTokenizedText", () => {
       },
     ];
 
-    const el = renderTokenizedText(
-      ["John"],
-      [false],
-      spans,
-      DEFAULT_CONFIG,
-    );
+    const el = renderTokenizedText(["John"], [false], spans, DEFAULT_CONFIG);
 
     const token = el.querySelector(".bead-token");
     expect(token?.getAttribute("title")).toBe("Person");
   });
 
   test("sets data-index on each token", () => {
-    const el = renderTokenizedText(
-      ["a", "b", "c"],
-      [true, true, false],
-      [],
-      DEFAULT_CONFIG,
-    );
+    const el = renderTokenizedText(["a", "b", "c"], [true, true, false], [], DEFAULT_CONFIG);
 
     const tokens = el.querySelectorAll(".bead-token");
     expect(tokens[0]?.getAttribute("data-index")).toBe("0");
@@ -253,12 +224,7 @@ describe("renderTokenizedText", () => {
   });
 
   test("does not add space between tokens with space_after=false", () => {
-    const el = renderTokenizedText(
-      ["don", "'t"],
-      [false, false],
-      [],
-      DEFAULT_CONFIG,
-    );
+    const el = renderTokenizedText(["don", "'t"], [false, false], [], DEFAULT_CONFIG);
 
     // Should be "don't" with no space
     const spans = el.querySelectorAll(".bead-token");

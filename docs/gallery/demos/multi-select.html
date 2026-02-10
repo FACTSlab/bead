@@ -33,34 +33,26 @@
       });
       var trial = {
         type: BeadMultiSelectPlugin,
-        prompt: 'Which of the following properties apply to <strong>"someone<sub>1</sub>"</strong> (the subject) in this sentence?',
-        stimulus: '<div style="font-size:1.15em;padding:16px 24px;background:white;border:1px solid #e0e0e0;border-radius:6px;display:inline-block;margin-bottom:8px">Someone<sub>1</sub> <em>broke</em> something<sub>2</sub>.</div>',
+        prompt: "Who was secretly pleased?",
+        stimulus: "Whenever anyone laughed, the magician scowled and their assistant smirked. They were secretly pleased.",
         options: [
-          "instigation: caused the event",
-          "volition: chose to be involved",
-          "sentience: was aware of being involved",
-          "change of state: changed state as a result",
-          "existed before: existed before the event",
-          "existed after: existed after the event",
-          "change of location: changed location",
-          "stationary: was stationary during the event",
-          "physical contact: made physical contact"
+          "The magician",
+          "The assistant",
+          "Neither"
         ],
         min_selections: 1,
         max_selections: 0,
         require_response: true,
         button_label: "Continue",
         metadata: {
-          predicate: "broke",
-          argument: "arg0",
-          item_id: "spr-properties-broke-arg0",
-          source: "Semantic Proto-Roles (Reisinger et al., 2015)"
+          phenomenon: "pronoun_resolution",
+          item_id: "pronoun-resolution-magician"
         }
       };
       jsPsych.run([trial]);
     }
     runDemo();
   </script>
-  <script>new ResizeObserver(() => { window.parent.postMessage({ type: 'bead-resize', height: document.documentElement.scrollHeight }, '*'); }).observe(document.body);</script>
+  <script>(function(){var last=0;new ResizeObserver(function(){var h=document.documentElement.scrollHeight;if(h!==last){last=h;window.parent.postMessage({type:'bead-resize',height:h},'*');}}).observe(document.body);})()</script>
 </body>
 </html>

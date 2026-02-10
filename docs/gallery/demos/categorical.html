@@ -33,21 +33,20 @@
       });
       var trial = {
         type: BeadCategoricalPlugin,
-        prompt: "What is the relationship between the premise and hypothesis?",
-        stimulus: '<div style="margin-bottom:12px"><strong>Premise:</strong> The doctor managed to treat the patient.</div><div><strong>Hypothesis:</strong> The patient was treated.</div>',
-        categories: ["Entailment", "Neutral", "Contradiction"],
+        prompt: "If the first sentence is true, is the second sentence true?",
+        stimulus: '<div style="margin-bottom:12px">The doctor managed to treat the patient.</div><div>The patient was treated.</div>',
+        categories: ["Definitely not", "Maybe", "Definitely"],
         require_response: true,
         button_label: "Continue",
         metadata: {
-          item_id: "dnc-nli-manage-01",
-          recast_type: "factivity",
-          source: "Diverse NLI Corpus (White et al., 2018)"
+          item_id: "factivity-manage-01",
+          recast_type: "factivity"
         }
       };
       jsPsych.run([trial]);
     }
     runDemo();
   </script>
-  <script>new ResizeObserver(() => { window.parent.postMessage({ type: 'bead-resize', height: document.documentElement.scrollHeight }, '*'); }).observe(document.body);</script>
+  <script>(function(){var last=0;new ResizeObserver(function(){var h=document.documentElement.scrollHeight;if(h!==last){last=h;window.parent.postMessage({type:'bead-resize',height:h},'*');}}).observe(document.body);})()</script>
 </body>
 </html>

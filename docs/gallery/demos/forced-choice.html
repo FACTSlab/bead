@@ -33,26 +33,23 @@
       });
       var trial = {
         type: BeadForcedChoicePlugin,
-        prompt: "Which sentence sounds more acceptable?",
+        prompt: "The turkey was ready to eat. What planned to eat?",
         alternatives: [
-          "Someone <em>wanted</em> someone to leave.",
-          "Someone <em>hoped</em> someone to leave."
+          "The turkey",
+          "Something else"
         ],
-        alternative_labels: ["A", "B"],
         layout: "vertical",
         randomize_position: false,
         enable_keyboard: true,
         metadata: {
-          verbs: ["want", "hope"],
-          frame: "NP_to_VP",
-          item_id: "mega-acceptability-fc-want-vs-hope",
-          source: "MegaAcceptability (White & Rawlins, 2016)"
+          sentence: "The turkey was ready to eat.",
+          item_id: "ambiguity-turkey-ready-to-eat"
         }
       };
       jsPsych.run([trial]);
     }
     runDemo();
   </script>
-  <script>new ResizeObserver(() => { window.parent.postMessage({ type: 'bead-resize', height: document.documentElement.scrollHeight }, '*'); }).observe(document.body);</script>
+  <script>(function(){var last=0;new ResizeObserver(function(){var h=document.documentElement.scrollHeight;if(h!==last){last=h;window.parent.postMessage({type:'bead-resize',height:h},'*');}}).observe(document.body);})()</script>
 </body>
 </html>

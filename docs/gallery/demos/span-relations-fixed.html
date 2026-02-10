@@ -46,7 +46,7 @@
           allow_overlapping: true,
           enable_relations: true,
           relation_label_source: "fixed",
-          relation_labels: ["ARG0", "ARG1", "ARG2", "ARG3", "ARG-LOC", "ARG-TMP", "ARG-MNR", "ARG-PRP", "ARG-CAU"],
+          relation_labels: ["agent-of", "patient-of", "theme-of", "recipient-of", "location-of", "time-of", "predicate-of"],
           relation_directed: true,
           wikidata_language: "en",
           wikidata_result_limit: 10
@@ -62,14 +62,13 @@
         require_response: false,
         button_label: "Continue",
         metadata: {
-          item_id: "srl-relations-01",
-          source: "UDS Semantic Role Labeling"
+          item_id: "srl-relations-01"
         }
       };
       jsPsych.run([trial]);
     }
     runDemo();
   </script>
-  <script>new ResizeObserver(() => { window.parent.postMessage({ type: 'bead-resize', height: document.documentElement.scrollHeight }, '*'); }).observe(document.body);</script>
+  <script>(function(){var last=0;new ResizeObserver(function(){var h=document.documentElement.scrollHeight;if(h!==last){last=h;window.parent.postMessage({type:'bead-resize',height:h},'*');}}).observe(document.body);})()</script>
 </body>
 </html>

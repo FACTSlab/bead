@@ -8,6 +8,9 @@ forced choice, binary choice, and span labeling trials. Composite tasks
 
 from __future__ import annotations
 
+import re
+from dataclasses import dataclass
+
 from bead.data.base import JsonValue
 from bead.deployment.jspsych.config import (
     ChoiceConfig,
@@ -20,6 +23,7 @@ from bead.deployment.jspsych.config import (
 )
 from bead.items.item import Item
 from bead.items.item_template import ItemTemplate
+from bead.items.spans import Span
 
 
 def _serialize_item_metadata(
@@ -390,7 +394,13 @@ def _create_likert_trial(
     # Build prompt: stimulus HTML + task prompt if available
     prompt = stimulus_html
     if template.task_spec and template.task_spec.prompt:
-        prompt += f'<p class="bead-task-prompt">{template.task_spec.prompt}</p>'
+        task_prompt = template.task_spec.prompt
+        if has_spans and span_display:
+            color_map = _assign_span_colors(item.spans, span_display)
+            task_prompt = _resolve_prompt_references(
+                task_prompt, item, color_map
+            )
+        prompt += f'<p class="bead-task-prompt">{task_prompt}</p>'
 
     # Serialize complete metadata
     metadata = _serialize_item_metadata(item, template)
@@ -444,6 +454,17 @@ def _create_slider_trial(
     else:
         stimulus_html = _generate_stimulus_html(item)
 
+    # Build prompt: stimulus HTML + resolved task prompt
+    prompt_html = stimulus_html
+    if template.task_spec and template.task_spec.prompt:
+        task_prompt = template.task_spec.prompt
+        if has_spans and span_display:
+            color_map = _assign_span_colors(item.spans, span_display)
+            task_prompt = _resolve_prompt_references(
+                task_prompt, item, color_map
+            )
+        prompt_html += f'<p class="bead-task-prompt">{task_prompt}</p>'
+
     # Serialize complete metadata
     metadata = _serialize_item_metadata(item, template)
     metadata["trial_number"] = trial_number
@@ -451,7 +472,7 @@ def _create_slider_trial(
 
     return {
         "type": "bead-slider-rating",
-        "prompt": stimulus_html,
+        "prompt": prompt_html,
         "labels": [config.min_label, config.max_label],
         "slider_min": config.scale.min,
         "slider_max": config.scale.max,
@@ -508,6 +529,10 @@ def _create_binary_choice_trial(
         if template.task_spec
         else "Is this sentence acceptable?"
     )
+
+    if has_spans and span_display:
+        color_map = _assign_span_colors(item.spans, span_display)
+        prompt = _resolve_prompt_references(prompt, item, color_map)
 
     return {
         "type": "bead-binary-choice",
@@ -577,6 +602,8 @@ def _create_forced_choice_trial(
     # For composite span tasks, render span-highlighted HTML into each alternative
     alternatives: list[str] = list(item.options)
     if has_spans and span_display:
+        color_map = _assign_span_colors(item.spans, span_display)
+        prompt = _resolve_prompt_references(prompt, item, color_map)
         stimulus_html = _generate_span_stimulus_html(item, span_display)
         prompt = stimulus_html + f"<p>{prompt}</p>"
 
@@ -873,6 +900,77 @@ def create_instructions_trial(
     }
 
 
+@dataclass(frozen=True)
+class SpanColorMap:
+    """Light and dark color assignments for spans."""
+
+    light_by_span_id: dict[str, str]
+    dark_by_span_id: dict[str, str]
+    light_by_label: dict[str, str]
+    dark_by_label: dict[str, str]
+
+
+def _assign_span_colors(
+    spans: list[Span],
+    span_display: SpanDisplayConfig,
+) -> SpanColorMap:
+    """Assign light and dark colors to spans.
+
+    Same label gets the same color pair. Unlabeled spans each get
+    their own color. Index-aligned light/dark palettes produce
+    matching background and badge colors.
+
+    Parameters
+    ----------
+    spans : list[Span]
+        Spans to assign colors to.
+    span_display : SpanDisplayConfig
+        Display configuration with light and dark palettes.
+
+    Returns
+    -------
+    SpanColorMap
+        Color assignments keyed by span_id and by label.
+    """
+    light_palette = span_display.color_palette
+    dark_palette = span_display.dark_color_palette
+
+    light_by_label: dict[str, str] = {}
+    dark_by_label: dict[str, str] = {}
+    light_by_span_id: dict[str, str] = {}
+    dark_by_span_id: dict[str, str] = {}
+    color_idx = 0
+
+    for span in spans:
+        if span.label and span.label.label:
+            label_name = span.label.label
+            if label_name not in light_by_label:
+                light_by_label[label_name] = light_palette[
+                    color_idx % len(light_palette)
+                ]
+                dark_by_label[label_name] = dark_palette[
+                    color_idx % len(dark_palette)
+                ]
+                color_idx += 1
+            light_by_span_id[span.span_id] = light_by_label[label_name]
+            dark_by_span_id[span.span_id] = dark_by_label[label_name]
+        else:
+            light_by_span_id[span.span_id] = light_palette[
+                color_idx % len(light_palette)
+            ]
+            dark_by_span_id[span.span_id] = dark_palette[
+                color_idx % len(dark_palette)
+            ]
+            color_idx += 1
+
+    return SpanColorMap(
+        light_by_span_id=light_by_span_id,
+        dark_by_span_id=dark_by_span_id,
+        light_by_label=light_by_label,
+        dark_by_label=dark_by_label,
+    )
+
+
 def _generate_span_stimulus_html(
     item: Item,
     span_display: SpanDisplayConfig,
@@ -914,30 +1012,9 @@ def _generate_span_stimulus_html(
                             token_spans[idx] = []
                         token_spans[idx].append(span.span_id)
 
-        # Assign colors
-        span_colors: dict[str, str] = {}
-        palette = span_display.color_palette
-        color_idx = 0
-        for span in item.spans:
-            if span.label and span.label.label:
-                # Use label_colors if available
-                if (
-                    span_display.show_labels
-                    and hasattr(span, "label")
-                    and span.label
-                ):
-                    label_name = span.label.label
-                    if label_name not in span_colors:
-                        span_colors[label_name] = palette[
-                            color_idx % len(palette)
-                        ]
-                        color_idx += 1
-                    span_colors[span.span_id] = span_colors[label_name]
-            else:
-                span_colors[span.span_id] = palette[
-                    color_idx % len(palette)
-                ]
-                color_idx += 1
+        # Assign colors (shared with prompt reference resolution)
+        color_map = _assign_span_colors(item.spans, span_display)
+        span_colors = color_map.light_by_span_id
 
         html_parts.append(
             f'<div class="stimulus-element bead-span-container" '
@@ -952,14 +1029,15 @@ def _generate_span_stimulus_html(
             if n_spans > 0:
                 classes.append("highlighted")
 
+            fallback = span_display.color_palette[0]
             style_parts: list[str] = []
             if n_spans == 1:
-                color = span_colors.get(span_ids[0], palette[0])
+                color = span_colors.get(span_ids[0], fallback)
                 style_parts.append(f"background-color: {color}")
             elif n_spans > 1:
                 # Layer multiple spans
                 colors = [
-                    span_colors.get(sid, palette[0]) for sid in span_ids
+                    span_colors.get(sid, fallback) for sid in span_ids
                 ]
                 gradient = ", ".join(colors)
                 style_parts.append(
@@ -989,6 +1067,164 @@ def _generate_span_stimulus_html(
 
     html_parts.append("</div>")
     return "".join(html_parts)
+
+
+# ── Prompt span reference resolution ──────────────────────────────
+
+_SPAN_REF_PATTERN = re.compile(r"\[\[([^\]:]+?)(?::([^\]]+?))?\]\]")
+
+
+@dataclass(frozen=True)
+class _SpanReference:
+    """A parsed ``[[label]]`` or ``[[label:text]]`` reference."""
+
+    label: str
+    display_text: str | None
+    match_start: int
+    match_end: int
+
+
+def _parse_prompt_references(prompt: str) -> list[_SpanReference]:
+    """Parse ``[[label]]`` and ``[[label:text]]`` references from a prompt.
+
+    Parameters
+    ----------
+    prompt : str
+        Prompt string potentially containing span references.
+
+    Returns
+    -------
+    list[_SpanReference]
+        Parsed references in order of appearance.
+    """
+    return [
+        _SpanReference(
+            label=m.group(1).strip(),
+            display_text=m.group(2).strip() if m.group(2) else None,
+            match_start=m.start(),
+            match_end=m.end(),
+        )
+        for m in _SPAN_REF_PATTERN.finditer(prompt)
+    ]
+
+
+def _auto_fill_span_text(label: str, item: Item) -> str:
+    """Reconstruct display text from a span's tokens.
+
+    Finds the first span whose label matches, collects its token
+    indices from the first segment's element, and joins them
+    respecting ``token_space_after``.
+
+    Parameters
+    ----------
+    label : str
+        Span label to look up.
+    item : Item
+        Item with spans, tokenized_elements, and token_space_after.
+
+    Returns
+    -------
+    str
+        Reconstructed text from the span's tokens.
+
+    Raises
+    ------
+    ValueError
+        If no span with the given label exists or tokens are unavailable.
+    """
+    target_span: Span | None = None
+    for span in item.spans:
+        if span.label and span.label.label == label:
+            target_span = span
+            break
+
+    if target_span is None:
+        available = [
+            s.label.label for s in item.spans if s.label and s.label.label
+        ]
+        raise ValueError(
+            f"Prompt references span label '{label}' but no span with "
+            f"that label exists. Available labels: {available}"
+        )
+
+    parts: list[str] = []
+    for segment in target_span.segments:
+        element_name = segment.element_name
+        tokens = item.tokenized_elements.get(element_name, [])
+        space_flags = item.token_space_after.get(element_name, [])
+        sorted_indices = sorted(segment.indices)
+        for i, idx in enumerate(sorted_indices):
+            if idx < len(tokens):
+                parts.append(tokens[idx])
+                if (
+                    i < len(sorted_indices) - 1
+                    and idx < len(space_flags)
+                    and space_flags[idx]
+                ):
+                    parts.append(" ")
+
+    return "".join(parts)
+
+
+def _resolve_prompt_references(
+    prompt: str,
+    item: Item,
+    color_map: SpanColorMap,
+) -> str:
+    """Replace ``[[label]]`` references in a prompt with highlighted HTML.
+
+    Parameters
+    ----------
+    prompt : str
+        Prompt template with ``[[label]]`` or ``[[label:text]]`` refs.
+    item : Item
+        Item with spans and tokenized_elements.
+    color_map : SpanColorMap
+        Pre-computed color assignments from ``_assign_span_colors()``.
+
+    Returns
+    -------
+    str
+        Prompt with references replaced by highlighted HTML.
+
+    Raises
+    ------
+    ValueError
+        If a reference points to a nonexistent label.
+    """
+    refs = _parse_prompt_references(prompt)
+    if not refs:
+        return prompt
+
+    available = {
+        s.label.label for s in item.spans if s.label and s.label.label
+    }
+    for ref in refs:
+        if ref.label not in available:
+            raise ValueError(
+                f"Prompt references span label '{ref.label}' but no span "
+                f"with that label exists. Available labels: "
+                f"{sorted(available)}"
+            )
+
+    result = prompt
+    for ref in reversed(refs):
+        display = (
+            ref.display_text
+            if ref.display_text is not None
+            else _auto_fill_span_text(ref.label, item)
+        )
+        light = color_map.light_by_label.get(ref.label, "#BBDEFB")
+        dark = color_map.dark_by_label.get(ref.label, "#1565C0")
+        html = (
+            f'<span class="bead-q-highlight" style="background:{light}">'
+            f"{display}"
+            f'<span class="bead-q-chip" style="background:{dark}">'
+            f"{ref.label}</span></span>"
+        )
+        result = result[: ref.match_start] + html + result[ref.match_end :]
+
+    return result
 
 
 def _create_span_labeling_trial(
@@ -1027,6 +1263,10 @@ def _create_span_labeling_trial(
         if template.task_spec
         else "Select and label spans"
     )
+
+    if item.spans:
+        color_map = _assign_span_colors(item.spans, span_display)
+        prompt = _resolve_prompt_references(prompt, item, color_map)
 
     # Serialize span data for the plugin
     spans_data = [

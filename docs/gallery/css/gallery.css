@@ -1,5 +1,14 @@
 /* Gallery demo styles - loaded by each standalone demo HTML page */
 
+/* Override jsPsych's html,body { height: 100% } so that
+   document.documentElement.scrollHeight reflects actual content,
+   not the iframe viewport size (which causes a resize feedback loop). */
+html, body {
+  height: auto !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
 /* Reset and base */
 *, *::before, *::after {
   box-sizing: border-box;
@@ -156,6 +165,7 @@ body {
 
 .bead-alternative:hover {
   border-color: #5c6bc0;
+  border-top: 3px solid #5c6bc0;
   box-shadow: 0 2px 8px rgba(63, 81, 181, 0.12);
 }
 
@@ -235,6 +245,7 @@ body {
   padding: 16px 24px;
   background: white;
   border: 1px solid #e0e0e0;
+  border-left: 3px solid #FFB74D;
   border-radius: 6px;
   display: inline-block;
   margin-bottom: 20px;
@@ -653,6 +664,7 @@ body {
   padding: 16px 24px;
   background: white;
   border: 1px solid #e0e0e0;
+  border-left: 3px solid #4DB6AC;
   border-radius: 6px;
   display: inline-block;
   margin-bottom: 20px;
@@ -710,6 +722,7 @@ body {
   padding: 16px 24px;
   background: white;
   border: 1px solid #e0e0e0;
+  border-left: 3px solid #FF8A65;
   border-radius: 6px;
   display: inline-block;
   margin-bottom: 20px;
@@ -767,6 +780,7 @@ body {
   padding: 16px 24px;
   background: white;
   border: 1px solid #e0e0e0;
+  border-left: 3px solid #81C784;
   border-radius: 6px;
   display: inline-block;
   margin-bottom: 20px;
@@ -819,6 +833,7 @@ body {
   padding: 16px 24px;
   background: white;
   border: 1px solid #e0e0e0;
+  border-left: 3px solid #BA68C8;
   border-radius: 6px;
   display: inline-block;
   margin-bottom: 20px;
@@ -827,9 +842,12 @@ body {
 .bead-multi-select-options {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   gap: 6px;
   margin-bottom: 20px;
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .bead-multi-select-option {
@@ -1039,4 +1057,267 @@ body {
   letter-spacing: 0.5px;
   color: #9e9e9e;
   margin-bottom: 4px;
+}
+
+/* ── Multi-select compact layout ─────────────────────── */
+
+.bead-multi-select-compact {
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+}
+
+.bead-multi-select-compact .bead-multi-select-option {
+  min-width: auto;
+  padding: 8px 14px;
+}
+
+/* ── Magnitude estimation reference + target ─────────── */
+
+.bead-magnitude-reference-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: -8px;
+  position: relative;
+  z-index: 1;
+}
+
+.bead-magnitude-section-label {
+  font-size: 0.7em;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #78909C;
+  font-weight: 500;
+  margin-bottom: 2px;
+}
+
+.bead-magnitude-reference-chip {
+  display: inline-block;
+  background: #1565C0;
+  color: white;
+  font-weight: 700;
+  padding: 2px 12px;
+  border-radius: 12px;
+  font-size: 0.85em;
+  line-height: 1.4;
+}
+
+.bead-magnitude-reference {
+  border: 1.5px dashed #B0BEC5;
+  background: #ECEFF1;
+  font-size: 0.95em;
+  padding: 16px 24px 12px;
+  border-radius: 6px;
+  margin-bottom: 12px;
+  display: inline-block;
+}
+
+.bead-magnitude-reference-text {
+  font-size: 1.05em;
+  color: #546E7A;
+}
+
+/* ── Magnitude exponential slider ────────────────────── */
+
+.bead-magnitude-slider-wrapper {
+  max-width: 520px;
+  margin: 0 auto 16px;
+}
+
+.bead-magnitude-slider-value {
+  text-align: center;
+  font-size: 2em;
+  font-weight: 700;
+  color: #3f51b5;
+  margin-bottom: 12px;
+  min-height: 1.2em;
+  font-variant-numeric: tabular-nums;
+}
+
+.bead-magnitude-slider-track-area {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bead-magnitude-slider-endpoint {
+  font-size: 0.9em;
+  color: #757575;
+  flex-shrink: 0;
+  width: 24px;
+  text-align: center;
+  user-select: none;
+}
+
+.bead-magnitude-slider-right {
+  font-size: 1.2em;
+}
+
+.bead-magnitude-slider-track {
+  position: relative;
+  flex: 1;
+  height: 8px;
+  background: #e0e0e0;
+  border-radius: 4px;
+  cursor: pointer;
+  outline: none;
+}
+
+.bead-magnitude-slider-track:focus-visible {
+  box-shadow: 0 0 0 3px rgba(63, 81, 181, 0.25);
+}
+
+.bead-magnitude-slider-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: #3f51b5;
+  border-radius: 4px 0 0 4px;
+  pointer-events: none;
+}
+
+.bead-magnitude-slider-ref-tick {
+  position: absolute;
+  top: -6px;
+  bottom: -6px;
+  width: 2px;
+  background: #1565C0;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.bead-magnitude-slider-ref-label {
+  position: absolute;
+  top: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.7em;
+  color: #1565C0;
+  font-weight: 500;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.bead-magnitude-slider-handle {
+  position: absolute;
+  top: 50%;
+  width: 22px;
+  height: 22px;
+  background: #3f51b5;
+  border: 2px solid white;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  cursor: grab;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+.bead-magnitude-slider-handle:active {
+  cursor: grabbing;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  transform: translate(-50%, -50%) scale(1.1);
+}
+
+.bead-magnitude-slider-handle.hidden {
+  display: none;
+}
+
+/* ── Rating / Slider stimulus ────────────────────────── */
+
+.bead-rating-stimulus {
+  font-size: 1.15em;
+  padding: 16px 24px;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-left: 3px solid #7986CB;
+  border-radius: 6px;
+  display: inline-block;
+  margin-bottom: 20px;
+}
+
+.bead-slider-stimulus {
+  font-size: 1.15em;
+  padding: 16px 24px;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-left: 3px solid #9FA8DA;
+  border-radius: 6px;
+  display: inline-block;
+  margin-bottom: 20px;
+}
+
+/* ── Span label search: always-visible + cancel ──────── */
+
+.bead-label-search-panel.bead-search-disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.bead-label-search-panel.bead-search-disabled input {
+  cursor: not-allowed;
+}
+
+.bead-search-cancel {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: none;
+  color: #9e9e9e;
+  cursor: pointer;
+  font-size: 1.1em;
+  padding: 2px 4px;
+  line-height: 1;
+}
+
+.bead-search-cancel:hover {
+  color: #e57373;
+}
+
+/* ── Span bottom bar (search + continue inline) ──────── */
+
+.bead-span-bottom-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.bead-span-bottom-bar .bead-label-search-panel {
+  flex: 1;
+  margin-top: 0;
+}
+
+.bead-span-bottom-bar .bead-span-bottom-spacer {
+  flex: 1;
+}
+
+/* ── Question highlighting (for span+task demos) ─────── */
+
+.bead-q-highlight {
+  position: relative;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-weight: 500;
+  margin-bottom: 0.6rem;
+}
+
+.bead-q-chip {
+  position: absolute;
+  bottom: -0.6rem;
+  right: -2px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0px 5px;
+  border-radius: 0.6rem;
+  font-size: 0.6rem;
+  font-weight: 500;
+  color: white;
+  white-space: nowrap;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  line-height: 1.5;
 }

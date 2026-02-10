@@ -61,14 +61,13 @@
         require_response: true,
         button_label: "Continue",
         metadata: {
-          item_id: "srl-interactive-01",
-          source: "UDS Semantic Proto-Roles"
+          item_id: "srl-interactive-01"
         }
       };
       jsPsych.run([trial]);
     }
     runDemo();
   </script>
-  <script>new ResizeObserver(() => { window.parent.postMessage({ type: 'bead-resize', height: document.documentElement.scrollHeight }, '*'); }).observe(document.body);</script>
+  <script>(function(){var last=0;new ResizeObserver(function(){var h=document.documentElement.scrollHeight;if(h!==last){last=h;window.parent.postMessage({type:'bead-resize',height:h},'*');}}).observe(document.body);})()</script>
 </body>
 </html>

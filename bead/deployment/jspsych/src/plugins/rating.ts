@@ -17,6 +17,9 @@
 
 import type { JsPsych, JsPsychPlugin, KeyboardResponseInfo, PluginInfo } from "../types/jspsych.js";
 
+/** Position of the prompt relative to the stimulus */
+type PromptPosition = "above" | "below";
+
 /** Bead item/template metadata */
 interface BeadMetadata {
   [key: string]: unknown;
@@ -26,6 +29,10 @@ interface BeadMetadata {
 export interface RatingTrialParams {
   /** The prompt to display above the rating scale */
   prompt: string | null;
+  /** HTML stimulus to display */
+  stimulus: string;
+  /** Position of the prompt relative to the stimulus */
+  prompt_position: PromptPosition;
   /** Minimum value of the scale */
   scale_min: number;
   /** Maximum value of the scale */
@@ -53,6 +60,14 @@ const info: PluginInfo = {
     prompt: {
       type: 8, // ParameterType.HTML_STRING
       default: null,
+    },
+    stimulus: {
+      type: 8, // ParameterType.HTML_STRING
+      default: "",
+    },
+    prompt_position: {
+      type: 1, // ParameterType.STRING
+      default: "above",
     },
     scale_min: {
       type: 2, // ParameterType.INT
@@ -104,7 +119,15 @@ class BeadRatingPlugin implements JsPsychPlugin<typeof info, RatingTrialParams> 
     // Create HTML
     let html = '<div class="bead-rating-container">';
 
-    if (trial.prompt !== null) {
+    if (trial.prompt !== null && trial.prompt_position === "above") {
+      html += `<div class="bead-rating-prompt">${trial.prompt}</div>`;
+    }
+
+    if (trial.stimulus) {
+      html += `<div class="bead-rating-stimulus">${trial.stimulus}</div>`;
+    }
+
+    if (trial.prompt !== null && trial.prompt_position === "below") {
       html += `<div class="bead-rating-prompt">${trial.prompt}</div>`;
     }
 

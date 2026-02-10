@@ -6,310 +6,8 @@
   var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
   var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
 
-  // src/plugins/rating.ts
-  var info = {
-    name: "bead-rating",
-    parameters: {
-      prompt: {
-        type: 8,
-        // ParameterType.HTML_STRING
-        default: null
-      },
-      scale_min: {
-        type: 2,
-        // ParameterType.INT
-        default: 1
-      },
-      scale_max: {
-        type: 2,
-        // ParameterType.INT
-        default: 7
-      },
-      scale_labels: {
-        type: 12,
-        // ParameterType.OBJECT
-        default: {}
-      },
-      require_response: {
-        type: 0,
-        // ParameterType.BOOL
-        default: true
-      },
-      button_label: {
-        type: 1,
-        // ParameterType.STRING
-        default: "Continue"
-      },
-      metadata: {
-        type: 12,
-        // ParameterType.OBJECT
-        default: {}
-      }
-    }
-  };
-  var BeadRatingPlugin = class {
-    constructor(jsPsych) {
-      __publicField(this, "jsPsych");
-      this.jsPsych = jsPsych;
-    }
-    trial(display_element, trial) {
-      const response = {
-        rating: null,
-        rt: null
-      };
-      const start_time = performance.now();
-      let html = '<div class="bead-rating-container">';
-      if (trial.prompt !== null) {
-        html += `<div class="bead-rating-prompt">${trial.prompt}</div>`;
-      }
-      html += '<div class="bead-rating-scale">';
-      for (let i = trial.scale_min; i <= trial.scale_max; i++) {
-        const label = trial.scale_labels[i] ?? i;
-        html += `
-        <div class="bead-rating-option">
-          <button class="bead-rating-button" data-value="${i}">${i}</button>
-          <div class="bead-rating-label">${label}</div>
-        </div>
-      `;
-      }
-      html += "</div>";
-      html += `
-      <div class="bead-rating-button-container">
-        <button class="bead-button bead-continue-button" id="bead-rating-continue" disabled>
-          ${trial.button_label}
-        </button>
-      </div>
-    `;
-      html += "</div>";
-      display_element.innerHTML = html;
-      const rating_buttons = display_element.querySelectorAll(".bead-rating-button");
-      for (const button of rating_buttons) {
-        button.addEventListener("click", (e) => {
-          const target = e.target;
-          const valueAttr = target.getAttribute("data-value");
-          if (valueAttr !== null) {
-            const value = Number.parseInt(valueAttr, 10);
-            select_rating(value);
-          }
-        });
-      }
-      const keyboard_listener = this.jsPsych.pluginAPI.getKeyboardResponse({
-        callback_function: (info11) => {
-          const key = info11.key;
-          const num = Number.parseInt(key, 10);
-          if (!Number.isNaN(num) && num >= trial.scale_min && num <= trial.scale_max) {
-            select_rating(num);
-          }
-        },
-        valid_responses: "ALL_KEYS",
-        rt_method: "performance",
-        persist: true,
-        allow_held_key: false
-      });
-      const continue_button = display_element.querySelector("#bead-rating-continue");
-      if (continue_button) {
-        continue_button.addEventListener("click", () => {
-          if (response.rating !== null || !trial.require_response) {
-            end_trial();
-          }
-        });
-      }
-      const select_rating = (value) => {
-        response.rating = value;
-        response.rt = performance.now() - start_time;
-        for (const btn of rating_buttons) {
-          btn.classList.remove("selected");
-        }
-        const selected_button = display_element.querySelector(
-          `[data-value="${value}"]`
-        );
-        if (selected_button) {
-          selected_button.classList.add("selected");
-        }
-        if (continue_button) {
-          continue_button.disabled = false;
-        }
-      };
-      const end_trial = () => {
-        if (keyboard_listener) {
-          this.jsPsych.pluginAPI.cancelKeyboardResponse(keyboard_listener);
-        }
-        const trial_data = {
-          ...trial.metadata,
-          // Spread all metadata
-          rating: response.rating,
-          rt: response.rt
-        };
-        display_element.innerHTML = "";
-        this.jsPsych.finishTrial(trial_data);
-      };
-    }
-  };
-  __publicField(BeadRatingPlugin, "info", info);
-
-  // src/plugins/forced-choice.ts
-  var info2 = {
-    name: "bead-forced-choice",
-    parameters: {
-      prompt: {
-        type: 8,
-        // ParameterType.HTML_STRING
-        default: "Which do you prefer?"
-      },
-      alternatives: {
-        type: 1,
-        // ParameterType.STRING
-        default: [],
-        array: true
-      },
-      layout: {
-        type: 1,
-        // ParameterType.STRING
-        default: "horizontal"
-      },
-      randomize_position: {
-        type: 0,
-        // ParameterType.BOOL
-        default: true
-      },
-      enable_keyboard: {
-        type: 0,
-        // ParameterType.BOOL
-        default: true
-      },
-      require_response: {
-        type: 0,
-        // ParameterType.BOOL
-        default: true
-      },
-      button_label: {
-        type: 1,
-        // ParameterType.STRING
-        default: "Continue"
-      },
-      metadata: {
-        type: 12,
-        // ParameterType.OBJECT
-        default: {}
-      }
-    }
-  };
-  var BeadForcedChoicePlugin = class {
-    constructor(jsPsych) {
-      __publicField(this, "jsPsych");
-      this.jsPsych = jsPsych;
-    }
-    trial(display_element, trial) {
-      const response = {
-        choice: null,
-        choice_index: null,
-        position: null,
-        rt: null
-      };
-      const start_time = performance.now();
-      let left_index = 0;
-      let right_index = 1;
-      if (trial.randomize_position && Math.random() < 0.5) {
-        left_index = 1;
-        right_index = 0;
-      }
-      let html = '<div class="bead-forced-choice-container">';
-      if (trial.prompt) {
-        html += `<div class="bead-forced-choice-prompt">${trial.prompt}</div>`;
-      }
-      html += `<div class="bead-forced-choice-alternatives bead-layout-${trial.layout}">`;
-      html += `
-      <div class="bead-card bead-alternative" data-index="${left_index}" data-position="left">
-        <div class="bead-alternative-label">Option 1</div>
-        <div class="bead-alternative-content">${trial.alternatives[left_index] ?? "Alternative A"}</div>
-        <button class="bead-button bead-choice-button" data-index="${left_index}" data-position="left">
-          Select
-        </button>
-      </div>
-    `;
-      html += `
-      <div class="bead-card bead-alternative" data-index="${right_index}" data-position="right">
-        <div class="bead-alternative-label">Option 2</div>
-        <div class="bead-alternative-content">${trial.alternatives[right_index] ?? "Alternative B"}</div>
-        <button class="bead-button bead-choice-button" data-index="${right_index}" data-position="right">
-          Select
-        </button>
-      </div>
-    `;
-      html += "</div>";
-      html += "</div>";
-      display_element.innerHTML = html;
-      const choice_buttons = display_element.querySelectorAll(".bead-choice-button");
-      for (const button of choice_buttons) {
-        button.addEventListener("click", (e) => {
-          const target = e.target;
-          const indexAttr = target.getAttribute("data-index");
-          const positionAttr = target.getAttribute("data-position");
-          if (indexAttr !== null && positionAttr !== null) {
-            const index = Number.parseInt(indexAttr, 10);
-            select_choice(index, positionAttr);
-          }
-        });
-      }
-      let keyboard_listener = null;
-      if (trial.enable_keyboard) {
-        keyboard_listener = this.jsPsych.pluginAPI.getKeyboardResponse({
-          callback_function: (info11) => {
-            const key = info11.key;
-            if (key === "1" || key === "ArrowLeft") {
-              select_choice(left_index, "left");
-            } else if (key === "2" || key === "ArrowRight") {
-              select_choice(right_index, "right");
-            }
-          },
-          valid_responses: ["1", "2", "ArrowLeft", "ArrowRight"],
-          rt_method: "performance",
-          persist: false,
-          allow_held_key: false
-        });
-      }
-      const select_choice = (index, position) => {
-        response.choice = trial.alternatives[index] ?? null;
-        response.choice_index = index;
-        response.position = position;
-        response.rt = performance.now() - start_time;
-        const alternative_cards = display_element.querySelectorAll(".bead-alternative");
-        for (const card of alternative_cards) {
-          card.classList.remove("selected");
-        }
-        const selected_card = display_element.querySelector(
-          `.bead-alternative[data-position="${position}"]`
-        );
-        if (selected_card) {
-          selected_card.classList.add("selected");
-        }
-        setTimeout(() => {
-          end_trial();
-        }, 300);
-      };
-      const end_trial = () => {
-        if (keyboard_listener) {
-          this.jsPsych.pluginAPI.cancelKeyboardResponse(keyboard_listener);
-        }
-        const trial_data = {
-          ...trial.metadata,
-          // Spread all metadata
-          choice: response.choice,
-          choice_index: response.choice_index,
-          position_chosen: response.position,
-          left_index,
-          right_index,
-          rt: response.rt
-        };
-        display_element.innerHTML = "";
-        this.jsPsych.finishTrial(trial_data);
-      };
-    }
-  };
-  __publicField(BeadForcedChoicePlugin, "info", info2);
-
   // src/plugins/binary-choice.ts
-  var info3 = {
+  var info = {
     name: "bead-binary-choice",
     parameters: {
       prompt: {
@@ -327,6 +25,11 @@
         // ParameterType.STRING
         default: ["Yes", "No"],
         array: true
+      },
+      prompt_position: {
+        type: 1,
+        // ParameterType.STRING
+        default: "above"
       },
       require_response: {
         type: 0,
@@ -350,11 +53,14 @@
       let rt = null;
       const start_time = performance.now();
       let html = '<div class="bead-binary-choice-container">';
-      if (trial.prompt) {
+      if (trial.prompt && trial.prompt_position === "above") {
         html += `<div class="bead-binary-choice-prompt">${trial.prompt}</div>`;
       }
       if (trial.stimulus) {
         html += `<div class="bead-binary-choice-stimulus">${trial.stimulus}</div>`;
+      }
+      if (trial.prompt && trial.prompt_position === "below") {
+        html += `<div class="bead-binary-choice-prompt">${trial.prompt}</div>`;
       }
       html += '<div class="bead-binary-choice-buttons">';
       for (let i = 0; i < trial.choices.length; i++) {
@@ -401,44 +107,34 @@
       };
     }
   };
-  __publicField(BeadBinaryChoicePlugin, "info", info3);
+  __publicField(BeadBinaryChoicePlugin, "info", info);
 
-  // src/plugins/slider-rating.ts
-  var info4 = {
-    name: "bead-slider-rating",
+  // src/plugins/categorical.ts
+  var info2 = {
+    name: "bead-categorical",
     parameters: {
       prompt: {
         type: 8,
         // ParameterType.HTML_STRING
-        default: null
+        default: "Select a category:"
       },
-      slider_min: {
-        type: 2,
-        // ParameterType.INT
-        default: 0
+      stimulus: {
+        type: 8,
+        // ParameterType.HTML_STRING
+        default: ""
       },
-      slider_max: {
-        type: 2,
-        // ParameterType.INT
-        default: 100
-      },
-      step: {
-        type: 2,
-        // ParameterType.INT
-        default: 1
-      },
-      slider_start: {
-        type: 2,
-        // ParameterType.INT
-        default: 50
-      },
-      labels: {
+      categories: {
         type: 1,
         // ParameterType.STRING
         default: [],
         array: true
       },
-      require_movement: {
+      prompt_position: {
+        type: 1,
+        // ParameterType.STRING
+        default: "above"
+      },
+      require_response: {
         type: 0,
         // ParameterType.BOOL
         default: true
@@ -455,58 +151,62 @@
       }
     }
   };
-  var BeadSliderRatingPlugin = class {
+  var BeadCategoricalPlugin = class {
     constructor(jsPsych) {
       __publicField(this, "jsPsych");
       this.jsPsych = jsPsych;
     }
     trial(display_element, trial) {
-      let slider_value = trial.slider_start;
-      let has_moved = false;
+      let selected_index = null;
       const start_time = performance.now();
-      let html = '<div class="bead-slider-container">';
-      if (trial.prompt !== null) {
-        html += `<div class="bead-slider-prompt">${trial.prompt}</div>`;
+      let html = '<div class="bead-categorical-container">';
+      if (trial.prompt && trial.prompt_position === "above") {
+        html += `<div class="bead-categorical-prompt">${trial.prompt}</div>`;
       }
-      html += '<div class="bead-slider-wrapper">';
-      if (trial.labels.length > 0) {
-        html += '<div class="bead-slider-labels">';
-        for (const label of trial.labels) {
-          html += `<span class="bead-slider-label">${label}</span>`;
-        }
-        html += "</div>";
+      if (trial.stimulus) {
+        html += `<div class="bead-categorical-stimulus">${trial.stimulus}</div>`;
       }
-      html += `<input type="range" class="bead-slider-input" min="${trial.slider_min}" max="${trial.slider_max}" step="${trial.step}" value="${trial.slider_start}">`;
-      html += `<div class="bead-slider-value">${trial.slider_start}</div>`;
+      if (trial.prompt && trial.prompt_position === "below") {
+        html += `<div class="bead-categorical-prompt">${trial.prompt}</div>`;
+      }
+      html += '<div class="bead-categorical-options">';
+      for (let i = 0; i < trial.categories.length; i++) {
+        html += `<button class="bead-button bead-categorical-button" data-index="${i}">${trial.categories[i]}</button>`;
+      }
       html += "</div>";
-      const disabled = trial.require_movement ? "disabled" : "";
+      const disabled = trial.require_response ? "disabled" : "";
       html += `
-      <div class="bead-slider-button-container">
-        <button class="bead-button bead-continue-button" id="bead-slider-continue" ${disabled}>
+      <div class="bead-categorical-button-container">
+        <button class="bead-button bead-continue-button" id="bead-categorical-continue" ${disabled}>
           ${trial.button_label}
         </button>
       </div>
     `;
       html += "</div>";
       display_element.innerHTML = html;
-      const slider = display_element.querySelector(".bead-slider-input");
-      const value_display = display_element.querySelector(".bead-slider-value");
-      const continue_button = display_element.querySelector("#bead-slider-continue");
-      if (slider) {
-        slider.addEventListener("input", () => {
-          slider_value = Number.parseFloat(slider.value);
-          has_moved = true;
-          if (value_display) {
-            value_display.textContent = String(slider_value);
-          }
-          if (continue_button && trial.require_movement) {
-            continue_button.disabled = false;
+      const buttons = display_element.querySelectorAll(".bead-categorical-button");
+      const continueBtn = display_element.querySelector(
+        "#bead-categorical-continue"
+      );
+      for (const button of buttons) {
+        button.addEventListener("click", (e) => {
+          const target = e.currentTarget;
+          const indexAttr = target.getAttribute("data-index");
+          if (indexAttr !== null) {
+            selected_index = Number.parseInt(indexAttr, 10);
+            for (const btn of buttons) {
+              btn.classList.remove("selected");
+            }
+            target.classList.add("selected");
+            if (continueBtn) {
+              continueBtn.disabled = false;
+            }
           }
         });
       }
-      if (continue_button) {
-        continue_button.addEventListener("click", () => {
-          if (!trial.require_movement || has_moved) {
+      if (continueBtn) {
+        continueBtn.addEventListener("click", () => {
+          if (!trial.require_response || selected_index !== null) {
             end_trial();
           }
         });
@@ -515,7 +215,8 @@
         const rt = performance.now() - start_time;
         const trial_data = {
           ...trial.metadata,
-          response: slider_value,
+          response: selected_index !== null ? trial.categories[selected_index] : null,
+          response_index: selected_index,
           rt
         };
         display_element.innerHTML = "";
@@ -523,10 +224,10 @@
       };
     }
   };
-  __publicField(BeadSliderRatingPlugin, "info", info4);
+  __publicField(BeadCategoricalPlugin, "info", info2);
 
   // src/plugins/cloze-dropdown.ts
-  var info5 = {
+  var info3 = {
     name: "bead-cloze-multi",
     parameters: {
       text: {
@@ -666,7 +367,1108 @@
       };
     }
   };
-  __publicField(BeadClozeMultiPlugin, "info", info5);
+  __publicField(BeadClozeMultiPlugin, "info", info3);
+
+  // src/plugins/forced-choice.ts
+  var info4 = {
+    name: "bead-forced-choice",
+    parameters: {
+      prompt: {
+        type: 8,
+        // ParameterType.HTML_STRING
+        default: "Which do you prefer?"
+      },
+      alternatives: {
+        type: 1,
+        // ParameterType.STRING
+        default: [],
+        array: true
+      },
+      layout: {
+        type: 1,
+        // ParameterType.STRING
+        default: "horizontal"
+      },
+      randomize_position: {
+        type: 0,
+        // ParameterType.BOOL
+        default: true
+      },
+      enable_keyboard: {
+        type: 0,
+        // ParameterType.BOOL
+        default: true
+      },
+      require_response: {
+        type: 0,
+        // ParameterType.BOOL
+        default: true
+      },
+      button_label: {
+        type: 1,
+        // ParameterType.STRING
+        default: "Continue"
+      },
+      metadata: {
+        type: 12,
+        // ParameterType.OBJECT
+        default: {}
+      }
+    }
+  };
+  var BeadForcedChoicePlugin = class {
+    constructor(jsPsych) {
+      __publicField(this, "jsPsych");
+      this.jsPsych = jsPsych;
+    }
+    trial(display_element, trial) {
+      const response = {
+        choice: null,
+        choice_index: null,
+        position: null,
+        rt: null
+      };
+      const start_time = performance.now();
+      let left_index = 0;
+      let right_index = 1;
+      if (trial.randomize_position && Math.random() < 0.5) {
+        left_index = 1;
+        right_index = 0;
+      }
+      let html = '<div class="bead-forced-choice-container">';
+      if (trial.prompt) {
+        html += `<div class="bead-forced-choice-prompt">${trial.prompt}</div>`;
+      }
+      html += `<div class="bead-forced-choice-alternatives bead-layout-${trial.layout}">`;
+      html += `
+      <div class="bead-card bead-alternative" data-index="${left_index}" data-position="left">
+        <div class="bead-alternative-label">Option 1</div>
+        <div class="bead-alternative-content">${trial.alternatives[left_index] ?? "Alternative A"}</div>
+        <button class="bead-button bead-choice-button" data-index="${left_index}" data-position="left">
+          Select
+        </button>
+      </div>
+    `;
+      html += `
+      <div class="bead-card bead-alternative" data-index="${right_index}" data-position="right">
+        <div class="bead-alternative-label">Option 2</div>
+        <div class="bead-alternative-content">${trial.alternatives[right_index] ?? "Alternative B"}</div>
+        <button class="bead-button bead-choice-button" data-index="${right_index}" data-position="right">
+          Select
+        </button>
+      </div>
+    `;
+      html += "</div>";
+      html += "</div>";
+      display_element.innerHTML = html;
+      const alternative_cards = display_element.querySelectorAll(".bead-alternative");
+      for (const card of alternative_cards) {
+        card.addEventListener("click", () => {
+          const indexAttr = card.getAttribute("data-index");
+          const positionAttr = card.getAttribute("data-position");
+          if (indexAttr !== null && positionAttr !== null) {
+            const index = Number.parseInt(indexAttr, 10);
+            select_choice(index, positionAttr);
+          }
+        });
+      }
+      let keyboard_listener = null;
+      if (trial.enable_keyboard) {
+        keyboard_listener = this.jsPsych.pluginAPI.getKeyboardResponse({
+          callback_function: (info11) => {
+            const key = info11.key;
+            if (key === "1" || key === "ArrowLeft") {
+              select_choice(left_index, "left");
+            } else if (key === "2" || key === "ArrowRight") {
+              select_choice(right_index, "right");
+            }
+          },
+          valid_responses: ["1", "2", "ArrowLeft", "ArrowRight"],
+          rt_method: "performance",
+          persist: false,
+          allow_held_key: false
+        });
+      }
+      const select_choice = (index, position) => {
+        response.choice = trial.alternatives[index] ?? null;
+        response.choice_index = index;
+        response.position = position;
+        response.rt = performance.now() - start_time;
+        const alternative_cards2 = display_element.querySelectorAll(".bead-alternative");
+        for (const card of alternative_cards2) {
+          card.classList.remove("selected");
+        }
+        const selected_card = display_element.querySelector(
+          `.bead-alternative[data-position="${position}"]`
+        );
+        if (selected_card) {
+          selected_card.classList.add("selected");
+        }
+        setTimeout(() => {
+          end_trial();
+        }, 300);
+      };
+      const end_trial = () => {
+        if (keyboard_listener) {
+          this.jsPsych.pluginAPI.cancelKeyboardResponse(keyboard_listener);
+        }
+        const trial_data = {
+          ...trial.metadata,
+          // Spread all metadata
+          choice: response.choice,
+          choice_index: response.choice_index,
+          position_chosen: response.position,
+          left_index,
+          right_index,
+          rt: response.rt
+        };
+        display_element.innerHTML = "";
+        this.jsPsych.finishTrial(trial_data);
+      };
+    }
+  };
+  __publicField(BeadForcedChoicePlugin, "info", info4);
+
+  // src/plugins/free-text.ts
+  var info5 = {
+    name: "bead-free-text",
+    parameters: {
+      prompt: {
+        type: 8,
+        // ParameterType.HTML_STRING
+        default: "Enter your response:"
+      },
+      stimulus: {
+        type: 8,
+        // ParameterType.HTML_STRING
+        default: ""
+      },
+      prompt_position: {
+        type: 1,
+        // ParameterType.STRING
+        default: "above"
+      },
+      multiline: {
+        type: 0,
+        // ParameterType.BOOL
+        default: false
+      },
+      min_length: {
+        type: 2,
+        // ParameterType.INT
+        default: 0
+      },
+      max_length: {
+        type: 2,
+        // ParameterType.INT
+        default: 0
+      },
+      placeholder: {
+        type: 1,
+        // ParameterType.STRING
+        default: ""
+      },
+      rows: {
+        type: 2,
+        // ParameterType.INT
+        default: 4
+      },
+      require_response: {
+        type: 0,
+        // ParameterType.BOOL
+        default: true
+      },
+      button_label: {
+        type: 1,
+        // ParameterType.STRING
+        default: "Continue"
+      },
+      metadata: {
+        type: 12,
+        // ParameterType.OBJECT
+        default: {}
+      }
+    }
+  };
+  var BeadFreeTextPlugin = class {
+    constructor(jsPsych) {
+      __publicField(this, "jsPsych");
+      this.jsPsych = jsPsych;
+    }
+    trial(display_element, trial) {
+      const start_time = performance.now();
+      let html = '<div class="bead-free-text-container">';
+      if (trial.prompt && trial.prompt_position === "above") {
+        html += `<div class="bead-free-text-prompt">${trial.prompt}</div>`;
+      }
+      if (trial.stimulus) {
+        html += `<div class="bead-free-text-stimulus">${trial.stimulus}</div>`;
+      }
+      if (trial.prompt && trial.prompt_position === "below") {
+        html += `<div class="bead-free-text-prompt">${trial.prompt}</div>`;
+      }
+      const maxAttr = trial.max_length > 0 ? ` maxlength="${trial.max_length}"` : "";
+      const placeholderAttr = trial.placeholder ? ` placeholder="${trial.placeholder}"` : "";
+      if (trial.multiline) {
+        html += `<textarea class="bead-free-text-input" id="bead-free-text-input" rows="${trial.rows}"${maxAttr}${placeholderAttr}></textarea>`;
+      } else {
+        html += `<input type="text" class="bead-free-text-input" id="bead-free-text-input"${maxAttr}${placeholderAttr}>`;
+      }
+      if (trial.max_length > 0) {
+        html += `<div class="bead-free-text-counter"><span id="bead-char-count">0</span> / ${trial.max_length}</div>`;
+      }
+      const disabled = trial.require_response ? "disabled" : "";
+      html += `
+      <div class="bead-free-text-button-container">
+        <button class="bead-button bead-continue-button" id="bead-free-text-continue" ${disabled}>
+          ${trial.button_label}
+        </button>
+      </div>
+    `;
+      html += "</div>";
+      display_element.innerHTML = html;
+      const input = display_element.querySelector(
+        "#bead-free-text-input"
+      );
+      const continueBtn = display_element.querySelector(
+        "#bead-free-text-continue"
+      );
+      const charCount = display_element.querySelector("#bead-char-count");
+      if (input) {
+        input.addEventListener("input", () => {
+          const len = input.value.length;
+          if (charCount) charCount.textContent = String(len);
+          if (continueBtn) {
+            const meetsMin = len >= trial.min_length;
+            const hasContent = input.value.trim().length > 0;
+            continueBtn.disabled = trial.require_response && (!hasContent || !meetsMin);
+          }
+        });
+        input.focus();
+      }
+      if (continueBtn) {
+        continueBtn.addEventListener("click", () => {
+          end_trial();
+        });
+      }
+      const end_trial = () => {
+        const rt = performance.now() - start_time;
+        const trial_data = {
+          ...trial.metadata,
+          response: input ? input.value : "",
+          rt
+        };
+        display_element.innerHTML = "";
+        this.jsPsych.finishTrial(trial_data);
+      };
+    }
+  };
+  __publicField(BeadFreeTextPlugin, "info", info5);
+
+  // src/plugins/magnitude.ts
+  function computeXMax(referenceValue) {
+    return 3 * 100 * Math.log(referenceValue + 1);
+  }
+  function xToValue(x) {
+    if (x <= 0) return 0;
+    return Math.exp(x / 100) - 1;
+  }
+  function formatValue(value) {
+    if (value >= 1e6) return "\u221E";
+    if (value >= 1e4) return Math.round(value).toLocaleString();
+    if (value >= 100) return Math.round(value).toString();
+    if (value >= 10) return value.toFixed(1);
+    if (value >= 1) return value.toFixed(2);
+    if (value > 0) return value.toFixed(3);
+    return "0";
+  }
+  var info6 = {
+    name: "bead-magnitude",
+    parameters: {
+      prompt: {
+        type: 8,
+        // ParameterType.HTML_STRING
+        default: "Enter a value:"
+      },
+      stimulus: {
+        type: 8,
+        // ParameterType.HTML_STRING
+        default: ""
+      },
+      prompt_position: {
+        type: 1,
+        // ParameterType.STRING
+        default: "above"
+      },
+      reference_stimulus: {
+        type: 8,
+        // ParameterType.HTML_STRING
+        default: ""
+      },
+      reference_value: {
+        type: 2,
+        // ParameterType.INT
+        default: 100
+      },
+      unit: {
+        type: 1,
+        // ParameterType.STRING
+        default: ""
+      },
+      input_mode: {
+        type: 1,
+        // ParameterType.STRING
+        default: "number"
+      },
+      arrow_step: {
+        type: 3,
+        // ParameterType.FLOAT
+        default: 3
+      },
+      slider_start: {
+        type: 3,
+        // ParameterType.FLOAT
+        default: null
+      },
+      input_min: {
+        type: 3,
+        // ParameterType.FLOAT
+        default: null
+      },
+      input_max: {
+        type: 3,
+        // ParameterType.FLOAT
+        default: null
+      },
+      step: {
+        type: 3,
+        // ParameterType.FLOAT
+        default: null
+      },
+      placeholder: {
+        type: 1,
+        // ParameterType.STRING
+        default: ""
+      },
+      require_response: {
+        type: 0,
+        // ParameterType.BOOL
+        default: true
+      },
+      button_label: {
+        type: 1,
+        // ParameterType.STRING
+        default: "Continue"
+      },
+      metadata: {
+        type: 12,
+        // ParameterType.OBJECT
+        default: {}
+      }
+    }
+  };
+  var BeadMagnitudePlugin = class {
+    constructor(jsPsych) {
+      __publicField(this, "jsPsych");
+      this.jsPsych = jsPsych;
+    }
+    trial(display_element, trial) {
+      const start_time = performance.now();
+      const hasReference = trial.reference_stimulus !== "";
+      let html = '<div class="bead-magnitude-container">';
+      if (trial.prompt && trial.prompt_position === "above") {
+        html += `<div class="bead-magnitude-prompt">${trial.prompt}</div>`;
+      }
+      if (hasReference) {
+        html += '<div class="bead-magnitude-reference-header">';
+        html += '<div class="bead-magnitude-section-label">Reference</div>';
+        html += `<div class="bead-magnitude-reference-chip">${trial.reference_value}</div>`;
+        html += "</div>";
+        html += '<div class="bead-magnitude-reference">';
+        html += `<div class="bead-magnitude-reference-text">${trial.reference_stimulus}</div>`;
+        html += "</div>";
+      }
+      if (trial.stimulus) {
+        if (hasReference) {
+          html += '<div class="bead-magnitude-section-label">Target</div>';
+        }
+        html += `<div class="bead-magnitude-stimulus">${trial.stimulus}</div>`;
+      }
+      if (trial.prompt && trial.prompt_position === "below") {
+        html += `<div class="bead-magnitude-prompt">${trial.prompt}</div>`;
+      }
+      if (trial.input_mode === "exp-slider") {
+        html += this.buildExpSliderHTML(trial);
+      } else {
+        html += this.buildNumberInputHTML(trial);
+      }
+      const disabled = trial.require_response ? "disabled" : "";
+      html += `
+      <div class="bead-magnitude-button-container">
+        <button class="bead-button bead-continue-button" id="bead-magnitude-continue" ${disabled}>
+          ${trial.button_label}
+        </button>
+      </div>
+    `;
+      html += "</div>";
+      display_element.innerHTML = html;
+      if (trial.input_mode === "exp-slider") {
+        this.setupExpSlider(display_element, trial, start_time, hasReference);
+      } else {
+        this.setupNumberInput(display_element, trial, start_time, hasReference);
+      }
+    }
+    // ── Number input (existing behavior) ────────────────────────────
+    buildNumberInputHTML(trial) {
+      let html = '<div class="bead-magnitude-input-wrapper">';
+      html += '<input type="number" class="bead-magnitude-input" id="bead-magnitude-input"';
+      if (trial.input_min !== null) html += ` min="${trial.input_min}"`;
+      if (trial.input_max !== null) html += ` max="${trial.input_max}"`;
+      if (trial.step !== null) html += ` step="${trial.step}"`;
+      if (trial.placeholder) html += ` placeholder="${trial.placeholder}"`;
+      html += ">";
+      if (trial.unit) {
+        html += `<span class="bead-magnitude-unit">${trial.unit}</span>`;
+      }
+      html += "</div>";
+      return html;
+    }
+    setupNumberInput(display_element, trial, start_time, hasReference) {
+      const input = display_element.querySelector("#bead-magnitude-input");
+      const continueBtn = display_element.querySelector(
+        "#bead-magnitude-continue"
+      );
+      if (input) {
+        input.addEventListener("input", () => {
+          if (continueBtn) {
+            continueBtn.disabled = trial.require_response && input.value.trim() === "";
+          }
+        });
+        input.focus();
+      }
+      if (continueBtn) {
+        continueBtn.addEventListener("click", () => {
+          if (!trial.require_response || input && input.value.trim() !== "") {
+            end_trial();
+          }
+        });
+      }
+      const end_trial = () => {
+        const rt = performance.now() - start_time;
+        const value = input ? Number.parseFloat(input.value) : null;
+        const trial_data = {
+          ...trial.metadata,
+          response: Number.isNaN(value ?? Number.NaN) ? null : value,
+          rt
+        };
+        if (hasReference) {
+          trial_data["reference_value"] = trial.reference_value;
+        }
+        display_element.innerHTML = "";
+        this.jsPsych.finishTrial(trial_data);
+      };
+    }
+    // ── Exponential slider ──────────────────────────────────────────
+    buildExpSliderHTML(trial) {
+      let html = '<div class="bead-magnitude-slider-wrapper">';
+      html += '<div class="bead-magnitude-slider-value" id="bead-magnitude-slider-value">';
+      html += trial.slider_start !== null ? formatValue(xToValue(trial.slider_start)) : "--";
+      html += "</div>";
+      html += '<div class="bead-magnitude-slider-track-area">';
+      html += '<span class="bead-magnitude-slider-endpoint bead-magnitude-slider-left">0</span>';
+      html += '<div class="bead-magnitude-slider-track" id="bead-magnitude-slider-track"';
+      html += ' tabindex="0" role="slider" aria-valuemin="0"';
+      html += ` aria-valuemax="${Math.round(xToValue(computeXMax(trial.reference_value)))}"`;
+      html += ' aria-valuenow="0" aria-label="Magnitude estimation slider">';
+      const startPct = trial.slider_start !== null ? trial.slider_start / computeXMax(trial.reference_value) * 100 : 0;
+      html += `<div class="bead-magnitude-slider-fill" id="bead-magnitude-slider-fill" style="width:${startPct}%"></div>`;
+      html += '<div class="bead-magnitude-slider-ref-tick" style="left:33.33%">';
+      html += `<span class="bead-magnitude-slider-ref-label">${trial.reference_value}</span>`;
+      html += "</div>";
+      const handleClass = trial.slider_start !== null ? "bead-magnitude-slider-handle" : "bead-magnitude-slider-handle hidden";
+      html += `<div class="${handleClass}" id="bead-magnitude-slider-handle" style="left:${startPct}%"></div>`;
+      html += "</div>";
+      html += '<span class="bead-magnitude-slider-endpoint bead-magnitude-slider-right">\u221E</span>';
+      html += "</div>";
+      html += "</div>";
+      return html;
+    }
+    setupExpSlider(display_element, trial, start_time, hasReference) {
+      const xMax = computeXMax(trial.reference_value);
+      let currentX = trial.slider_start ?? -1;
+      let hasInteracted = currentX >= 0;
+      const track = display_element.querySelector("#bead-magnitude-slider-track");
+      const handle = display_element.querySelector("#bead-magnitude-slider-handle");
+      const fill = display_element.querySelector("#bead-magnitude-slider-fill");
+      const valueDisplay = display_element.querySelector(
+        "#bead-magnitude-slider-value"
+      );
+      const continueBtn = display_element.querySelector(
+        "#bead-magnitude-continue"
+      );
+      if (!track || !handle || !fill || !valueDisplay) return;
+      const updateUI = () => {
+        if (currentX < 0) return;
+        const pct = currentX / xMax * 100;
+        handle.style.left = `${pct}%`;
+        fill.style.width = `${pct}%`;
+        const value = xToValue(currentX);
+        let displayText = formatValue(value);
+        if (trial.unit) {
+          displayText += ` ${trial.unit}`;
+        }
+        valueDisplay.textContent = displayText;
+        track.setAttribute("aria-valuenow", String(Math.round(value)));
+        if (continueBtn && trial.require_response) {
+          continueBtn.disabled = false;
+        }
+      };
+      const setPosition = (x) => {
+        currentX = Math.max(0, Math.min(xMax, x));
+        if (!hasInteracted) {
+          hasInteracted = true;
+          handle.classList.remove("hidden");
+        }
+        updateUI();
+      };
+      if (hasInteracted) {
+        updateUI();
+      }
+      const onMouseDown = (e) => {
+        e.preventDefault();
+        const rect = track.getBoundingClientRect();
+        const px = e.clientX - rect.left;
+        const x = px / rect.width * xMax;
+        setPosition(x);
+        track.focus();
+        const onMouseMove = (ev) => {
+          const movePx = ev.clientX - rect.left;
+          setPosition(movePx / rect.width * xMax);
+        };
+        const onMouseUp = () => {
+          document.removeEventListener("mousemove", onMouseMove);
+          document.removeEventListener("mouseup", onMouseUp);
+        };
+        document.addEventListener("mousemove", onMouseMove);
+        document.addEventListener("mouseup", onMouseUp);
+      };
+      track.addEventListener("mousedown", onMouseDown);
+      const onTouchStart = (e) => {
+        e.preventDefault();
+        const rect = track.getBoundingClientRect();
+        const touch = e.touches[0];
+        if (!touch) return;
+        const px = touch.clientX - rect.left;
+        setPosition(px / rect.width * xMax);
+        track.focus();
+        const onTouchMove = (ev) => {
+          const t = ev.touches[0];
+          if (!t) return;
+          const movePx = t.clientX - rect.left;
+          setPosition(movePx / rect.width * xMax);
+        };
+        const onTouchEnd = () => {
+          document.removeEventListener("touchmove", onTouchMove);
+          document.removeEventListener("touchend", onTouchEnd);
+        };
+        document.addEventListener("touchmove", onTouchMove, { passive: false });
+        document.addEventListener("touchend", onTouchEnd);
+      };
+      track.addEventListener("touchstart", onTouchStart, { passive: false });
+      track.addEventListener("keydown", (e) => {
+        if (e.key === "ArrowRight" || e.key === "ArrowUp") {
+          e.preventDefault();
+          if (!hasInteracted) {
+            setPosition(xMax / 3);
+          } else {
+            setPosition(currentX + trial.arrow_step);
+          }
+        } else if (e.key === "ArrowLeft" || e.key === "ArrowDown") {
+          e.preventDefault();
+          if (!hasInteracted) {
+            setPosition(xMax / 3);
+          } else {
+            setPosition(currentX - trial.arrow_step);
+          }
+        } else if (e.key === "Home") {
+          e.preventDefault();
+          setPosition(0);
+        } else if (e.key === "End") {
+          e.preventDefault();
+          setPosition(xMax);
+        }
+      });
+      track.focus();
+      if (continueBtn) {
+        continueBtn.addEventListener("click", () => {
+          if (!trial.require_response || hasInteracted) {
+            end_trial();
+          }
+        });
+      }
+      const end_trial = () => {
+        const rt = performance.now() - start_time;
+        const value = hasInteracted ? xToValue(currentX) : null;
+        const trial_data = {
+          ...trial.metadata,
+          response: value !== null && Number.isFinite(value) ? Math.round(value * 1e3) / 1e3 : null,
+          response_x: hasInteracted ? Math.round(currentX * 100) / 100 : null,
+          rt
+        };
+        if (hasReference) {
+          trial_data["reference_value"] = trial.reference_value;
+        }
+        display_element.innerHTML = "";
+        this.jsPsych.finishTrial(trial_data);
+      };
+    }
+  };
+  __publicField(BeadMagnitudePlugin, "info", info6);
+
+  // src/plugins/multi-select.ts
+  var info7 = {
+    name: "bead-multi-select",
+    parameters: {
+      prompt: {
+        type: 8,
+        // ParameterType.HTML_STRING
+        default: "Select all that apply:"
+      },
+      stimulus: {
+        type: 8,
+        // ParameterType.HTML_STRING
+        default: ""
+      },
+      prompt_position: {
+        type: 1,
+        // ParameterType.STRING
+        default: "above"
+      },
+      options: {
+        type: 1,
+        // ParameterType.STRING
+        default: [],
+        array: true
+      },
+      min_selections: {
+        type: 2,
+        // ParameterType.INT
+        default: 1
+      },
+      max_selections: {
+        type: 2,
+        // ParameterType.INT
+        default: 0
+      },
+      require_response: {
+        type: 0,
+        // ParameterType.BOOL
+        default: true
+      },
+      button_label: {
+        type: 1,
+        // ParameterType.STRING
+        default: "Continue"
+      },
+      metadata: {
+        type: 12,
+        // ParameterType.OBJECT
+        default: {}
+      }
+    }
+  };
+  var BeadMultiSelectPlugin = class {
+    constructor(jsPsych) {
+      __publicField(this, "jsPsych");
+      this.jsPsych = jsPsych;
+    }
+    trial(display_element, trial) {
+      const start_time = performance.now();
+      const maxLen = Math.max(...trial.options.map((o) => o.length));
+      const useCompact = maxLen < 25 && trial.options.length <= 6;
+      let html = '<div class="bead-multi-select-container">';
+      if (trial.prompt && trial.prompt_position === "above") {
+        html += `<div class="bead-multi-select-prompt">${trial.prompt}</div>`;
+      }
+      if (trial.stimulus) {
+        html += `<div class="bead-multi-select-stimulus">${trial.stimulus}</div>`;
+      }
+      if (trial.prompt && trial.prompt_position === "below") {
+        html += `<div class="bead-multi-select-prompt">${trial.prompt}</div>`;
+      }
+      const compactClass = useCompact ? " bead-multi-select-compact" : "";
+      html += `<div class="bead-multi-select-options${compactClass}">`;
+      for (let i = 0; i < trial.options.length; i++) {
+        const opt = trial.options[i] ?? "";
+        html += `
+        <label class="bead-multi-select-option">
+          <input type="checkbox" class="bead-multi-select-checkbox" data-index="${i}" value="${opt}">
+          <span class="bead-multi-select-label">${opt}</span>
+        </label>
+      `;
+      }
+      html += "</div>";
+      const disabled = trial.require_response ? "disabled" : "";
+      html += `
+      <div class="bead-multi-select-button-container">
+        <button class="bead-button bead-continue-button" id="bead-multi-select-continue" ${disabled}>
+          ${trial.button_label}
+        </button>
+      </div>
+    `;
+      html += "</div>";
+      display_element.innerHTML = html;
+      const checkboxes = display_element.querySelectorAll(
+        ".bead-multi-select-checkbox"
+      );
+      const continueBtn = display_element.querySelector(
+        "#bead-multi-select-continue"
+      );
+      const updateButton = () => {
+        const checked = display_element.querySelectorAll(
+          ".bead-multi-select-checkbox:checked"
+        );
+        const count = checked.length;
+        if (trial.max_selections > 0 && count >= trial.max_selections) {
+          for (const cb of checkboxes) {
+            if (!cb.checked) cb.disabled = true;
+          }
+        } else {
+          for (const cb of checkboxes) {
+            cb.disabled = false;
+          }
+        }
+        if (continueBtn) {
+          continueBtn.disabled = trial.require_response && count < trial.min_selections;
+        }
+      };
+      for (const cb of checkboxes) {
+        cb.addEventListener("change", updateButton);
+      }
+      if (continueBtn) {
+        continueBtn.addEventListener("click", () => {
+          end_trial();
+        });
+      }
+      const end_trial = () => {
+        const rt = performance.now() - start_time;
+        const checked = display_element.querySelectorAll(
+          ".bead-multi-select-checkbox:checked"
+        );
+        const selected = [];
+        const selected_indices = [];
+        for (const cb of checked) {
+          selected.push(cb.value);
+          const idx = cb.getAttribute("data-index");
+          if (idx !== null) selected_indices.push(Number.parseInt(idx, 10));
+        }
+        const trial_data = {
+          ...trial.metadata,
+          selected,
+          selected_indices,
+          rt
+        };
+        display_element.innerHTML = "";
+        this.jsPsych.finishTrial(trial_data);
+      };
+    }
+  };
+  __publicField(BeadMultiSelectPlugin, "info", info7);
+
+  // src/plugins/rating.ts
+  var info8 = {
+    name: "bead-rating",
+    parameters: {
+      prompt: {
+        type: 8,
+        // ParameterType.HTML_STRING
+        default: null
+      },
+      stimulus: {
+        type: 8,
+        // ParameterType.HTML_STRING
+        default: ""
+      },
+      prompt_position: {
+        type: 1,
+        // ParameterType.STRING
+        default: "above"
+      },
+      scale_min: {
+        type: 2,
+        // ParameterType.INT
+        default: 1
+      },
+      scale_max: {
+        type: 2,
+        // ParameterType.INT
+        default: 7
+      },
+      scale_labels: {
+        type: 12,
+        // ParameterType.OBJECT
+        default: {}
+      },
+      require_response: {
+        type: 0,
+        // ParameterType.BOOL
+        default: true
+      },
+      button_label: {
+        type: 1,
+        // ParameterType.STRING
+        default: "Continue"
+      },
+      metadata: {
+        type: 12,
+        // ParameterType.OBJECT
+        default: {}
+      }
+    }
+  };
+  var BeadRatingPlugin = class {
+    constructor(jsPsych) {
+      __publicField(this, "jsPsych");
+      this.jsPsych = jsPsych;
+    }
+    trial(display_element, trial) {
+      const response = {
+        rating: null,
+        rt: null
+      };
+      const start_time = performance.now();
+      let html = '<div class="bead-rating-container">';
+      if (trial.prompt !== null && trial.prompt_position === "above") {
+        html += `<div class="bead-rating-prompt">${trial.prompt}</div>`;
+      }
+      if (trial.stimulus) {
+        html += `<div class="bead-rating-stimulus">${trial.stimulus}</div>`;
+      }
+      if (trial.prompt !== null && trial.prompt_position === "below") {
+        html += `<div class="bead-rating-prompt">${trial.prompt}</div>`;
+      }
+      html += '<div class="bead-rating-scale">';
+      for (let i = trial.scale_min; i <= trial.scale_max; i++) {
+        const label = trial.scale_labels[i] ?? i;
+        html += `
+        <div class="bead-rating-option">
+          <button class="bead-rating-button" data-value="${i}">${i}</button>
+          <div class="bead-rating-label">${label}</div>
+        </div>
+      `;
+      }
+      html += "</div>";
+      html += `
+      <div class="bead-rating-button-container">
+        <button class="bead-button bead-continue-button" id="bead-rating-continue" disabled>
+          ${trial.button_label}
+        </button>
+      </div>
+    `;
+      html += "</div>";
+      display_element.innerHTML = html;
+      const rating_buttons = display_element.querySelectorAll(".bead-rating-button");
+      for (const button of rating_buttons) {
+        button.addEventListener("click", (e) => {
+          const target = e.target;
+          const valueAttr = target.getAttribute("data-value");
+          if (valueAttr !== null) {
+            const value = Number.parseInt(valueAttr, 10);
+            select_rating(value);
+          }
+        });
+      }
+      const keyboard_listener = this.jsPsych.pluginAPI.getKeyboardResponse({
+        callback_function: (info11) => {
+          const key = info11.key;
+          const num = Number.parseInt(key, 10);
+          if (!Number.isNaN(num) && num >= trial.scale_min && num <= trial.scale_max) {
+            select_rating(num);
+          }
+        },
+        valid_responses: "ALL_KEYS",
+        rt_method: "performance",
+        persist: true,
+        allow_held_key: false
+      });
+      const continue_button = display_element.querySelector("#bead-rating-continue");
+      if (continue_button) {
+        continue_button.addEventListener("click", () => {
+          if (response.rating !== null || !trial.require_response) {
+            end_trial();
+          }
+        });
+      }
+      const select_rating = (value) => {
+        response.rating = value;
+        response.rt = performance.now() - start_time;
+        for (const btn of rating_buttons) {
+          btn.classList.remove("selected");
+        }
+        const selected_button = display_element.querySelector(
+          `[data-value="${value}"]`
+        );
+        if (selected_button) {
+          selected_button.classList.add("selected");
+        }
+        if (continue_button) {
+          continue_button.disabled = false;
+        }
+      };
+      const end_trial = () => {
+        if (keyboard_listener) {
+          this.jsPsych.pluginAPI.cancelKeyboardResponse(keyboard_listener);
+        }
+        const trial_data = {
+          ...trial.metadata,
+          // Spread all metadata
+          rating: response.rating,
+          rt: response.rt
+        };
+        display_element.innerHTML = "";
+        this.jsPsych.finishTrial(trial_data);
+      };
+    }
+  };
+  __publicField(BeadRatingPlugin, "info", info8);
+
+  // src/plugins/slider-rating.ts
+  var info9 = {
+    name: "bead-slider-rating",
+    parameters: {
+      prompt: {
+        type: 8,
+        // ParameterType.HTML_STRING
+        default: null
+      },
+      stimulus: {
+        type: 8,
+        // ParameterType.HTML_STRING
+        default: ""
+      },
+      prompt_position: {
+        type: 1,
+        // ParameterType.STRING
+        default: "above"
+      },
+      slider_min: {
+        type: 2,
+        // ParameterType.INT
+        default: 0
+      },
+      slider_max: {
+        type: 2,
+        // ParameterType.INT
+        default: 100
+      },
+      step: {
+        type: 2,
+        // ParameterType.INT
+        default: 1
+      },
+      slider_start: {
+        type: 2,
+        // ParameterType.INT
+        default: 50
+      },
+      labels: {
+        type: 1,
+        // ParameterType.STRING
+        default: [],
+        array: true
+      },
+      require_movement: {
+        type: 0,
+        // ParameterType.BOOL
+        default: true
+      },
+      button_label: {
+        type: 1,
+        // ParameterType.STRING
+        default: "Continue"
+      },
+      metadata: {
+        type: 12,
+        // ParameterType.OBJECT
+        default: {}
+      }
+    }
+  };
+  var BeadSliderRatingPlugin = class {
+    constructor(jsPsych) {
+      __publicField(this, "jsPsych");
+      this.jsPsych = jsPsych;
+    }
+    trial(display_element, trial) {
+      let slider_value = trial.slider_start;
+      let has_moved = false;
+      const start_time = performance.now();
+      let html = '<div class="bead-slider-container">';
+      if (trial.prompt !== null && trial.prompt_position === "above") {
+        html += `<div class="bead-slider-prompt">${trial.prompt}</div>`;
+      }
+      if (trial.stimulus) {
+        html += `<div class="bead-slider-stimulus">${trial.stimulus}</div>`;
+      }
+      if (trial.prompt !== null && trial.prompt_position === "below") {
+        html += `<div class="bead-slider-prompt">${trial.prompt}</div>`;
+      }
+      html += '<div class="bead-slider-wrapper">';
+      if (trial.labels.length > 0) {
+        html += '<div class="bead-slider-labels">';
+        for (const label of trial.labels) {
+          html += `<span class="bead-slider-label">${label}</span>`;
+        }
+        html += "</div>";
+      }
+      html += `<input type="range" class="bead-slider-input" min="${trial.slider_min}" max="${trial.slider_max}" step="${trial.step}" value="${trial.slider_start}">`;
+      html += `<div class="bead-slider-value">${trial.slider_start}</div>`;
+      html += "</div>";
+      const disabled = trial.require_movement ? "disabled" : "";
+      html += `
+      <div class="bead-slider-button-container">
+        <button class="bead-button bead-continue-button" id="bead-slider-continue" ${disabled}>
+          ${trial.button_label}
+        </button>
+      </div>
+    `;
+      html += "</div>";
+      display_element.innerHTML = html;
+      const slider = display_element.querySelector(".bead-slider-input");
+      const value_display = display_element.querySelector(".bead-slider-value");
+      const continue_button = display_element.querySelector("#bead-slider-continue");
+      if (slider) {
+        slider.addEventListener("input", () => {
+          slider_value = Number.parseFloat(slider.value);
+          has_moved = true;
+          if (value_display) {
+            value_display.textContent = String(slider_value);
+          }
+          if (continue_button && trial.require_movement) {
+            continue_button.disabled = false;
+          }
+        });
+      }
+      if (continue_button) {
+        continue_button.addEventListener("click", () => {
+          if (!trial.require_movement || has_moved) {
+            end_trial();
+          }
+        });
+      }
+      const end_trial = () => {
+        const rt = performance.now() - start_time;
+        const trial_data = {
+          ...trial.metadata,
+          response: slider_value,
+          rt
+        };
+        display_element.innerHTML = "";
+        this.jsPsych.finishTrial(trial_data);
+      };
+    }
+  };
+  __publicField(BeadSliderRatingPlugin, "info", info9);
 
   // src/lib/wikidata-search.ts
   var WIKIDATA_API = "https://www.wikidata.org/w/api.php";
@@ -712,14 +1514,12 @@
         return [];
       }
       const data = await response.json();
-      const results = (data.search ?? []).map(
-        (item) => ({
-          id: String(item["id"] ?? ""),
-          label: String(item["label"] ?? ""),
-          description: String(item["description"] ?? ""),
-          aliases: Array.isArray(item["aliases"]) ? item["aliases"].map(String) : []
-        })
-      );
+      const results = (data.search ?? []).map((item) => ({
+        id: String(item["id"] ?? ""),
+        label: String(item["label"] ?? ""),
+        description: String(item["description"] ?? ""),
+        aliases: Array.isArray(item["aliases"]) ? item["aliases"].map(String) : []
+      }));
       putCache(key, results);
       return results;
     } catch {
@@ -738,7 +1538,7 @@
   }
 
   // src/plugins/span-label.ts
-  var info6 = {
+  var info10 = {
     name: "bead-span-label",
     parameters: {
       tokens: {
@@ -859,15 +1659,17 @@
         html += "</div>";
       }
       if (isInteractive && spanSpec?.label_source === "wikidata") {
-        html += '<div class="bead-label-selector bead-wikidata-panel" id="bead-label-panel" style="display:none;">';
+        html += '<div class="bead-label-selector bead-wikidata-panel bead-search-disabled" id="bead-label-panel">';
         html += '<div class="bead-wikidata-search">';
-        html += '<input type="text" id="bead-wikidata-input" placeholder="Search Wikidata entities..." autocomplete="off">';
+        html += '<input type="text" id="bead-wikidata-input" placeholder="Select tokens to annotate..." autocomplete="off" disabled>';
+        html += '<button type="button" class="bead-search-cancel" id="bead-search-cancel" style="display:none;" title="Cancel annotation">&times;</button>';
         html += '<div class="bead-wikidata-results" id="bead-wikidata-results" style="display:none;"></div>';
         html += "</div></div>";
       } else if (isInteractive && spanSpec?.labels && spanSpec.labels.length > 0) {
-        html += '<div class="bead-label-selector bead-label-search-panel" id="bead-label-panel" style="display:none;">';
+        html += '<div class="bead-label-selector bead-label-search-panel bead-search-disabled" id="bead-label-panel">';
         html += '<div class="bead-label-search-wrapper">';
-        html += '<input type="text" id="bead-label-search-input" placeholder="Search labels..." autocomplete="off">';
+        html += '<input type="text" id="bead-label-search-input" placeholder="Select tokens to annotate..." autocomplete="off" disabled>';
+        html += '<button type="button" class="bead-search-cancel" id="bead-search-cancel" style="display:none;" title="Cancel annotation">&times;</button>';
         html += '<div class="bead-label-search-results" id="bead-label-search-results" style="display:none;"></div>';
         html += "</div></div>";
       }
@@ -894,13 +1696,12 @@
         }
         html += '<div class="bead-relation-list" id="bead-relation-list"></div>';
       }
-      html += `
-      <div class="bead-rating-button-container">
-        <button class="bead-button bead-continue-button" id="bead-span-continue" ${isInteractive && trial.require_response ? "disabled" : ""}>
-          ${trial.button_label}
-        </button>
-      </div>
-    `;
+      html += '<div class="bead-span-bottom-bar">';
+      html += `<div class="bead-span-bottom-spacer"></div>`;
+      html += `<button class="bead-button bead-continue-button" id="bead-span-continue" ${isInteractive && trial.require_response ? "disabled" : ""}>`;
+      html += `${trial.button_label}`;
+      html += "</button>";
+      html += "</div>";
       html += "</div>";
       display_element.innerHTML = html;
       applySpanHighlights();
@@ -911,6 +1712,12 @@
           setupWikidataSearch();
         } else if (spanSpec?.labels && spanSpec.labels.length > 0) {
           setupFixedLabelSearch();
+        }
+        const searchCancelBtn = display_element.querySelector("#bead-search-cancel");
+        if (searchCancelBtn) {
+          searchCancelBtn.addEventListener("click", () => {
+            cancelCurrentSelection();
+          });
         }
         if (spanSpec?.enable_relations) {
           setupRelationHandlers();
@@ -1008,9 +1815,7 @@
         } else if (spanIds.length > 1) {
           const colors = spanIds.map((id) => colorMap.get(id) ?? palette[0] ?? "#BBDEFB");
           const stripeWidth = 100 / colors.length;
-          const stops = colors.map(
-            (c, ci) => `${c} ${ci * stripeWidth}%, ${c} ${(ci + 1) * stripeWidth}%`
-          ).join(", ");
+          const stops = colors.map((c, ci) => `${c} ${ci * stripeWidth}%, ${c} ${(ci + 1) * stripeWidth}%`).join(", ");
           el.style.background = `linear-gradient(135deg, ${stops})`;
         }
       }
@@ -1082,9 +1887,7 @@
         );
         if (badges.length < 2) return;
         for (const b of badges) b.style.transform = "";
-        badges.sort(
-          (a, b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left
-        );
+        badges.sort((a, b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left);
         const placed = [];
         for (const badge of badges) {
           let rect = badge.getBoundingClientRect();
@@ -1196,20 +1999,55 @@
         }
         document.addEventListener("keydown", handleKeyDown);
       }
-      function showLabelPanel() {
+      function cancelCurrentSelection() {
+        selectedIndices = [];
+        selectionStart = null;
+        const allTokens = display_element.querySelectorAll(".bead-token");
+        for (const t of allTokens) {
+          t.classList.remove("selecting");
+        }
         const labelPanel = display_element.querySelector("#bead-label-panel");
         if (labelPanel) {
-          const show = selectedIndices.length > 0;
-          labelPanel.style.display = show ? "flex" : "none";
-          if (show) {
-            const searchInput = labelPanel.querySelector("input");
-            if (searchInput) {
-              setTimeout(() => searchInput.focus(), 0);
-            }
+          labelPanel.classList.add("bead-search-disabled");
+          const searchInput = labelPanel.querySelector("input");
+          if (searchInput) {
+            searchInput.disabled = true;
+            searchInput.value = "";
+            searchInput.placeholder = "Select tokens to annotate...";
           }
+          const resultsDiv = labelPanel.querySelector(
+            ".bead-label-search-results, .bead-wikidata-results"
+          );
+          if (resultsDiv) resultsDiv.style.display = "none";
+          const cancelBtn = labelPanel.querySelector(".bead-search-cancel");
+          if (cancelBtn) cancelBtn.style.display = "none";
+        }
+      }
+      function showLabelPanel() {
+        const labelPanel = display_element.querySelector("#bead-label-panel");
+        if (!labelPanel) return;
+        const hasSelection = selectedIndices.length > 0;
+        if (hasSelection) {
+          labelPanel.classList.remove("bead-search-disabled");
+          const searchInput = labelPanel.querySelector("input");
+          if (searchInput) {
+            searchInput.disabled = false;
+            searchInput.placeholder = "Search labels...";
+            setTimeout(() => searchInput.focus(), 0);
+          }
+          const cancelBtn = labelPanel.querySelector(".bead-search-cancel");
+          if (cancelBtn) cancelBtn.style.display = "";
+        } else {
+          cancelCurrentSelection();
         }
       }
       function handleKeyDown(e) {
+        if (e.key === "Escape") {
+          if (selectedIndices.length > 0) {
+            cancelCurrentSelection();
+            return;
+          }
+        }
         const num = Number.parseInt(e.key, 10);
         if (!Number.isNaN(num) && num >= 1 && num <= 9) {
           const labels = spanSpec?.labels ?? [];
@@ -1237,10 +2075,12 @@
         const spanLabel = labelId ? { label, label_id: labelId } : { label };
         const newSpan = {
           span_id: spanId,
-          segments: [{
-            element_name: elemName,
-            indices: [...selectedIndices].sort((a, b) => a - b)
-          }],
+          segments: [
+            {
+              element_name: elemName,
+              indices: [...selectedIndices].sort((a, b) => a - b)
+            }
+          ],
           label: spanLabel
         };
         activeSpans.push(newSpan);
@@ -1257,14 +2097,7 @@
         renderSpanList();
         renderRelationList();
         updateContinueButton();
-        const allTokens = display_element.querySelectorAll(".bead-token");
-        for (const t of allTokens) {
-          t.classList.remove("selecting");
-        }
-        const labelPanel = display_element.querySelector("#bead-label-panel");
-        if (labelPanel) {
-          labelPanel.style.display = "none";
-        }
+        cancelCurrentSelection();
       }
       function deleteSpan(spanId) {
         const idx = activeSpans.findIndex((s) => s.span_id === spanId);
@@ -1294,7 +2127,7 @@
         const searchOptions = {
           language: spanSpec?.wikidata_language ?? "en",
           limit: spanSpec?.wikidata_result_limit ?? 10,
-          entityTypes: spanSpec?.wikidata_entity_types
+          ...spanSpec?.wikidata_entity_types ? { entityTypes: spanSpec.wikidata_entity_types } : {}
         };
         input.addEventListener("input", () => {
           const query = input.value.trim();
@@ -1313,7 +2146,7 @@
             for (const entity of results) {
               const item = document.createElement("div");
               item.className = "bead-wikidata-result";
-              item.innerHTML = `<div><strong>${entity.label}</strong> <span class="qid">${entity.id}</span></div>` + (entity.description ? `<div class="description">${entity.description}</div>` : "");
+              item.innerHTML = `<div><strong>${entity.label}</strong> <span class="qid">${entity.id}</span></div>${entity.description ? `<div class="description">${entity.description}</div>` : ""}`;
               item.addEventListener("click", () => {
                 createSpanFromSelection(entity.label, entity.id);
                 input.value = "";
@@ -1327,14 +2160,31 @@
       }
       function setupFixedLabelSearch() {
         const input = display_element.querySelector("#bead-label-search-input");
-        const resultsDiv = display_element.querySelector("#bead-label-search-results");
+        const resultsDiv = display_element.querySelector(
+          "#bead-label-search-results"
+        );
         if (!input || !resultsDiv) return;
         const allLabels = spanSpec?.labels ?? [];
         let highlightedIdx = -1;
-        function renderResults(query) {
+        function fuzzyMatch(query, target) {
+          const q = query.toLowerCase();
+          const t = target.toLowerCase();
+          let qi = 0;
+          for (let ti = 0; ti < t.length && qi < q.length; ti++) {
+            if (t[ti] === q[qi]) qi++;
+          }
+          return qi === q.length;
+        }
+        const renderResults = (query) => {
           resultsDiv.innerHTML = "";
           const lower = query.toLowerCase();
-          const filtered = lower === "" ? allLabels : allLabels.filter((l) => l.toLowerCase().includes(lower));
+          const filtered = lower === "" ? allLabels : allLabels.filter((l) => fuzzyMatch(lower, l)).sort((a, b) => {
+            const aPrefix = a.toLowerCase().startsWith(lower);
+            const bPrefix = b.toLowerCase().startsWith(lower);
+            if (aPrefix && !bPrefix) return -1;
+            if (!aPrefix && bPrefix) return 1;
+            return 0;
+          });
           if (filtered.length === 0) {
             resultsDiv.style.display = "none";
             return;
@@ -1351,7 +2201,7 @@
             item.className = "bead-label-search-result";
             item.setAttribute("data-label", label);
             item.setAttribute("data-fi", String(fi));
-            item.innerHTML = `<span class="label-color" style="background:${darkColor}"></span><span class="label-name">${label}</span>` + (shortcut ? `<span class="label-shortcut">${shortcut}</span>` : "");
+            item.innerHTML = `<span class="label-color" style="background:${darkColor}"></span><span class="label-name">${label}</span>${shortcut ? `<span class="label-shortcut">${shortcut}</span>` : ""}`;
             item.addEventListener("click", () => {
               if (selectedIndices.length > 0) {
                 createSpanFromSelection(label);
@@ -1361,7 +2211,7 @@
             });
             resultsDiv.appendChild(item);
           }
-        }
+        };
         input.addEventListener("focus", () => {
           if (selectedIndices.length > 0) {
             renderResults(input.value);
@@ -1462,7 +2312,7 @@
             }
           }
         }
-        display_element._updateRelationUI = updateRelationUI;
+        display_element["_updateRelationUI"] = updateRelationUI;
         display_element.addEventListener("click", (e) => {
           const badge = e.target.closest(".bead-span-subscript");
           if (!badge) return;
@@ -1490,11 +2340,13 @@
         }
         function setupRelationLabelSearch() {
           const input = display_element.querySelector("#bead-relation-label-input");
-          const resultsDiv = display_element.querySelector("#bead-relation-label-results");
+          const resultsDiv = display_element.querySelector(
+            "#bead-relation-label-results"
+          );
           if (!input || !resultsDiv) return;
           const allLabels = spanSpec?.relation_labels ?? [];
           let highlightedIdx = -1;
-          function renderResults(query) {
+          const renderResults = (query) => {
             resultsDiv.innerHTML = "";
             const lower = query.toLowerCase();
             const filtered = lower === "" ? allLabels : allLabels.filter((l) => l.toLowerCase().includes(lower));
@@ -1516,7 +2368,7 @@
               });
               resultsDiv.appendChild(item);
             }
-          }
+          };
           input.addEventListener("focus", () => renderResults(input.value));
           input.addEventListener("input", () => renderResults(input.value));
           input.addEventListener("keydown", (e) => {
@@ -1525,12 +2377,14 @@
             if (e.key === "ArrowDown") {
               e.preventDefault();
               highlightedIdx = Math.min(highlightedIdx + 1, items.length - 1);
-              for (let i = 0; i < items.length; i++) items[i]?.classList.toggle("highlighted", i === highlightedIdx);
+              for (let i = 0; i < items.length; i++)
+                items[i]?.classList.toggle("highlighted", i === highlightedIdx);
               items[highlightedIdx]?.scrollIntoView({ block: "nearest" });
             } else if (e.key === "ArrowUp") {
               e.preventDefault();
               highlightedIdx = Math.max(highlightedIdx - 1, 0);
-              for (let i = 0; i < items.length; i++) items[i]?.classList.toggle("highlighted", i === highlightedIdx);
+              for (let i = 0; i < items.length; i++)
+                items[i]?.classList.toggle("highlighted", i === highlightedIdx);
               items[highlightedIdx]?.scrollIntoView({ block: "nearest" });
             } else if (e.key === "Enter") {
               e.preventDefault();
@@ -1548,8 +2402,12 @@
           });
         }
         function setupRelationWikidataSearch() {
-          const input = display_element.querySelector("#bead-relation-wikidata-input");
-          const resultsDiv = display_element.querySelector("#bead-relation-wikidata-results");
+          const input = display_element.querySelector(
+            "#bead-relation-wikidata-input"
+          );
+          const resultsDiv = display_element.querySelector(
+            "#bead-relation-wikidata-results"
+          );
           if (!input || !resultsDiv) return;
           const searchOptions = {
             language: spanSpec?.wikidata_language ?? "en",
@@ -1573,7 +2431,7 @@
               for (const entity of results) {
                 const item = document.createElement("div");
                 item.className = "bead-wikidata-result";
-                item.innerHTML = `<div><strong>${entity.label}</strong> <span class="qid">${entity.id}</span></div>` + (entity.description ? `<div class="description">${entity.description}</div>` : "");
+                item.innerHTML = `<div><strong>${entity.label}</strong> <span class="qid">${entity.id}</span></div>${entity.description ? `<div class="description">${entity.description}</div>` : ""}`;
                 item.addEventListener("click", () => {
                   createRelation({ label: entity.label, label_id: entity.id });
                   input.value = "";
@@ -1592,7 +2450,7 @@
             relation_id: relId,
             source_span_id: relationSource,
             target_span_id: relationTarget,
-            label,
+            ...label !== void 0 ? { label } : {},
             directed: spanSpec?.relation_directed ?? true
           };
           activeRelations.push(newRelation);
@@ -1600,7 +2458,7 @@
             type: "relation_create",
             timestamp: performance.now() - start_time,
             relation_id: relId,
-            label: label?.label
+            ...label?.label !== void 0 ? { label: label.label } : {}
           });
           relationState = "IDLE";
           relationSource = null;
@@ -1655,7 +2513,7 @@
           }
           listEl.appendChild(entry);
         }
-        const updateUI = display_element._updateRelationUI;
+        const updateUI = display_element["_updateRelationUI"];
         if (typeof updateUI === "function") {
           updateUI();
         }
@@ -1666,10 +2524,10 @@
         if (!container) return positions;
         const containerRect = container.getBoundingClientRect();
         for (const span of activeSpans) {
-          let minLeft = Infinity;
-          let minTop = Infinity;
-          let maxRight = -Infinity;
-          let maxBottom = -Infinity;
+          let minLeft = Number.POSITIVE_INFINITY;
+          let minTop = Number.POSITIVE_INFINITY;
+          let maxRight = Number.NEGATIVE_INFINITY;
+          let maxBottom = Number.NEGATIVE_INFINITY;
           for (const seg of span.segments) {
             for (const idx of seg.indices) {
               const tokenEl = display_element.querySelector(
@@ -1684,8 +2542,11 @@
               }
             }
           }
-          if (minLeft !== Infinity) {
-            positions.set(span.span_id, new DOMRect(minLeft, minTop, maxRight - minLeft, maxBottom - minTop));
+          if (minLeft !== Number.POSITIVE_INFINITY) {
+            positions.set(
+              span.span_id,
+              new DOMRect(minLeft, minTop, maxRight - minLeft, maxBottom - minTop)
+            );
           }
         }
         return positions;
@@ -1806,491 +2667,7 @@
       };
     }
   };
-  __publicField(BeadSpanLabelPlugin, "info", info6);
-
-  // src/plugins/categorical.ts
-  var info7 = {
-    name: "bead-categorical",
-    parameters: {
-      prompt: {
-        type: 8,
-        // ParameterType.HTML_STRING
-        default: "Select a category:"
-      },
-      stimulus: {
-        type: 8,
-        // ParameterType.HTML_STRING
-        default: ""
-      },
-      categories: {
-        type: 1,
-        // ParameterType.STRING
-        default: [],
-        array: true
-      },
-      require_response: {
-        type: 0,
-        // ParameterType.BOOL
-        default: true
-      },
-      button_label: {
-        type: 1,
-        // ParameterType.STRING
-        default: "Continue"
-      },
-      metadata: {
-        type: 12,
-        // ParameterType.OBJECT
-        default: {}
-      }
-    }
-  };
-  var BeadCategoricalPlugin = class {
-    constructor(jsPsych) {
-      __publicField(this, "jsPsych");
-      this.jsPsych = jsPsych;
-    }
-    trial(display_element, trial) {
-      let selected_index = null;
-      const start_time = performance.now();
-      let html = '<div class="bead-categorical-container">';
-      if (trial.prompt) {
-        html += `<div class="bead-categorical-prompt">${trial.prompt}</div>`;
-      }
-      if (trial.stimulus) {
-        html += `<div class="bead-categorical-stimulus">${trial.stimulus}</div>`;
-      }
-      html += '<div class="bead-categorical-options">';
-      for (let i = 0; i < trial.categories.length; i++) {
-        html += `<button class="bead-button bead-categorical-button" data-index="${i}">${trial.categories[i]}</button>`;
-      }
-      html += "</div>";
-      const disabled = trial.require_response ? "disabled" : "";
-      html += `
-      <div class="bead-categorical-button-container">
-        <button class="bead-button bead-continue-button" id="bead-categorical-continue" ${disabled}>
-          ${trial.button_label}
-        </button>
-      </div>
-    `;
-      html += "</div>";
-      display_element.innerHTML = html;
-      const buttons = display_element.querySelectorAll(".bead-categorical-button");
-      const continueBtn = display_element.querySelector("#bead-categorical-continue");
-      for (const button of buttons) {
-        button.addEventListener("click", (e) => {
-          const target = e.currentTarget;
-          const indexAttr = target.getAttribute("data-index");
-          if (indexAttr !== null) {
-            selected_index = Number.parseInt(indexAttr, 10);
-            for (const btn of buttons) {
-              btn.classList.remove("selected");
-            }
-            target.classList.add("selected");
-            if (continueBtn) {
-              continueBtn.disabled = false;
-            }
-          }
-        });
-      }
-      if (continueBtn) {
-        continueBtn.addEventListener("click", () => {
-          if (!trial.require_response || selected_index !== null) {
-            end_trial();
-          }
-        });
-      }
-      const end_trial = () => {
-        const rt = performance.now() - start_time;
-        const trial_data = {
-          ...trial.metadata,
-          response: selected_index !== null ? trial.categories[selected_index] : null,
-          response_index: selected_index,
-          rt
-        };
-        display_element.innerHTML = "";
-        this.jsPsych.finishTrial(trial_data);
-      };
-    }
-  };
-  __publicField(BeadCategoricalPlugin, "info", info7);
-
-  // src/plugins/magnitude.ts
-  var info8 = {
-    name: "bead-magnitude",
-    parameters: {
-      prompt: {
-        type: 8,
-        // ParameterType.HTML_STRING
-        default: "Enter a value:"
-      },
-      stimulus: {
-        type: 8,
-        // ParameterType.HTML_STRING
-        default: ""
-      },
-      unit: {
-        type: 1,
-        // ParameterType.STRING
-        default: ""
-      },
-      input_min: {
-        type: 3,
-        // ParameterType.FLOAT
-        default: null
-      },
-      input_max: {
-        type: 3,
-        // ParameterType.FLOAT
-        default: null
-      },
-      step: {
-        type: 3,
-        // ParameterType.FLOAT
-        default: null
-      },
-      placeholder: {
-        type: 1,
-        // ParameterType.STRING
-        default: ""
-      },
-      require_response: {
-        type: 0,
-        // ParameterType.BOOL
-        default: true
-      },
-      button_label: {
-        type: 1,
-        // ParameterType.STRING
-        default: "Continue"
-      },
-      metadata: {
-        type: 12,
-        // ParameterType.OBJECT
-        default: {}
-      }
-    }
-  };
-  var BeadMagnitudePlugin = class {
-    constructor(jsPsych) {
-      __publicField(this, "jsPsych");
-      this.jsPsych = jsPsych;
-    }
-    trial(display_element, trial) {
-      const start_time = performance.now();
-      let html = '<div class="bead-magnitude-container">';
-      if (trial.prompt) {
-        html += `<div class="bead-magnitude-prompt">${trial.prompt}</div>`;
-      }
-      if (trial.stimulus) {
-        html += `<div class="bead-magnitude-stimulus">${trial.stimulus}</div>`;
-      }
-      html += '<div class="bead-magnitude-input-wrapper">';
-      html += '<input type="number" class="bead-magnitude-input" id="bead-magnitude-input"';
-      if (trial.input_min !== null) html += ` min="${trial.input_min}"`;
-      if (trial.input_max !== null) html += ` max="${trial.input_max}"`;
-      if (trial.step !== null) html += ` step="${trial.step}"`;
-      if (trial.placeholder) html += ` placeholder="${trial.placeholder}"`;
-      html += ">";
-      if (trial.unit) {
-        html += `<span class="bead-magnitude-unit">${trial.unit}</span>`;
-      }
-      html += "</div>";
-      const disabled = trial.require_response ? "disabled" : "";
-      html += `
-      <div class="bead-magnitude-button-container">
-        <button class="bead-button bead-continue-button" id="bead-magnitude-continue" ${disabled}>
-          ${trial.button_label}
-        </button>
-      </div>
-    `;
-      html += "</div>";
-      display_element.innerHTML = html;
-      const input = display_element.querySelector("#bead-magnitude-input");
-      const continueBtn = display_element.querySelector("#bead-magnitude-continue");
-      if (input) {
-        input.addEventListener("input", () => {
-          if (continueBtn) {
-            continueBtn.disabled = trial.require_response && input.value.trim() === "";
-          }
-        });
-        input.focus();
-      }
-      if (continueBtn) {
-        continueBtn.addEventListener("click", () => {
-          if (!trial.require_response || input && input.value.trim() !== "") {
-            end_trial();
-          }
-        });
-      }
-      const end_trial = () => {
-        const rt = performance.now() - start_time;
-        const value = input ? Number.parseFloat(input.value) : null;
-        const trial_data = {
-          ...trial.metadata,
-          response: Number.isNaN(value ?? Number.NaN) ? null : value,
-          rt
-        };
-        display_element.innerHTML = "";
-        this.jsPsych.finishTrial(trial_data);
-      };
-    }
-  };
-  __publicField(BeadMagnitudePlugin, "info", info8);
-
-  // src/plugins/free-text.ts
-  var info9 = {
-    name: "bead-free-text",
-    parameters: {
-      prompt: {
-        type: 8,
-        // ParameterType.HTML_STRING
-        default: "Enter your response:"
-      },
-      stimulus: {
-        type: 8,
-        // ParameterType.HTML_STRING
-        default: ""
-      },
-      multiline: {
-        type: 0,
-        // ParameterType.BOOL
-        default: false
-      },
-      min_length: {
-        type: 2,
-        // ParameterType.INT
-        default: 0
-      },
-      max_length: {
-        type: 2,
-        // ParameterType.INT
-        default: 0
-      },
-      placeholder: {
-        type: 1,
-        // ParameterType.STRING
-        default: ""
-      },
-      rows: {
-        type: 2,
-        // ParameterType.INT
-        default: 4
-      },
-      require_response: {
-        type: 0,
-        // ParameterType.BOOL
-        default: true
-      },
-      button_label: {
-        type: 1,
-        // ParameterType.STRING
-        default: "Continue"
-      },
-      metadata: {
-        type: 12,
-        // ParameterType.OBJECT
-        default: {}
-      }
-    }
-  };
-  var BeadFreeTextPlugin = class {
-    constructor(jsPsych) {
-      __publicField(this, "jsPsych");
-      this.jsPsych = jsPsych;
-    }
-    trial(display_element, trial) {
-      const start_time = performance.now();
-      let html = '<div class="bead-free-text-container">';
-      if (trial.prompt) {
-        html += `<div class="bead-free-text-prompt">${trial.prompt}</div>`;
-      }
-      if (trial.stimulus) {
-        html += `<div class="bead-free-text-stimulus">${trial.stimulus}</div>`;
-      }
-      const maxAttr = trial.max_length > 0 ? ` maxlength="${trial.max_length}"` : "";
-      const placeholderAttr = trial.placeholder ? ` placeholder="${trial.placeholder}"` : "";
-      if (trial.multiline) {
-        html += `<textarea class="bead-free-text-input" id="bead-free-text-input" rows="${trial.rows}"${maxAttr}${placeholderAttr}></textarea>`;
-      } else {
-        html += `<input type="text" class="bead-free-text-input" id="bead-free-text-input"${maxAttr}${placeholderAttr}>`;
-      }
-      if (trial.max_length > 0) {
-        html += `<div class="bead-free-text-counter"><span id="bead-char-count">0</span> / ${trial.max_length}</div>`;
-      }
-      const disabled = trial.require_response ? "disabled" : "";
-      html += `
-      <div class="bead-free-text-button-container">
-        <button class="bead-button bead-continue-button" id="bead-free-text-continue" ${disabled}>
-          ${trial.button_label}
-        </button>
-      </div>
-    `;
-      html += "</div>";
-      display_element.innerHTML = html;
-      const input = display_element.querySelector("#bead-free-text-input");
-      const continueBtn = display_element.querySelector("#bead-free-text-continue");
-      const charCount = display_element.querySelector("#bead-char-count");
-      if (input) {
-        input.addEventListener("input", () => {
-          const len = input.value.length;
-          if (charCount) charCount.textContent = String(len);
-          if (continueBtn) {
-            const meetsMin = len >= trial.min_length;
-            const hasContent = input.value.trim().length > 0;
-            continueBtn.disabled = trial.require_response && (!hasContent || !meetsMin);
-          }
-        });
-        input.focus();
-      }
-      if (continueBtn) {
-        continueBtn.addEventListener("click", () => {
-          end_trial();
-        });
-      }
-      const end_trial = () => {
-        const rt = performance.now() - start_time;
-        const trial_data = {
-          ...trial.metadata,
-          response: input ? input.value : "",
-          rt
-        };
-        display_element.innerHTML = "";
-        this.jsPsych.finishTrial(trial_data);
-      };
-    }
-  };
-  __publicField(BeadFreeTextPlugin, "info", info9);
-
-  // src/plugins/multi-select.ts
-  var info10 = {
-    name: "bead-multi-select",
-    parameters: {
-      prompt: {
-        type: 8,
-        // ParameterType.HTML_STRING
-        default: "Select all that apply:"
-      },
-      stimulus: {
-        type: 8,
-        // ParameterType.HTML_STRING
-        default: ""
-      },
-      options: {
-        type: 1,
-        // ParameterType.STRING
-        default: [],
-        array: true
-      },
-      min_selections: {
-        type: 2,
-        // ParameterType.INT
-        default: 1
-      },
-      max_selections: {
-        type: 2,
-        // ParameterType.INT
-        default: 0
-      },
-      require_response: {
-        type: 0,
-        // ParameterType.BOOL
-        default: true
-      },
-      button_label: {
-        type: 1,
-        // ParameterType.STRING
-        default: "Continue"
-      },
-      metadata: {
-        type: 12,
-        // ParameterType.OBJECT
-        default: {}
-      }
-    }
-  };
-  var BeadMultiSelectPlugin = class {
-    constructor(jsPsych) {
-      __publicField(this, "jsPsych");
-      this.jsPsych = jsPsych;
-    }
-    trial(display_element, trial) {
-      const start_time = performance.now();
-      let html = '<div class="bead-multi-select-container">';
-      if (trial.prompt) {
-        html += `<div class="bead-multi-select-prompt">${trial.prompt}</div>`;
-      }
-      if (trial.stimulus) {
-        html += `<div class="bead-multi-select-stimulus">${trial.stimulus}</div>`;
-      }
-      html += '<div class="bead-multi-select-options">';
-      for (let i = 0; i < trial.options.length; i++) {
-        html += `
-        <label class="bead-multi-select-option">
-          <input type="checkbox" class="bead-multi-select-checkbox" data-index="${i}" value="${trial.options[i]}">
-          <span class="bead-multi-select-label">${trial.options[i]}</span>
-        </label>
-      `;
-      }
-      html += "</div>";
-      const disabled = trial.require_response ? "disabled" : "";
-      html += `
-      <div class="bead-multi-select-button-container">
-        <button class="bead-button bead-continue-button" id="bead-multi-select-continue" ${disabled}>
-          ${trial.button_label}
-        </button>
-      </div>
-    `;
-      html += "</div>";
-      display_element.innerHTML = html;
-      const checkboxes = display_element.querySelectorAll(".bead-multi-select-checkbox");
-      const continueBtn = display_element.querySelector("#bead-multi-select-continue");
-      const updateButton = () => {
-        const checked = display_element.querySelectorAll(".bead-multi-select-checkbox:checked");
-        const count = checked.length;
-        if (trial.max_selections > 0 && count >= trial.max_selections) {
-          for (const cb of checkboxes) {
-            if (!cb.checked) cb.disabled = true;
-          }
-        } else {
-          for (const cb of checkboxes) {
-            cb.disabled = false;
-          }
-        }
-        if (continueBtn) {
-          continueBtn.disabled = trial.require_response && count < trial.min_selections;
-        }
-      };
-      for (const cb of checkboxes) {
-        cb.addEventListener("change", updateButton);
-      }
-      if (continueBtn) {
-        continueBtn.addEventListener("click", () => {
-          end_trial();
-        });
-      }
-      const end_trial = () => {
-        const rt = performance.now() - start_time;
-        const checked = display_element.querySelectorAll(".bead-multi-select-checkbox:checked");
-        const selected = [];
-        const selected_indices = [];
-        for (const cb of checked) {
-          selected.push(cb.value);
-          const idx = cb.getAttribute("data-index");
-          if (idx !== null) selected_indices.push(Number.parseInt(idx, 10));
-        }
-        const trial_data = {
-          ...trial.metadata,
-          selected,
-          selected_indices,
-          rt
-        };
-        display_element.innerHTML = "";
-        this.jsPsych.finishTrial(trial_data);
-      };
-    }
-  };
-  __publicField(BeadMultiSelectPlugin, "info", info10);
+  __publicField(BeadSpanLabelPlugin, "info", info10);
 
   // src/gallery/gallery-bundle.ts
   window.BeadRatingPlugin = BeadRatingPlugin;

@@ -46,8 +46,14 @@ export interface SpanDisplayConfig {
 }
 
 const DEFAULT_PALETTE = [
-  "#BBDEFB", "#C8E6C9", "#FFE0B2", "#F8BBD0",
-  "#D1C4E9", "#B2EBF2", "#DCEDC8", "#FFD54F",
+  "#BBDEFB",
+  "#C8E6C9",
+  "#FFE0B2",
+  "#F8BBD0",
+  "#D1C4E9",
+  "#B2EBF2",
+  "#DCEDC8",
+  "#FFD54F",
 ];
 
 /**
@@ -61,7 +67,7 @@ const DEFAULT_PALETTE = [
 export function computeTokenSpanMap(
   tokens: string[],
   spans: SpanData[],
-  elementName: string = "text",
+  elementName = "text",
 ): Map<number, string[]> {
   const map: Map<number, string[]> = new Map();
 
@@ -146,7 +152,7 @@ export function renderTokenizedText(
   spaceAfter: boolean[],
   spans: SpanData[],
   config: SpanDisplayConfig,
-  elementName: string = "text",
+  elementName = "text",
 ): HTMLElement {
   const container = document.createElement("div");
   container.className = "bead-span-container";
@@ -173,7 +179,7 @@ export function renderTokenizedText(
         if (spanIds.length === 1) {
           tokenEl.style.backgroundColor = colorMap.get(spanIds[0] ?? "") ?? "#BBDEFB";
         } else {
-          const colors = spanIds.map(id => colorMap.get(id) ?? "#BBDEFB");
+          const colors = spanIds.map((id) => colorMap.get(id) ?? "#BBDEFB");
           tokenEl.style.background = `linear-gradient(${colors.join(", ")})`;
         }
       } else if (config.highlight_style === "underline") {
@@ -188,8 +194,8 @@ export function renderTokenizedText(
       // Tooltip
       if (config.show_tooltips && spanIds.length > 0) {
         const labels = spanIds
-          .map(id => {
-            const span = spans.find(s => s.span_id === id);
+          .map((id) => {
+            const span = spans.find((s) => s.span_id === id);
             return span?.label?.label ?? id;
           })
           .join(", ");

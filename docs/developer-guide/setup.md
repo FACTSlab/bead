@@ -123,7 +123,7 @@ This command:
 ```bash
 # Check bead CLI installed
 uv run bead --version
-# Output: bead, version 0.1.0
+# Output: bead, version 0.2.0
 
 # Check development tools
 uv run pytest --version
@@ -509,7 +509,7 @@ Run these commands to verify your development environment is fully functional:
 
 ```bash
 uv run bead --version
-# Expected: bead, version 0.1.0
+# Expected: bead, version 0.2.0
 ```
 
 ### 2. Run Quick Test

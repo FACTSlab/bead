@@ -407,5 +407,30 @@ body {{
 .bead-choice-button {{
   width: 100%;
 }}
+
+/* Span-highlighted prompt references */
+.bead-q-highlight {{
+  position: relative;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-weight: 500;
+  margin-bottom: 0.6rem;
+}}
+
+.bead-q-chip {{
+  position: absolute;
+  bottom: -0.6rem;
+  right: -2px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0px 5px;
+  border-radius: 0.6rem;
+  font-size: 0.6rem;
+  font-weight: 500;
+  color: white;
+  white-space: nowrap;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  line-height: 1.5;
+}}
 """
         return css

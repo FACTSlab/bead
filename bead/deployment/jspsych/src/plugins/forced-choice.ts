@@ -162,14 +162,12 @@ class BeadForcedChoicePlugin implements JsPsychPlugin<typeof info, ForcedChoiceT
 
     display_element.innerHTML = html;
 
-    // Add event listeners for choice buttons
-    const choice_buttons =
-      display_element.querySelectorAll<HTMLButtonElement>(".bead-choice-button");
-    for (const button of choice_buttons) {
-      button.addEventListener("click", (e) => {
-        const target = e.target as HTMLButtonElement;
-        const indexAttr = target.getAttribute("data-index");
-        const positionAttr = target.getAttribute("data-position") as Position | null;
+    // Add event listeners for card clicks (primary interaction)
+    const alternative_cards = display_element.querySelectorAll<HTMLDivElement>(".bead-alternative");
+    for (const card of alternative_cards) {
+      card.addEventListener("click", () => {
+        const indexAttr = card.getAttribute("data-index");
+        const positionAttr = card.getAttribute("data-position") as Position | null;
         if (indexAttr !== null && positionAttr !== null) {
           const index = Number.parseInt(indexAttr, 10);
           select_choice(index, positionAttr);

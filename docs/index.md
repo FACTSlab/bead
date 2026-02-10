@@ -60,7 +60,7 @@ If you use bead in your research, please cite:
   title = {Bead: A python framework for linguistic judgment experiments with active learning},
   year = {2026},
   url = {https://github.com/FACTSlab/bead},
-  version = {0.1.0}
+  version = {0.2.0}
 }
 ```
 

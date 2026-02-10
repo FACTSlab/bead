@@ -11,6 +11,9 @@
 
 import type { JsPsych, JsPsychPlugin, PluginInfo } from "../types/jspsych.js";
 
+/** Position of the prompt relative to the stimulus */
+type PromptPosition = "above" | "below";
+
 /** Bead item/template metadata */
 interface BeadMetadata {
   [key: string]: unknown;
@@ -20,6 +23,10 @@ interface BeadMetadata {
 export interface SliderRatingTrialParams {
   /** The prompt/question to display */
   prompt: string | null;
+  /** HTML stimulus to display */
+  stimulus: string;
+  /** Position of the prompt relative to the stimulus */
+  prompt_position: PromptPosition;
   /** Minimum slider value */
   slider_min: number;
   /** Maximum slider value */
@@ -45,6 +52,14 @@ const info: PluginInfo = {
     prompt: {
       type: 8, // ParameterType.HTML_STRING
       default: null,
+    },
+    stimulus: {
+      type: 8, // ParameterType.HTML_STRING
+      default: "",
+    },
+    prompt_position: {
+      type: 1, // ParameterType.STRING
+      default: "above",
     },
     slider_min: {
       type: 2, // ParameterType.INT
@@ -103,7 +118,15 @@ class BeadSliderRatingPlugin implements JsPsychPlugin<typeof info, SliderRatingT
     // Build HTML
     let html = '<div class="bead-slider-container">';
 
-    if (trial.prompt !== null) {
+    if (trial.prompt !== null && trial.prompt_position === "above") {
+      html += `<div class="bead-slider-prompt">${trial.prompt}</div>`;
+    }
+
+    if (trial.stimulus) {
+      html += `<div class="bead-slider-stimulus">${trial.stimulus}</div>`;
+    }
+
+    if (trial.prompt !== null && trial.prompt_position === "below") {
       html += `<div class="bead-slider-prompt">${trial.prompt}</div>`;
     }
 
@@ -143,7 +166,8 @@ class BeadSliderRatingPlugin implements JsPsychPlugin<typeof info, SliderRatingT
     // Slider listener
     const slider = display_element.querySelector<HTMLInputElement>(".bead-slider-input");
     const value_display = display_element.querySelector<HTMLDivElement>(".bead-slider-value");
-    const continue_button = display_element.querySelector<HTMLButtonElement>("#bead-slider-continue");
+    const continue_button =
+      display_element.querySelector<HTMLButtonElement>("#bead-slider-continue");
 
     if (slider) {
       slider.addEventListener("input", () => {

@@ -9,16 +9,16 @@
  * @version 0.2.0
  */
 
-import { BeadRatingPlugin } from "../plugins/rating.js";
-import { BeadForcedChoicePlugin } from "../plugins/forced-choice.js";
 import { BeadBinaryChoicePlugin } from "../plugins/binary-choice.js";
-import { BeadSliderRatingPlugin } from "../plugins/slider-rating.js";
-import { BeadClozeMultiPlugin } from "../plugins/cloze-dropdown.js";
-import { BeadSpanLabelPlugin } from "../plugins/span-label.js";
 import { BeadCategoricalPlugin } from "../plugins/categorical.js";
-import { BeadMagnitudePlugin } from "../plugins/magnitude.js";
+import { BeadClozeMultiPlugin } from "../plugins/cloze-dropdown.js";
+import { BeadForcedChoicePlugin } from "../plugins/forced-choice.js";
 import { BeadFreeTextPlugin } from "../plugins/free-text.js";
+import { BeadMagnitudePlugin } from "../plugins/magnitude.js";
 import { BeadMultiSelectPlugin } from "../plugins/multi-select.js";
+import { BeadRatingPlugin } from "../plugins/rating.js";
+import { BeadSliderRatingPlugin } from "../plugins/slider-rating.js";
+import { BeadSpanLabelPlugin } from "../plugins/span-label.js";
 
 declare global {
   interface Window {

@@ -33,24 +33,23 @@
       });
       var trial = {
         type: BeadClozeMultiPlugin,
-        text: "Someone %% that someone left and %% to go.",
+        text: "The hurricane hit the coastline %% %% %%.",
         fields: [
-          {type: "dropdown", options: ["knew", "believed", "forgot", "hoped", "denied", "doubted"]},
-          {type: "dropdown", options: ["wanted", "managed", "tried", "decided", "refused", "failed"]}
+          {type: "dropdown", options: ["in", "for"]},
+          {type: "text", placeholder: "#"},
+          {type: "dropdown", options: ["seconds", "minutes", "hours", "days", "weeks"]}
         ],
         require_all: true,
         button_label: "Continue",
         metadata: {
-          frame_slot_1: "that_S",
-          frame_slot_2: "to_VP",
-          item_id: "mega-acceptability-cloze-verb-frames",
-          source: "MegaAcceptability verb frames (White & Rawlins, 2016)"
+          predicate: "hit",
+          item_id: "telicity-hurricane-hit"
         }
       };
       jsPsych.run([trial]);
     }
     runDemo();
   </script>
-  <script>new ResizeObserver(() => { window.parent.postMessage({ type: 'bead-resize', height: document.documentElement.scrollHeight }, '*'); }).observe(document.body);</script>
+  <script>(function(){var last=0;new ResizeObserver(function(){var h=document.documentElement.scrollHeight;if(h!==last){last=h;window.parent.postMessage({type:'bead-resize',height:h},'*');}}).observe(document.body);})()</script>
 </body>
 </html>

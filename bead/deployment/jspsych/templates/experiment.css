@@ -42,3 +42,36 @@
 .bead-wikidata-result:hover { background: #F5F5F5; }
 .bead-wikidata-result .qid { color: #9E9E9E; font-size: 0.85em; }
 .bead-wikidata-result .description { color: #757575; font-size: 0.85em; }
+
+/* Prompt span references (highlighted label chips in question text) */
+.bead-q-highlight { position: relative; padding: 1px 4px; border-radius: 3px; font-weight: 500; margin-bottom: 0.6rem; }
+.bead-q-chip { position: absolute; bottom: -0.6rem; right: -2px; display: inline-flex; align-items: center; padding: 0 5px; border-radius: 0.6rem; font-size: 0.6rem; font-weight: 500; color: white; white-space: nowrap; box-shadow: 0 1px 3px rgba(0,0,0,0.15); line-height: 1.5; }
+
+/* Subscript span labels (positioned below last token) */
+.bead-span-subscript { position: absolute; bottom: -0.6rem; right: -2px; display: inline-flex; align-items: center; gap: 2px; padding: 0 5px; border-radius: 0.6rem; font-size: 0.6rem; font-weight: 500; color: white; white-space: nowrap; z-index: 1; box-shadow: 0 1px 3px rgba(0,0,0,0.15); line-height: 1.5; cursor: default; }
+.bead-subscript-delete { border: none; background: none; color: rgba(255,255,255,0.6); cursor: pointer; font-size: 1.1em; font-weight: bold; padding: 0 1px; line-height: 1; }
+.bead-subscript-delete:hover { color: white; }
+
+/* === Magnitude estimation styles === */
+
+/* Reference + target section labels */
+.bead-magnitude-reference-header { display: flex; flex-direction: column; align-items: center; margin-bottom: -8px; position: relative; z-index: 1; }
+.bead-magnitude-section-label { font-size: 0.7em; text-transform: uppercase; letter-spacing: 0.5px; color: #78909C; font-weight: 500; margin-bottom: 2px; }
+.bead-magnitude-reference-chip { display: inline-block; background: #1565C0; color: white; font-weight: 700; padding: 2px 12px; border-radius: 12px; font-size: 0.85em; line-height: 1.4; }
+.bead-magnitude-reference { border: 1.5px dashed #B0BEC5; background: #ECEFF1; font-size: 0.95em; padding: 16px 24px 12px; border-radius: 6px; margin-bottom: 12px; display: inline-block; }
+.bead-magnitude-reference-text { font-size: 1.05em; color: #546E7A; }
+
+/* Exponential slider */
+.bead-magnitude-slider-wrapper { max-width: 520px; margin: 0 auto 16px; }
+.bead-magnitude-slider-value { text-align: center; font-size: 2em; font-weight: 700; color: #3f51b5; margin-bottom: 12px; min-height: 1.2em; font-variant-numeric: tabular-nums; }
+.bead-magnitude-slider-track-area { display: flex; align-items: center; gap: 8px; }
+.bead-magnitude-slider-endpoint { font-size: 0.9em; color: #757575; flex-shrink: 0; width: 24px; text-align: center; user-select: none; }
+.bead-magnitude-slider-right { font-size: 1.2em; }
+.bead-magnitude-slider-track { position: relative; flex: 1; height: 8px; background: #e0e0e0; border-radius: 4px; cursor: pointer; outline: none; }
+.bead-magnitude-slider-track:focus-visible { box-shadow: 0 0 0 3px rgba(63, 81, 181, 0.25); }
+.bead-magnitude-slider-fill { position: absolute; top: 0; left: 0; height: 100%; background: #3f51b5; border-radius: 4px 0 0 4px; pointer-events: none; }
+.bead-magnitude-slider-ref-tick { position: absolute; top: -6px; bottom: -6px; width: 2px; background: #1565C0; transform: translateX(-50%); pointer-events: none; }
+.bead-magnitude-slider-ref-label { position: absolute; top: -18px; left: 50%; transform: translateX(-50%); font-size: 0.7em; color: #1565C0; font-weight: 500; white-space: nowrap; user-select: none; }
+.bead-magnitude-slider-handle { position: absolute; top: 50%; width: 22px; height: 22px; background: #3f51b5; border: 2px solid white; border-radius: 50%; transform: translate(-50%, -50%); cursor: grab; box-shadow: 0 1px 4px rgba(0,0,0,0.3); }
+.bead-magnitude-slider-handle:active { cursor: grabbing; box-shadow: 0 2px 8px rgba(0,0,0,0.4); }
+.bead-magnitude-slider-handle.hidden { display: none; }

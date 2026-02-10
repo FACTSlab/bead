@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Span + Likert Rating</title>
+  <title>Span + Free Text</title>
   <link href="https://unpkg.com/jspsych@8.0.0/css/jspsych.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&amp;display=swap" rel="stylesheet">
   <link href="../css/gallery.css" rel="stylesheet">
@@ -121,38 +121,34 @@
         }
       });
 
-      var tokens = ["The", "boy", "broke", "the", "vase", "."];
-      var spaceAfter = [true, true, true, true, false, false];
+      var tokens = ["The", "1846", "US", "occupation", "of", "Monterey", "put", "an", "end", "to", "any", "Mexican", "military", "presence", "at", "the", "Presidio", ".", "The", "fort", "was", "abandoned", "in", "1866", "."];
+      var spaceAfter = [true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, false, true, true, true, true, true, true, false, false];
       var palette = ["#BBDEFB", "#C8E6C9", "#FFE0B2", "#F8BBD0", "#D1C4E9", "#B2EBF2", "#DCEDC8", "#FFD54F"];
       var spans = [
-        {span_id: "span_0", segments: [{element_name: "text", indices: [0, 1]}], label: {label: "breaker"}},
-        {span_id: "span_1", segments: [{element_name: "text", indices: [2]}], label: {label: "event"}},
-        {span_id: "span_2", segments: [{element_name: "text", indices: [3, 4]}], label: {label: "breakee"}}
+        {span_id: "span_0", segments: [{element_name: "text", indices: [21]}], label: {label: "event"}}
       ];
 
       var stimulus = renderSpanStimulus(tokens, spaceAfter, spans, palette);
 
-      var question = 'How likely is it that ' +
-        '<span class="bead-q-highlight" style="background:#BBDEFB">the boy' +
-        '<span class="bead-q-chip" style="background:#1565C0">breaker</span></span>' +
-        ' existed after ' +
-        '<span class="bead-q-highlight" style="background:#C8E6C9">the breaking' +
-        '<span class="bead-q-chip" style="background:#2E7D32">event</span></span>?';
+      var question = 'Summarize the ' +
+        '<span class="bead-q-highlight" style="background:#BBDEFB">highlighted event' +
+        '<span class="bead-q-chip" style="background:#1565C0">event</span></span>' +
+        ' in one sentence.';
 
       var trial = {
-        type: BeadRatingPlugin,
+        type: BeadFreeTextPlugin,
         prompt: stimulus + '<p style="color:#424242;font-size:1.1em;margin-top:16px">' + question + '</p>',
-        scale_min: 1,
-        scale_max: 5,
-        scale_labels: {1: "Very unlikely", 5: "Very likely"},
+        multiline: true,
+        rows: 3,
+        min_length: 5,
+        max_length: 200,
+        placeholder: "Describe the event...",
         require_response: true,
         button_label: "Continue",
         on_load: function() { fixSubscriptOverlaps(document.getElementById("jspsych-target")); },
         metadata: {
-          predicate: "broke",
-          property: "existed_after",
-          argument: "breaker",
-          item_id: "spr-existed-after-broke-breaker"
+          event_type: "Abandoning",
+          item_id: "event-summarization-presidio-span"
         }
       };
 

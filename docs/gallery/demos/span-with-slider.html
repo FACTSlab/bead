@@ -44,18 +44,11 @@
 
     function renderSpanStimulus(tokens, spaceAfter, spans, palette) {
       var darkPalette = ["#1565C0", "#2E7D32", "#E65100", "#AD1457", "#4527A0", "#00838F", "#558B2F", "#F9A825"];
-      var labelToLight = {}, labelToDark = {}, spanLight = {}, spanDark = {}, ci = 0;
+      var spanLight = {}, spanDark = {}, ci = 0;
       spans.forEach(function(span) {
-        var label = span.label ? span.label.label : null;
-        if (label && labelToLight[label]) {
-          spanLight[span.span_id] = labelToLight[label];
-          spanDark[span.span_id] = labelToDark[label];
-        } else {
-          spanLight[span.span_id] = palette[ci % palette.length];
-          spanDark[span.span_id] = darkPalette[ci % darkPalette.length];
-          if (label) { labelToLight[label] = spanLight[span.span_id]; labelToDark[label] = spanDark[span.span_id]; }
-          ci++;
-        }
+        spanLight[span.span_id] = palette[ci % palette.length];
+        spanDark[span.span_id] = darkPalette[ci % darkPalette.length];
+        ci++;
       });
       var tokenSpanMap = {};
       spans.forEach(function(span, spanIdx) {
@@ -121,19 +114,22 @@
         }
       });
 
-      var tokens = ["Someone", "confirmed", "that", "someone", "left", "."];
+      var tokens = ["Jo", "confirmed", "that", "Bo", "left", "."];
       var spaceAfter = [true, true, true, true, false, false];
       var palette = ["#BBDEFB", "#C8E6C9", "#FFE0B2", "#F8BBD0", "#D1C4E9", "#B2EBF2", "#DCEDC8", "#FFD54F"];
       var spans = [
-        {span_id: "span_0", segments: [{element_name: "text", indices: [1]}], label: {label: "predicate"}},
-        {span_id: "span_1", segments: [{element_name: "text", indices: [3, 4]}], label: {label: "embedded clause"}}
+        {span_id: "span_0", segments: [{element_name: "text", indices: [1]}], label: null},
+        {span_id: "span_1", segments: [{element_name: "text", indices: [3, 4]}], label: null}
       ];
 
       var stimulus = renderSpanStimulus(tokens, spaceAfter, spans, palette);
 
+      var question = 'How likely is it that ' +
+        '<span class="bead-q-highlight" style="background:#C8E6C9">someone left</span>?';
+
       var trial = {
         type: BeadSliderRatingPlugin,
-        prompt: stimulus + '<p style="color:#424242;font-size:1.1em;margin-top:16px">Based on this sentence, did someone leave?</p>',
+        prompt: stimulus + '<p style="color:#424242;font-size:1.1em;margin-top:16px">' + question + '</p>',
         slider_min: 0,
         slider_max: 100,
         slider_start: 50,
@@ -144,8 +140,7 @@
         metadata: {
           verb: "confirm",
           frame: "that_S",
-          item_id: "mega-veridicality-confirm-that-s",
-          source: "MegaVeridicality (White & Rawlins, 2018)"
+          item_id: "veridicality-confirm-that-s"
         }
       };
 
@@ -154,6 +149,6 @@
 
     runDemo();
   </script>
-  <script>new ResizeObserver(() => { window.parent.postMessage({ type: 'bead-resize', height: document.documentElement.scrollHeight }, '*'); }).observe(document.body);</script>
+  <script>(function(){var last=0;new ResizeObserver(function(){var h=document.documentElement.scrollHeight;if(h!==last){last=h;window.parent.postMessage({type:'bead-resize',height:h},'*');}}).observe(document.body);})()</script>
 </body>
 </html>

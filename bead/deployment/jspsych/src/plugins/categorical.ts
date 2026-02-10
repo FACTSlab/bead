@@ -11,6 +11,9 @@
 
 import type { JsPsych, JsPsychPlugin, PluginInfo } from "../types/jspsych.js";
 
+/** Position of the prompt relative to the stimulus */
+type PromptPosition = "above" | "below";
+
 /** Bead item/template metadata */
 interface BeadMetadata {
   [key: string]: unknown;
@@ -24,6 +27,8 @@ export interface CategoricalTrialParams {
   stimulus: string;
   /** Category labels (unordered) */
   categories: string[];
+  /** Position of the prompt relative to the stimulus */
+  prompt_position: PromptPosition;
   /** Whether to require a response before continuing */
   require_response: boolean;
   /** Text for the continue button */
@@ -48,6 +53,10 @@ const info: PluginInfo = {
       type: 1, // ParameterType.STRING
       default: [],
       array: true,
+    },
+    prompt_position: {
+      type: 1, // ParameterType.STRING
+      default: "above",
     },
     require_response: {
       type: 0, // ParameterType.BOOL
@@ -84,12 +93,16 @@ class BeadCategoricalPlugin implements JsPsychPlugin<typeof info, CategoricalTri
     // Build HTML
     let html = '<div class="bead-categorical-container">';
 
-    if (trial.prompt) {
+    if (trial.prompt && trial.prompt_position === "above") {
       html += `<div class="bead-categorical-prompt">${trial.prompt}</div>`;
     }
 
     if (trial.stimulus) {
       html += `<div class="bead-categorical-stimulus">${trial.stimulus}</div>`;
+    }
+
+    if (trial.prompt && trial.prompt_position === "below") {
+      html += `<div class="bead-categorical-prompt">${trial.prompt}</div>`;
     }
 
     html += '<div class="bead-categorical-options">';
@@ -114,7 +127,9 @@ class BeadCategoricalPlugin implements JsPsychPlugin<typeof info, CategoricalTri
 
     // Category button listeners
     const buttons = display_element.querySelectorAll<HTMLButtonElement>(".bead-categorical-button");
-    const continueBtn = display_element.querySelector<HTMLButtonElement>("#bead-categorical-continue");
+    const continueBtn = display_element.querySelector<HTMLButtonElement>(
+      "#bead-categorical-continue",
+    );
 
     for (const button of buttons) {
       button.addEventListener("click", (e) => {

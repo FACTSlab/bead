@@ -7,6 +7,73 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-02-09
+
+### Added
+
+#### Span Labeling Data Model (`bead.items`)
+
+- **Span**, **SpanLabel**, **SpanSegment** models for stand-off token-level annotation
+- **SpanSpec** for defining label vocabularies and relation types
+- **SpanRelation** for directed labeled relations between spans
+- `add_spans_to_item()` composability function for attaching spans to any item type
+- Prompt span references: `[[label]]` and `[[label:text]]` template syntax
+  - Auto-fills span token text or uses explicit display text
+  - Colors match between stimulus highlighting and prompt highlighting
+  - Resolved Python-side at trial generation; plugins receive pre-rendered HTML
+  - Early validation warning in `add_spans_to_item()`, hard validation at trial generation
+
+#### Tokenization (`bead.tokenization`)
+
+- **Token** model with `text`, `whitespace`, `index`, `token_space_after` fields
+- **TokenizedText** container with token-level access and reconstruction
+- Tokenizer backends: whitespace (default), spaCy, Stanza
+- Lazy imports for optional NLP dependencies
+
+#### jsPsych Plugins (`bead.deployment.jspsych`)
+
+- 8 new TypeScript plugins following the `JsPsychPlugin` pattern:
+  - **bead-binary-choice**: two-alternative forced choice with keyboard support
+  - **bead-categorical**: labeled category selection (radio buttons)
+  - **bead-free-text**: open-ended text input with optional word count
+  - **bead-magnitude**: numeric magnitude estimation with reference stimulus
+  - **bead-multi-select**: checkbox-based multi-selection with min/max constraints
+  - **bead-slider-rating**: continuous slider with labeled endpoints
+  - **bead-rating**: Likert-scale ordinal rating with keyboard shortcuts
+  - **bead-span-label**: interactive span highlighting with label assignment, relations, and search
+- **span-renderer** library for token-level span highlighting with overlap support
+- **gallery-bundle** IIFE build aggregating all plugins for standalone HTML demos
+- Keyboard navigation support in forced-choice, rating, and binary-choice plugins
+- Material Design styling with responsive layout
+
+#### Deployment Pipeline
+
+- `SpanDisplayConfig` with `color_palette` and `dark_color_palette` for consistent span coloring
+- `SpanColorMap` dataclass for deterministic color assignment (same label = same color pair)
+- `_assign_span_colors()` shared between stimulus and prompt renderers
+- `_generate_span_stimulus_html()` for token-level highlighting in deployed experiments
+- Prompt span reference resolution integrated into all 5 composite trial creators (likert, slider, binary, forced-choice, span-labeling)
+- Deployment CSS for `.bead-q-highlight`, `.bead-q-chip`, `.bead-span-subscript` in experiment template
+
+#### Interactive Gallery
+
+- 17 demo pages using stimuli from MegaAcceptability, MegaVeridicality, and Semantic Proto-Roles
+- Demos cover all plugin types and composite span+task combinations
+- Gallery documentation with tabbed Demo / Python / Trial JSON views
+- Standalone HTML demos with gallery-bundle.js (no build step required)
+
+#### Tests
+
+- 79 Python span-related tests (items, tokenization, deployment)
+- 42 TypeScript tests (20 plugin + 22 span-renderer)
+- Prompt span reference tests: parser, color assignment, resolver, integration
+
+### Changed
+
+- Trial generation now supports span-aware stimulus rendering for all task types
+- Forced-choice and rating plugins updated with keyboard shortcut support
+- Span-label plugin enhanced with searchable fixed labels, interactive relation creation, and relation cleanup on span deletion
+
 ## [0.1.0] - 2026-02-04
 
 ### Added
@@ -115,5 +182,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CI/CD: GitHub Actions for testing, docs, PyPI publishing
 - Read the Docs integration
 
-[Unreleased]: https://github.com/FACTSlab/bead/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/FACTSlab/bead/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/FACTSlab/bead/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/FACTSlab/bead/releases/tag/v0.1.0

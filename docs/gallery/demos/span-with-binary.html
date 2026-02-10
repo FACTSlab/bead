@@ -121,30 +121,36 @@
         }
       });
 
-      var tokens = ["Someone", "gave", "something", "to", "someone", "."];
-      var spaceAfter = [true, true, true, true, false, false];
+      var tokens = ["The", "merchant", "traded", "the", "silk", "for", "the", "spices", "."];
+      var spaceAfter = [true, true, true, true, true, true, true, false, false];
       var palette = ["#BBDEFB", "#C8E6C9", "#FFE0B2", "#F8BBD0", "#D1C4E9", "#B2EBF2", "#DCEDC8", "#FFD54F"];
       var spans = [
-        {span_id: "span_0", segments: [{element_name: "text", indices: [0]}], label: {label: "arg0"}},
-        {span_id: "span_1", segments: [{element_name: "text", indices: [2]}], label: {label: "arg1"}},
-        {span_id: "span_2", segments: [{element_name: "text", indices: [4]}], label: {label: "arg2"}}
+        {span_id: "span_0", segments: [{element_name: "text", indices: [0, 1]}], label: {label: "trader"}},
+        {span_id: "span_1", segments: [{element_name: "text", indices: [2]}], label: {label: "event"}},
+        {span_id: "span_2", segments: [{element_name: "text", indices: [3, 4]}], label: {label: "traded-away"}},
+        {span_id: "span_3", segments: [{element_name: "text", indices: [6, 7]}], label: {label: "traded-for"}}
       ];
 
       var stimulus = renderSpanStimulus(tokens, spaceAfter, spans, palette);
 
+      var question = 'Did ' +
+        '<span class="bead-q-highlight" style="background:#FFE0B2">the silk' +
+        '<span class="bead-q-chip" style="background:#E65100">traded-away</span></span>' +
+        ' change location as a result of ' +
+        '<span class="bead-q-highlight" style="background:#C8E6C9">the trading' +
+        '<span class="bead-q-chip" style="background:#2E7D32">event</span></span>?';
+
       var trial = {
         type: BeadBinaryChoicePlugin,
-        prompt: "Does arg0 (someone) have the property <em>volition</em>: did they choose to be involved in this event?",
+        prompt: question,
         stimulus: stimulus,
         choices: ["Yes", "No"],
         require_response: true,
         on_load: function() { fixSubscriptOverlaps(document.getElementById("jspsych-target")); },
         metadata: {
-          predicate: "gave",
-          property: "volition",
-          argument: "arg0",
-          item_id: "spr-volition-gave-arg0",
-          source: "Semantic Proto-Roles (Reisinger et al., 2015)"
+          predicate: "traded",
+          property: "change_of_location",
+          item_id: "spr-change-of-location-traded"
         }
       };
 
@@ -153,6 +159,6 @@
 
     runDemo();
   </script>
-  <script>new ResizeObserver(() => { window.parent.postMessage({ type: 'bead-resize', height: document.documentElement.scrollHeight }, '*'); }).observe(document.body);</script>
+  <script>(function(){var last=0;new ResizeObserver(function(){var h=document.documentElement.scrollHeight;if(h!==last){last=h;window.parent.postMessage({type:'bead-resize',height:h},'*');}}).observe(document.body);})()</script>
 </body>
 </html>

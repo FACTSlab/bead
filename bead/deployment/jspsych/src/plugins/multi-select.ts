@@ -16,12 +16,17 @@ interface BeadMetadata {
   [key: string]: unknown;
 }
 
+/** Prompt position relative to stimulus */
+type PromptPosition = "above" | "below";
+
 /** Multi-select trial parameters */
 export interface MultiSelectTrialParams {
   /** The prompt/question to display */
   prompt: string;
   /** HTML stimulus to display */
   stimulus: string;
+  /** Where to place the prompt relative to the stimulus */
+  prompt_position: PromptPosition;
   /** Options to select from */
   options: string[];
   /** Minimum number of selections required */
@@ -47,6 +52,10 @@ const info: PluginInfo = {
     stimulus: {
       type: 8, // ParameterType.HTML_STRING
       default: "",
+    },
+    prompt_position: {
+      type: 1, // ParameterType.STRING
+      default: "above",
     },
     options: {
       type: 1, // ParameterType.STRING
@@ -91,10 +100,15 @@ class BeadMultiSelectPlugin implements JsPsychPlugin<typeof info, MultiSelectTri
   trial(display_element: HTMLElement, trial: MultiSelectTrialParams): void {
     const start_time = performance.now();
 
+    // Determine if compact layout is appropriate
+    const maxLen = Math.max(...trial.options.map((o) => o.length));
+    const useCompact = maxLen < 25 && trial.options.length <= 6;
+
     // Build HTML
     let html = '<div class="bead-multi-select-container">';
 
-    if (trial.prompt) {
+    // Prompt (above)
+    if (trial.prompt && trial.prompt_position === "above") {
       html += `<div class="bead-multi-select-prompt">${trial.prompt}</div>`;
     }
 
@@ -102,12 +116,19 @@ class BeadMultiSelectPlugin implements JsPsychPlugin<typeof info, MultiSelectTri
       html += `<div class="bead-multi-select-stimulus">${trial.stimulus}</div>`;
     }
 
-    html += '<div class="bead-multi-select-options">';
+    // Prompt (below)
+    if (trial.prompt && trial.prompt_position === "below") {
+      html += `<div class="bead-multi-select-prompt">${trial.prompt}</div>`;
+    }
+
+    const compactClass = useCompact ? " bead-multi-select-compact" : "";
+    html += `<div class="bead-multi-select-options${compactClass}">`;
     for (let i = 0; i < trial.options.length; i++) {
+      const opt = trial.options[i] ?? "";
       html += `
         <label class="bead-multi-select-option">
-          <input type="checkbox" class="bead-multi-select-checkbox" data-index="${i}" value="${trial.options[i]}">
-          <span class="bead-multi-select-label">${trial.options[i]}</span>
+          <input type="checkbox" class="bead-multi-select-checkbox" data-index="${i}" value="${opt}">
+          <span class="bead-multi-select-label">${opt}</span>
         </label>
       `;
     }
@@ -128,11 +149,17 @@ class BeadMultiSelectPlugin implements JsPsychPlugin<typeof info, MultiSelectTri
     display_element.innerHTML = html;
 
     // Checkbox listeners
-    const checkboxes = display_element.querySelectorAll<HTMLInputElement>(".bead-multi-select-checkbox");
-    const continueBtn = display_element.querySelector<HTMLButtonElement>("#bead-multi-select-continue");
+    const checkboxes = display_element.querySelectorAll<HTMLInputElement>(
+      ".bead-multi-select-checkbox",
+    );
+    const continueBtn = display_element.querySelector<HTMLButtonElement>(
+      "#bead-multi-select-continue",
+    );
 
     const updateButton = (): void => {
-      const checked = display_element.querySelectorAll<HTMLInputElement>(".bead-multi-select-checkbox:checked");
+      const checked = display_element.querySelectorAll<HTMLInputElement>(
+        ".bead-multi-select-checkbox:checked",
+      );
       const count = checked.length;
 
       // Enforce max_selections
@@ -163,7 +190,9 @@ class BeadMultiSelectPlugin implements JsPsychPlugin<typeof info, MultiSelectTri
 
     const end_trial = (): void => {
       const rt = performance.now() - start_time;
-      const checked = display_element.querySelectorAll<HTMLInputElement>(".bead-multi-select-checkbox:checked");
+      const checked = display_element.querySelectorAll<HTMLInputElement>(
+        ".bead-multi-select-checkbox:checked",
+      );
 
       const selected: string[] = [];
       const selected_indices: number[] = [];

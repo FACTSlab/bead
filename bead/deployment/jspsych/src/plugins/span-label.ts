@@ -12,9 +12,9 @@
  * @version 0.2.0
  */
 
-import type { JsPsych, JsPsychPlugin, PluginInfo } from "../types/jspsych.js";
 import { debouncedSearchWikidata } from "../lib/wikidata-search.js";
 import type { WikidataEntity } from "../lib/wikidata-search.js";
+import type { JsPsych, JsPsychPlugin, PluginInfo } from "../types/jspsych.js";
 
 /** Span segment data */
 interface SpanSegmentData {
@@ -161,14 +161,26 @@ const info: PluginInfo = {
 };
 
 const DEFAULT_PALETTE = [
-  "#BBDEFB", "#C8E6C9", "#FFE0B2", "#F8BBD0",
-  "#D1C4E9", "#B2EBF2", "#DCEDC8", "#FFD54F",
+  "#BBDEFB",
+  "#C8E6C9",
+  "#FFE0B2",
+  "#F8BBD0",
+  "#D1C4E9",
+  "#B2EBF2",
+  "#DCEDC8",
+  "#FFD54F",
 ];
 
 // Dark versions of palette colors for badge backgrounds (white text)
 const DARK_PALETTE = [
-  "#1565C0", "#2E7D32", "#E65100", "#AD1457",
-  "#4527A0", "#00838F", "#558B2F", "#F9A825",
+  "#1565C0",
+  "#2E7D32",
+  "#E65100",
+  "#AD1457",
+  "#4527A0",
+  "#00838F",
+  "#558B2F",
+  "#F9A825",
 ];
 
 /**
@@ -188,19 +200,18 @@ class BeadSpanLabelPlugin implements JsPsychPlugin<typeof info, SpanLabelTrialPa
     const events: SpanEvent[] = [];
 
     // Resolve config from metadata or parameters
-    const tokens = Object.keys(trial.tokens).length > 0
-      ? trial.tokens
-      : (trial.metadata.tokenized_elements ?? {});
-    const spaceAfter = Object.keys(trial.space_after).length > 0
-      ? trial.space_after
-      : (trial.metadata.token_space_after ?? {});
+    const tokens =
+      Object.keys(trial.tokens).length > 0
+        ? trial.tokens
+        : (trial.metadata.tokenized_elements ?? {});
+    const spaceAfter =
+      Object.keys(trial.space_after).length > 0
+        ? trial.space_after
+        : (trial.metadata.token_space_after ?? {});
     const spanSpec = trial.span_spec ?? trial.metadata.span_spec ?? null;
-    const preSpans = trial.spans.length > 0
-      ? trial.spans
-      : (trial.metadata.spans ?? []);
-    const preRelations = trial.relations.length > 0
-      ? trial.relations
-      : (trial.metadata.span_relations ?? []);
+    const preSpans = trial.spans.length > 0 ? trial.spans : (trial.metadata.spans ?? []);
+    const preRelations =
+      trial.relations.length > 0 ? trial.relations : (trial.metadata.span_relations ?? []);
 
     const palette = trial.display_config?.color_palette ?? DEFAULT_PALETTE;
     const isInteractive = spanSpec?.interaction_mode === "interactive";
@@ -247,54 +258,71 @@ class BeadSpanLabelPlugin implements JsPsychPlugin<typeof info, SpanLabelTrialPa
     // Label selector (for interactive mode)
     if (isInteractive && spanSpec?.label_source === "wikidata") {
       // Wikidata search panel
-      html += '<div class="bead-label-selector bead-wikidata-panel" id="bead-label-panel" style="display:none;">';
+      html +=
+        '<div class="bead-label-selector bead-wikidata-panel bead-search-disabled" id="bead-label-panel">';
       html += '<div class="bead-wikidata-search">';
-      html += '<input type="text" id="bead-wikidata-input" placeholder="Search Wikidata entities..." autocomplete="off">';
-      html += '<div class="bead-wikidata-results" id="bead-wikidata-results" style="display:none;"></div>';
-      html += '</div></div>';
+      html +=
+        '<input type="text" id="bead-wikidata-input" placeholder="Select tokens to annotate..." autocomplete="off" disabled>';
+      html +=
+        '<button type="button" class="bead-search-cancel" id="bead-search-cancel" style="display:none;" title="Cancel annotation">&times;</button>';
+      html +=
+        '<div class="bead-wikidata-results" id="bead-wikidata-results" style="display:none;"></div>';
+      html += "</div></div>";
     } else if (isInteractive && spanSpec?.labels && spanSpec.labels.length > 0) {
       // Searchable fixed label panel (mirrors the Wikidata UX)
-      html += '<div class="bead-label-selector bead-label-search-panel" id="bead-label-panel" style="display:none;">';
+      html +=
+        '<div class="bead-label-selector bead-label-search-panel bead-search-disabled" id="bead-label-panel">';
       html += '<div class="bead-label-search-wrapper">';
-      html += '<input type="text" id="bead-label-search-input" placeholder="Search labels..." autocomplete="off">';
-      html += '<div class="bead-label-search-results" id="bead-label-search-results" style="display:none;"></div>';
-      html += '</div></div>';
+      html +=
+        '<input type="text" id="bead-label-search-input" placeholder="Select tokens to annotate..." autocomplete="off" disabled>';
+      html +=
+        '<button type="button" class="bead-search-cancel" id="bead-search-cancel" style="display:none;" title="Cancel annotation">&times;</button>';
+      html +=
+        '<div class="bead-label-search-results" id="bead-label-search-results" style="display:none;"></div>';
+      html += "</div></div>";
     }
 
     // Relation controls and list
     if (spanSpec?.enable_relations) {
       if (isInteractive) {
         html += '<div class="bead-relation-controls" id="bead-relation-controls">';
-        html += '<button class="bead-add-relation-button" id="bead-add-relation" disabled>Add Relation</button>';
+        html +=
+          '<button class="bead-add-relation-button" id="bead-add-relation" disabled>Add Relation</button>';
         html += '<span class="bead-relation-status" id="bead-relation-status"></span>';
-        html += '<button class="bead-relation-cancel" id="bead-relation-cancel" style="display:none;">Cancel</button>';
-        html += '</div>';
+        html +=
+          '<button class="bead-relation-cancel" id="bead-relation-cancel" style="display:none;">Cancel</button>';
+        html += "</div>";
         // Relation label search (for choosing the label after source+target)
         if (spanSpec.relation_label_source === "wikidata") {
-          html += '<div class="bead-label-selector bead-wikidata-panel" id="bead-relation-label-panel" style="display:none;">';
+          html +=
+            '<div class="bead-label-selector bead-wikidata-panel" id="bead-relation-label-panel" style="display:none;">';
           html += '<div class="bead-wikidata-search">';
-          html += '<input type="text" id="bead-relation-wikidata-input" placeholder="Search Wikidata for relation label..." autocomplete="off">';
-          html += '<div class="bead-wikidata-results" id="bead-relation-wikidata-results" style="display:none;"></div>';
-          html += '</div></div>';
+          html +=
+            '<input type="text" id="bead-relation-wikidata-input" placeholder="Search Wikidata for relation label..." autocomplete="off">';
+          html +=
+            '<div class="bead-wikidata-results" id="bead-relation-wikidata-results" style="display:none;"></div>';
+          html += "</div></div>";
         } else if (spanSpec.relation_labels && spanSpec.relation_labels.length > 0) {
-          html += '<div class="bead-label-selector bead-label-search-panel" id="bead-relation-label-panel" style="display:none;">';
+          html +=
+            '<div class="bead-label-selector bead-label-search-panel" id="bead-relation-label-panel" style="display:none;">';
           html += '<div class="bead-label-search-wrapper">';
-          html += '<input type="text" id="bead-relation-label-input" placeholder="Search relation labels..." autocomplete="off">';
-          html += '<div class="bead-label-search-results" id="bead-relation-label-results" style="display:none;"></div>';
-          html += '</div></div>';
+          html +=
+            '<input type="text" id="bead-relation-label-input" placeholder="Search relation labels..." autocomplete="off">';
+          html +=
+            '<div class="bead-label-search-results" id="bead-relation-label-results" style="display:none;"></div>';
+          html += "</div></div>";
         }
       }
       html += '<div class="bead-relation-list" id="bead-relation-list"></div>';
     }
 
-    // Continue button
-    html += `
-      <div class="bead-rating-button-container">
-        <button class="bead-button bead-continue-button" id="bead-span-continue" ${isInteractive && trial.require_response ? "disabled" : ""}>
-          ${trial.button_label}
-        </button>
-      </div>
-    `;
+    // Bottom bar with continue button
+    html += '<div class="bead-span-bottom-bar">';
+    html += `<div class="bead-span-bottom-spacer"></div>`;
+    html += `<button class="bead-button bead-continue-button" id="bead-span-continue" ${isInteractive && trial.require_response ? "disabled" : ""}>`;
+    html += `${trial.button_label}`;
+    html += "</button>";
+    html += "</div>";
 
     html += "</div>";
     display_element.innerHTML = html;
@@ -312,6 +340,15 @@ class BeadSpanLabelPlugin implements JsPsychPlugin<typeof info, SpanLabelTrialPa
       } else if (spanSpec?.labels && spanSpec.labels.length > 0) {
         setupFixedLabelSearch();
       }
+      // Cancel button handler
+      const searchCancelBtn =
+        display_element.querySelector<HTMLButtonElement>("#bead-search-cancel");
+      if (searchCancelBtn) {
+        searchCancelBtn.addEventListener("click", () => {
+          cancelCurrentSelection();
+        });
+      }
+
       if (spanSpec?.enable_relations) {
         setupRelationHandlers();
       }
@@ -388,19 +425,19 @@ class BeadSpanLabelPlugin implements JsPsychPlugin<typeof info, SpanLabelTrialPa
           if (spanIds.length === 0) continue;
 
           const t = display_element.querySelector<HTMLSpanElement>(
-            `.bead-token[data-element="${elemName}"][data-index="${i}"]`
+            `.bead-token[data-element="${elemName}"][data-index="${i}"]`,
           );
           if (!t) continue;
 
           // Check if any span covers both this token and its left neighbor
           const leftKey = `${elemName}:${i - 1}`;
           const leftSpanIds = tokenSpanMap.get(leftKey) ?? [];
-          const hasLeftNeighbor = spanIds.some(id => leftSpanIds.includes(id));
+          const hasLeftNeighbor = spanIds.some((id) => leftSpanIds.includes(id));
 
           // Check if any span covers both this token and its right neighbor
           const rightKey = `${elemName}:${i + 1}`;
           const rightSpanIds = tokenSpanMap.get(rightKey) ?? [];
-          const hasRightNeighbor = spanIds.some(id => rightSpanIds.includes(id));
+          const hasRightNeighbor = spanIds.some((id) => rightSpanIds.includes(id));
 
           if (hasLeftNeighbor && hasRightNeighbor) {
             t.classList.add("span-middle");
@@ -415,12 +452,12 @@ class BeadSpanLabelPlugin implements JsPsychPlugin<typeof info, SpanLabelTrialPa
           // Highlight the space between this token and right neighbor if bridged
           if (hasRightNeighbor) {
             const spaceEl = display_element.querySelector<HTMLSpanElement>(
-              `.bead-space[data-element="${elemName}"][data-after="${i}"]`
+              `.bead-space[data-element="${elemName}"][data-after="${i}"]`,
             );
             if (spaceEl) {
               spaceEl.classList.add("highlighted");
               // Use the shared span IDs for the space color
-              const sharedIds = spanIds.filter(id => rightSpanIds.includes(id));
+              const sharedIds = spanIds.filter((id) => rightSpanIds.includes(id));
               applySpanColor(spaceEl, sharedIds.length > 0 ? sharedIds : spanIds, spanColorMap);
             }
           }
@@ -428,16 +465,20 @@ class BeadSpanLabelPlugin implements JsPsychPlugin<typeof info, SpanLabelTrialPa
       }
     }
 
-    function applySpanColor(el: HTMLElement, spanIds: string[], colorMap: Map<string, string>): void {
+    function applySpanColor(
+      el: HTMLElement,
+      spanIds: string[],
+      colorMap: Map<string, string>,
+    ): void {
       if (spanIds.length === 1) {
         el.style.backgroundColor = colorMap.get(spanIds[0] ?? "") ?? palette[0] ?? "#BBDEFB";
       } else if (spanIds.length > 1) {
         // For overlapping spans, use striped gradient
-        const colors = spanIds.map(id => colorMap.get(id) ?? palette[0] ?? "#BBDEFB");
+        const colors = spanIds.map((id) => colorMap.get(id) ?? palette[0] ?? "#BBDEFB");
         const stripeWidth = 100 / colors.length;
-        const stops = colors.map((c, ci) =>
-          `${c} ${ci * stripeWidth}%, ${c} ${(ci + 1) * stripeWidth}%`
-        ).join(", ");
+        const stops = colors
+          .map((c, ci) => `${c} ${ci * stripeWidth}%, ${c} ${(ci + 1) * stripeWidth}%`)
+          .join(", ");
         el.style.background = `linear-gradient(135deg, ${stops})`;
       }
     }
@@ -487,7 +528,7 @@ class BeadSpanLabelPlugin implements JsPsychPlugin<typeof info, SpanLabelTrialPa
         const lastToken = allIndices[allIndices.length - 1];
         if (!lastToken) continue;
         const tokenEl = display_element.querySelector<HTMLElement>(
-          `.bead-token[data-element="${lastToken.elem}"][data-index="${lastToken.idx}"]`
+          `.bead-token[data-element="${lastToken.elem}"][data-index="${lastToken.idx}"]`,
         );
         if (!tokenEl) continue;
 
@@ -532,10 +573,7 @@ class BeadSpanLabelPlugin implements JsPsychPlugin<typeof info, SpanLabelTrialPa
       for (const b of badges) b.style.transform = "";
 
       // Sort left-to-right by position
-      badges.sort(
-        (a, b) =>
-          a.getBoundingClientRect().left - b.getBoundingClientRect().left,
-      );
+      badges.sort((a, b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left);
 
       // Place badges one by one, shifting down if overlapping any already-placed badge
       const placed: Array<{ el: HTMLElement; rect: DOMRect }> = [];
@@ -549,10 +587,8 @@ class BeadSpanLabelPlugin implements JsPsychPlugin<typeof info, SpanLabelTrialPa
         while (hasOverlap && iterations < 10) {
           hasOverlap = false;
           for (const p of placed) {
-            const hOverlap =
-              rect.left < p.rect.right + 3 && rect.right > p.rect.left - 3;
-            const vOverlap =
-              rect.top < p.rect.bottom + 1 && rect.bottom > p.rect.top - 1;
+            const hOverlap = rect.left < p.rect.right + 3 && rect.right > p.rect.left - 3;
+            const vOverlap = rect.top < p.rect.bottom + 1 && rect.bottom > p.rect.top - 1;
             if (hOverlap && vOverlap) {
               shift += p.rect.bottom - rect.top + 2;
               badge.style.transform = `translateY(${shift}px)`;
@@ -660,7 +696,8 @@ class BeadSpanLabelPlugin implements JsPsychPlugin<typeof info, SpanLabelTrialPa
       });
 
       // Label button handlers
-      const labelButtons = display_element.querySelectorAll<HTMLButtonElement>(".bead-label-button");
+      const labelButtons =
+        display_element.querySelectorAll<HTMLButtonElement>(".bead-label-button");
       for (const btn of labelButtons) {
         btn.addEventListener("click", () => {
           const label = btn.getAttribute("data-label") ?? "";
@@ -674,22 +711,60 @@ class BeadSpanLabelPlugin implements JsPsychPlugin<typeof info, SpanLabelTrialPa
       document.addEventListener("keydown", handleKeyDown);
     }
 
-    function showLabelPanel(): void {
-      const labelPanel = display_element.querySelector("#bead-label-panel");
+    function cancelCurrentSelection(): void {
+      selectedIndices = [];
+      selectionStart = null;
+      // Remove selecting class from all tokens
+      const allTokens = display_element.querySelectorAll<HTMLSpanElement>(".bead-token");
+      for (const t of allTokens) {
+        t.classList.remove("selecting");
+      }
+      // Disable search panel
+      const labelPanel = display_element.querySelector<HTMLElement>("#bead-label-panel");
       if (labelPanel) {
-        const show = selectedIndices.length > 0;
-        (labelPanel as HTMLElement).style.display = show ? "flex" : "none";
-        // Focus the search input when showing
-        if (show) {
-          const searchInput = labelPanel.querySelector<HTMLInputElement>("input");
-          if (searchInput) {
-            setTimeout(() => searchInput.focus(), 0);
-          }
+        labelPanel.classList.add("bead-search-disabled");
+        const searchInput = labelPanel.querySelector<HTMLInputElement>("input");
+        if (searchInput) {
+          searchInput.disabled = true;
+          searchInput.value = "";
+          searchInput.placeholder = "Select tokens to annotate...";
         }
+        const resultsDiv = labelPanel.querySelector<HTMLElement>(
+          ".bead-label-search-results, .bead-wikidata-results",
+        );
+        if (resultsDiv) resultsDiv.style.display = "none";
+        const cancelBtn = labelPanel.querySelector<HTMLElement>(".bead-search-cancel");
+        if (cancelBtn) cancelBtn.style.display = "none";
+      }
+    }
+
+    function showLabelPanel(): void {
+      const labelPanel = display_element.querySelector<HTMLElement>("#bead-label-panel");
+      if (!labelPanel) return;
+
+      const hasSelection = selectedIndices.length > 0;
+      if (hasSelection) {
+        labelPanel.classList.remove("bead-search-disabled");
+        const searchInput = labelPanel.querySelector<HTMLInputElement>("input");
+        if (searchInput) {
+          searchInput.disabled = false;
+          searchInput.placeholder = "Search labels...";
+          setTimeout(() => searchInput.focus(), 0);
+        }
+        const cancelBtn = labelPanel.querySelector<HTMLElement>(".bead-search-cancel");
+        if (cancelBtn) cancelBtn.style.display = "";
+      } else {
+        cancelCurrentSelection();
       }
     }
 
     function handleKeyDown(e: KeyboardEvent): void {
+      if (e.key === "Escape") {
+        if (selectedIndices.length > 0) {
+          cancelCurrentSelection();
+          return;
+        }
+      }
       const num = Number.parseInt(e.key, 10);
       if (!Number.isNaN(num) && num >= 1 && num <= 9) {
         const labels = spanSpec?.labels ?? [];
@@ -701,7 +776,7 @@ class BeadSpanLabelPlugin implements JsPsychPlugin<typeof info, SpanLabelTrialPa
 
     function updateSelectionUI(elementName: string): void {
       const tokenEls = display_element.querySelectorAll<HTMLSpanElement>(
-        `.bead-token[data-element="${elementName}"]`
+        `.bead-token[data-element="${elementName}"]`,
       );
       for (const t of tokenEls) {
         const idx = Number.parseInt(t.getAttribute("data-index") ?? "0", 10);
@@ -717,16 +792,16 @@ class BeadSpanLabelPlugin implements JsPsychPlugin<typeof info, SpanLabelTrialPa
       const elemName = elementNames[0] ?? "text";
       const spanId = `span_${nextSpanId++}`;
 
-      const spanLabel: SpanLabelData = labelId
-        ? { label, label_id: labelId }
-        : { label };
+      const spanLabel: SpanLabelData = labelId ? { label, label_id: labelId } : { label };
 
       const newSpan: SpanData = {
         span_id: spanId,
-        segments: [{
-          element_name: elemName,
-          indices: [...selectedIndices].sort((a, b) => a - b),
-        }],
+        segments: [
+          {
+            element_name: elemName,
+            indices: [...selectedIndices].sort((a, b) => a - b),
+          },
+        ],
         label: spanLabel,
       };
 
@@ -749,21 +824,12 @@ class BeadSpanLabelPlugin implements JsPsychPlugin<typeof info, SpanLabelTrialPa
       renderRelationList();
       updateContinueButton();
 
-      // Clear selection UI
-      const allTokens = display_element.querySelectorAll<HTMLSpanElement>(".bead-token");
-      for (const t of allTokens) {
-        t.classList.remove("selecting");
-      }
-
-      // Hide label panel
-      const labelPanel = display_element.querySelector("#bead-label-panel");
-      if (labelPanel) {
-        (labelPanel as HTMLElement).style.display = "none";
-      }
+      // Reset search panel to disabled state
+      cancelCurrentSelection();
     }
 
     function deleteSpan(spanId: string): void {
-      const idx = activeSpans.findIndex(s => s.span_id === spanId);
+      const idx = activeSpans.findIndex((s) => s.span_id === spanId);
       if (idx >= 0) {
         activeSpans.splice(idx, 1);
         // Also remove any relations involving this span
@@ -793,7 +859,7 @@ class BeadSpanLabelPlugin implements JsPsychPlugin<typeof info, SpanLabelTrialPa
       const searchOptions = {
         language: spanSpec?.wikidata_language ?? "en",
         limit: spanSpec?.wikidata_result_limit ?? 10,
-        entityTypes: spanSpec?.wikidata_entity_types,
+        ...(spanSpec?.wikidata_entity_types ? { entityTypes: spanSpec.wikidata_entity_types } : {}),
       };
 
       input.addEventListener("input", () => {
@@ -814,8 +880,7 @@ class BeadSpanLabelPlugin implements JsPsychPlugin<typeof info, SpanLabelTrialPa
           for (const entity of results) {
             const item = document.createElement("div");
             item.className = "bead-wikidata-result";
-            item.innerHTML = `<div><strong>${entity.label}</strong> <span class="qid">${entity.id}</span></div>` +
-              (entity.description ? `<div class="description">${entity.description}</div>` : "");
+            item.innerHTML = `<div><strong>${entity.label}</strong> <span class="qid">${entity.id}</span></div>${entity.description ? `<div class="description">${entity.description}</div>` : ""}`;
             item.addEventListener("click", () => {
               createSpanFromSelection(entity.label, entity.id);
               input.value = "";
@@ -830,18 +895,40 @@ class BeadSpanLabelPlugin implements JsPsychPlugin<typeof info, SpanLabelTrialPa
 
     function setupFixedLabelSearch(): void {
       const input = display_element.querySelector<HTMLInputElement>("#bead-label-search-input");
-      const resultsDiv = display_element.querySelector<HTMLDivElement>("#bead-label-search-results");
+      const resultsDiv = display_element.querySelector<HTMLDivElement>(
+        "#bead-label-search-results",
+      );
       if (!input || !resultsDiv) return;
 
       const allLabels = spanSpec?.labels ?? [];
       let highlightedIdx = -1;
 
-      function renderResults(query: string): void {
+      function fuzzyMatch(query: string, target: string): boolean {
+        const q = query.toLowerCase();
+        const t = target.toLowerCase();
+        let qi = 0;
+        for (let ti = 0; ti < t.length && qi < q.length; ti++) {
+          if (t[ti] === q[qi]) qi++;
+        }
+        return qi === q.length;
+      }
+
+      const renderResults = (query: string): void => {
         resultsDiv.innerHTML = "";
         const lower = query.toLowerCase();
-        const filtered = lower === ""
-          ? allLabels
-          : allLabels.filter(l => l.toLowerCase().includes(lower));
+        const filtered =
+          lower === ""
+            ? allLabels
+            : allLabels
+                .filter((l) => fuzzyMatch(lower, l))
+                .sort((a, b) => {
+                  // Prefix matches first, then fuzzy matches
+                  const aPrefix = a.toLowerCase().startsWith(lower);
+                  const bPrefix = b.toLowerCase().startsWith(lower);
+                  if (aPrefix && !bPrefix) return -1;
+                  if (!aPrefix && bPrefix) return 1;
+                  return 0;
+                });
 
         if (filtered.length === 0) {
           resultsDiv.style.display = "none";
@@ -863,10 +950,7 @@ class BeadSpanLabelPlugin implements JsPsychPlugin<typeof info, SpanLabelTrialPa
           item.setAttribute("data-label", label);
           item.setAttribute("data-fi", String(fi));
 
-          item.innerHTML =
-            `<span class="label-color" style="background:${darkColor}"></span>` +
-            `<span class="label-name">${label}</span>` +
-            (shortcut ? `<span class="label-shortcut">${shortcut}</span>` : "");
+          item.innerHTML = `<span class="label-color" style="background:${darkColor}"></span><span class="label-name">${label}</span>${shortcut ? `<span class="label-shortcut">${shortcut}</span>` : ""}`;
 
           item.addEventListener("click", () => {
             if (selectedIndices.length > 0) {
@@ -878,7 +962,7 @@ class BeadSpanLabelPlugin implements JsPsychPlugin<typeof info, SpanLabelTrialPa
 
           resultsDiv.appendChild(item);
         }
-      }
+      };
 
       // Show all labels on focus
       input.addEventListener("focus", () => {
@@ -1002,7 +1086,8 @@ class BeadSpanLabelPlugin implements JsPsychPlugin<typeof info, SpanLabelTrialPa
       }
 
       // Expose updateRelationUI so it's called after span changes
-      (display_element as Record<string, unknown>)._updateRelationUI = updateRelationUI;
+      (display_element as unknown as Record<string, unknown>)["_updateRelationUI"] =
+        updateRelationUI;
 
       // Click handler for span badges (delegated)
       display_element.addEventListener("click", (e) => {
@@ -1021,14 +1106,21 @@ class BeadSpanLabelPlugin implements JsPsychPlugin<typeof info, SpanLabelTrialPa
           relationState = "WAITING_LABEL";
           updateRelationUI();
           // If no labels configured, create with no label
-          if (!spanSpec?.relation_labels?.length && spanSpec?.relation_label_source !== "wikidata") {
+          if (
+            !spanSpec?.relation_labels?.length &&
+            spanSpec?.relation_label_source !== "wikidata"
+          ) {
             createRelation(undefined);
           }
         }
       });
 
       // Setup relation label search (fixed labels)
-      if (spanSpec?.relation_labels && spanSpec.relation_labels.length > 0 && spanSpec.relation_label_source !== "wikidata") {
+      if (
+        spanSpec?.relation_labels &&
+        spanSpec.relation_labels.length > 0 &&
+        spanSpec.relation_label_source !== "wikidata"
+      ) {
         setupRelationLabelSearch();
       }
 
@@ -1039,16 +1131,19 @@ class BeadSpanLabelPlugin implements JsPsychPlugin<typeof info, SpanLabelTrialPa
 
       function setupRelationLabelSearch(): void {
         const input = display_element.querySelector<HTMLInputElement>("#bead-relation-label-input");
-        const resultsDiv = display_element.querySelector<HTMLDivElement>("#bead-relation-label-results");
+        const resultsDiv = display_element.querySelector<HTMLDivElement>(
+          "#bead-relation-label-results",
+        );
         if (!input || !resultsDiv) return;
 
         const allLabels = spanSpec?.relation_labels ?? [];
         let highlightedIdx = -1;
 
-        function renderResults(query: string): void {
+        const renderResults = (query: string): void => {
           resultsDiv.innerHTML = "";
           const lower = query.toLowerCase();
-          const filtered = lower === "" ? allLabels : allLabels.filter(l => l.toLowerCase().includes(lower));
+          const filtered =
+            lower === "" ? allLabels : allLabels.filter((l) => l.toLowerCase().includes(lower));
 
           if (filtered.length === 0) {
             resultsDiv.style.display = "none";
@@ -1070,7 +1165,7 @@ class BeadSpanLabelPlugin implements JsPsychPlugin<typeof info, SpanLabelTrialPa
             });
             resultsDiv.appendChild(item);
           }
-        }
+        };
 
         input.addEventListener("focus", () => renderResults(input.value));
         input.addEventListener("input", () => renderResults(input.value));
@@ -1082,12 +1177,14 @@ class BeadSpanLabelPlugin implements JsPsychPlugin<typeof info, SpanLabelTrialPa
           if (e.key === "ArrowDown") {
             e.preventDefault();
             highlightedIdx = Math.min(highlightedIdx + 1, items.length - 1);
-            for (let i = 0; i < items.length; i++) items[i]?.classList.toggle("highlighted", i === highlightedIdx);
+            for (let i = 0; i < items.length; i++)
+              items[i]?.classList.toggle("highlighted", i === highlightedIdx);
             items[highlightedIdx]?.scrollIntoView({ block: "nearest" });
           } else if (e.key === "ArrowUp") {
             e.preventDefault();
             highlightedIdx = Math.max(highlightedIdx - 1, 0);
-            for (let i = 0; i < items.length; i++) items[i]?.classList.toggle("highlighted", i === highlightedIdx);
+            for (let i = 0; i < items.length; i++)
+              items[i]?.classList.toggle("highlighted", i === highlightedIdx);
             items[highlightedIdx]?.scrollIntoView({ block: "nearest" });
           } else if (e.key === "Enter") {
             e.preventDefault();
@@ -1106,8 +1203,12 @@ class BeadSpanLabelPlugin implements JsPsychPlugin<typeof info, SpanLabelTrialPa
       }
 
       function setupRelationWikidataSearch(): void {
-        const input = display_element.querySelector<HTMLInputElement>("#bead-relation-wikidata-input");
-        const resultsDiv = display_element.querySelector<HTMLDivElement>("#bead-relation-wikidata-results");
+        const input = display_element.querySelector<HTMLInputElement>(
+          "#bead-relation-wikidata-input",
+        );
+        const resultsDiv = display_element.querySelector<HTMLDivElement>(
+          "#bead-relation-wikidata-results",
+        );
         if (!input || !resultsDiv) return;
 
         const searchOptions = {
@@ -1134,8 +1235,7 @@ class BeadSpanLabelPlugin implements JsPsychPlugin<typeof info, SpanLabelTrialPa
             for (const entity of results) {
               const item = document.createElement("div");
               item.className = "bead-wikidata-result";
-              item.innerHTML = `<div><strong>${entity.label}</strong> <span class="qid">${entity.id}</span></div>` +
-                (entity.description ? `<div class="description">${entity.description}</div>` : "");
+              item.innerHTML = `<div><strong>${entity.label}</strong> <span class="qid">${entity.id}</span></div>${entity.description ? `<div class="description">${entity.description}</div>` : ""}`;
               item.addEventListener("click", () => {
                 createRelation({ label: entity.label, label_id: entity.id });
                 input.value = "";
@@ -1156,7 +1256,7 @@ class BeadSpanLabelPlugin implements JsPsychPlugin<typeof info, SpanLabelTrialPa
           relation_id: relId,
           source_span_id: relationSource,
           target_span_id: relationTarget,
-          label,
+          ...(label !== undefined ? { label } : {}),
           directed: spanSpec?.relation_directed ?? true,
         };
 
@@ -1165,7 +1265,7 @@ class BeadSpanLabelPlugin implements JsPsychPlugin<typeof info, SpanLabelTrialPa
           type: "relation_create",
           timestamp: performance.now() - start_time,
           relation_id: relId,
-          label: label?.label,
+          ...(label?.label !== undefined ? { label: label.label } : {}),
         });
 
         relationState = "IDLE";
@@ -1187,7 +1287,7 @@ class BeadSpanLabelPlugin implements JsPsychPlugin<typeof info, SpanLabelTrialPa
     }
 
     function deleteRelation(relId: string): void {
-      const idx = activeRelations.findIndex(r => r.relation_id === relId);
+      const idx = activeRelations.findIndex((r) => r.relation_id === relId);
       if (idx >= 0) {
         activeRelations.splice(idx, 1);
         events.push({
@@ -1207,8 +1307,8 @@ class BeadSpanLabelPlugin implements JsPsychPlugin<typeof info, SpanLabelTrialPa
       listEl.innerHTML = "";
 
       for (const rel of activeRelations) {
-        const sourceSpan = activeSpans.find(s => s.span_id === rel.source_span_id);
-        const targetSpan = activeSpans.find(s => s.span_id === rel.target_span_id);
+        const sourceSpan = activeSpans.find((s) => s.span_id === rel.source_span_id);
+        const targetSpan = activeSpans.find((s) => s.span_id === rel.target_span_id);
         if (!sourceSpan || !targetSpan) continue;
 
         const entry = document.createElement("div");
@@ -1233,7 +1333,7 @@ class BeadSpanLabelPlugin implements JsPsychPlugin<typeof info, SpanLabelTrialPa
       }
 
       // Update Add Relation button state
-      const updateUI = (display_element as Record<string, unknown>)._updateRelationUI;
+      const updateUI = (display_element as unknown as Record<string, unknown>)["_updateRelationUI"];
       if (typeof updateUI === "function") {
         (updateUI as () => void)();
       }
@@ -1246,15 +1346,15 @@ class BeadSpanLabelPlugin implements JsPsychPlugin<typeof info, SpanLabelTrialPa
       const containerRect = container.getBoundingClientRect();
 
       for (const span of activeSpans) {
-        let minLeft = Infinity;
-        let minTop = Infinity;
-        let maxRight = -Infinity;
-        let maxBottom = -Infinity;
+        let minLeft = Number.POSITIVE_INFINITY;
+        let minTop = Number.POSITIVE_INFINITY;
+        let maxRight = Number.NEGATIVE_INFINITY;
+        let maxBottom = Number.NEGATIVE_INFINITY;
 
         for (const seg of span.segments) {
           for (const idx of seg.indices) {
             const tokenEl = display_element.querySelector<HTMLElement>(
-              `.bead-token[data-element="${seg.element_name}"][data-index="${idx}"]`
+              `.bead-token[data-element="${seg.element_name}"][data-index="${idx}"]`,
             );
             if (tokenEl) {
               const rect = tokenEl.getBoundingClientRect();
@@ -1266,8 +1366,11 @@ class BeadSpanLabelPlugin implements JsPsychPlugin<typeof info, SpanLabelTrialPa
           }
         }
 
-        if (minLeft !== Infinity) {
-          positions.set(span.span_id, new DOMRect(minLeft, minTop, maxRight - minLeft, maxBottom - minTop));
+        if (minLeft !== Number.POSITIVE_INFINITY) {
+          positions.set(
+            span.span_id,
+            new DOMRect(minLeft, minTop, maxRight - minLeft, maxBottom - minTop),
+          );
         }
       }
       return positions;

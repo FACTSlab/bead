@@ -11,6 +11,9 @@
 
 import type { JsPsych, JsPsychPlugin, PluginInfo } from "../types/jspsych.js";
 
+/** Position of the prompt relative to the stimulus */
+type PromptPosition = "above" | "below";
+
 /** Bead item/template metadata */
 interface BeadMetadata {
   [key: string]: unknown;
@@ -32,6 +35,8 @@ export interface FreeTextTrialParams {
   placeholder: string;
   /** Number of rows for textarea */
   rows: number;
+  /** Position of the prompt relative to the stimulus */
+  prompt_position: PromptPosition;
   /** Whether to require a response */
   require_response: boolean;
   /** Text for the continue button */
@@ -51,6 +56,10 @@ const info: PluginInfo = {
     stimulus: {
       type: 8, // ParameterType.HTML_STRING
       default: "",
+    },
+    prompt_position: {
+      type: 1, // ParameterType.STRING
+      default: "above",
     },
     multiline: {
       type: 0, // ParameterType.BOOL
@@ -105,12 +114,16 @@ class BeadFreeTextPlugin implements JsPsychPlugin<typeof info, FreeTextTrialPara
     // Build HTML
     let html = '<div class="bead-free-text-container">';
 
-    if (trial.prompt) {
+    if (trial.prompt && trial.prompt_position === "above") {
       html += `<div class="bead-free-text-prompt">${trial.prompt}</div>`;
     }
 
     if (trial.stimulus) {
       html += `<div class="bead-free-text-stimulus">${trial.stimulus}</div>`;
+    }
+
+    if (trial.prompt && trial.prompt_position === "below") {
+      html += `<div class="bead-free-text-prompt">${trial.prompt}</div>`;
     }
 
     const maxAttr = trial.max_length > 0 ? ` maxlength="${trial.max_length}"` : "";
@@ -141,8 +154,12 @@ class BeadFreeTextPlugin implements JsPsychPlugin<typeof info, FreeTextTrialPara
     display_element.innerHTML = html;
 
     // Input listener
-    const input = display_element.querySelector<HTMLInputElement | HTMLTextAreaElement>("#bead-free-text-input");
-    const continueBtn = display_element.querySelector<HTMLButtonElement>("#bead-free-text-continue");
+    const input = display_element.querySelector<HTMLInputElement | HTMLTextAreaElement>(
+      "#bead-free-text-input",
+    );
+    const continueBtn = display_element.querySelector<HTMLButtonElement>(
+      "#bead-free-text-continue",
+    );
     const charCount = display_element.querySelector<HTMLSpanElement>("#bead-char-count");
 
     if (input) {

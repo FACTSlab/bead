@@ -33,26 +33,23 @@
       });
       var trial = {
         type: BeadMagnitudePlugin,
-        prompt: "On a scale of 0 to 100, how acceptable is this sentence?",
-        stimulus: '<div style="font-size:1.15em;padding:16px 24px;background:white;border:1px solid #e0e0e0;border-radius:6px;display:inline-block;margin-bottom:8px">Someone <em>believed</em> someone to be a fool.</div>',
-        unit: "",
-        input_min: 0,
-        input_max: 100,
-        step: 1,
-        placeholder: "0-100",
+        prompt: "How typical is the target relative to the reference?",
+        prompt_position: "below",
+        reference_stimulus: "The chef cooked the meal.",
+        reference_value: 100,
+        stimulus: "The alien cooked the pencil.",
+        input_mode: "exp-slider",
         require_response: true,
         button_label: "Continue",
         metadata: {
-          verb: "believe",
-          frame: "NP_to_be_NP",
-          item_id: "mega-acceptability-magnitude-believe",
-          source: "MegaAcceptability (White & Rawlins, 2016)"
+          verb: "cook",
+          item_id: "magnitude-cook-atypical"
         }
       };
       jsPsych.run([trial]);
     }
     runDemo();
   </script>
-  <script>new ResizeObserver(() => { window.parent.postMessage({ type: 'bead-resize', height: document.documentElement.scrollHeight }, '*'); }).observe(document.body);</script>
+  <script>(function(){var last=0;new ResizeObserver(function(){var h=document.documentElement.scrollHeight;if(h!==last){last=h;window.parent.postMessage({type:'bead-resize',height:h},'*');}}).observe(document.body);})()</script>
 </body>
 </html>

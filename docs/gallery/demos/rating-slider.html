@@ -33,25 +33,23 @@
       });
       var trial = {
         type: BeadSliderRatingPlugin,
-        prompt: '<p style="color:#424242;font-size:1.1em;margin-bottom:12px">Based on this sentence, did someone leave?</p><div style="font-size:1.15em;padding:16px 24px;background:white;border:1px solid #e0e0e0;border-radius:6px;display:inline-block;margin-bottom:8px">Someone <em>forgot</em> that someone left.</div>',
+        prompt: "How prototypical is this event?",
+        stimulus: "The chef cooked the meal.",
         slider_min: 0,
         slider_max: 100,
         slider_start: 50,
-        labels: ["Certainly did not happen", "Certainly happened"],
+        labels: ["Very atypical", "Very prototypical"],
         require_movement: true,
         button_label: "Continue",
         metadata: {
-          rendered_elements: {text: "Someone forgot that someone left."},
-          verb: "forget",
-          frame: "that_S",
-          item_id: "mega-veridicality-forget-that-s",
-          source: "MegaVeridicality (White & Rawlins, 2018)"
+          verb: "cook",
+          item_id: "prototypicality-cook"
         }
       };
       jsPsych.run([trial]);
     }
     runDemo();
   </script>
-  <script>new ResizeObserver(() => { window.parent.postMessage({ type: 'bead-resize', height: document.documentElement.scrollHeight }, '*'); }).observe(document.body);</script>
+  <script>(function(){var last=0;new ResizeObserver(function(){var h=document.documentElement.scrollHeight;if(h!==last){last=h;window.parent.postMessage({type:'bead-resize',height:h},'*');}}).observe(document.body);})()</script>
 </body>
 </html>

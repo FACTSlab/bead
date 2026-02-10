@@ -34,20 +34,19 @@
       var trial = {
         type: BeadBinaryChoicePlugin,
         prompt: "Is this sentence acceptable?",
-        stimulus: 'Someone <em>persuaded</em> someone to leave.',
+        stimulus: "Someone persuaded someone to leave.",
         choices: ["Acceptable", "Unacceptable"],
         require_response: true,
         metadata: {
           verb: "persuade",
           frame: "NP_to_VP",
-          item_id: "mega-acceptability-persuade-np-to-vp",
-          source: "MegaAcceptability (White & Rawlins, 2016)"
+          item_id: "acceptability-persuade-np-to-vp"
         }
       };
       jsPsych.run([trial]);
     }
     runDemo();
   </script>
-  <script>new ResizeObserver(() => { window.parent.postMessage({ type: 'bead-resize', height: document.documentElement.scrollHeight }, '*'); }).observe(document.body);</script>
+  <script>(function(){var last=0;new ResizeObserver(function(){var h=document.documentElement.scrollHeight;if(h!==last){last=h;window.parent.postMessage({type:'bead-resize',height:h},'*');}}).observe(document.body);})()</script>
 </body>
 </html>

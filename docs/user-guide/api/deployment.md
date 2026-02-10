@@ -346,6 +346,36 @@ config = ExperimentConfig(
 )
 ```
 
+**Prompt span references**: prompts can reference span labels using `[[label]]` or `[[label:text]]` syntax. At trial generation time, these references are replaced with color-highlighted HTML where the colors match the corresponding span highlights in the stimulus:
+
+```python
+from bead.items.ordinal_scale import create_ordinal_scale_item
+from bead.items.span_labeling import add_spans_to_item
+from bead.items.spans import Span, SpanLabel, SpanSegment
+
+# [[breaker]] auto-fills with the span's token text ("The boy")
+# [[event:the breaking]] uses custom display text
+item = create_ordinal_scale_item(
+    text="The boy broke the vase.",
+    prompt="How likely is it that [[breaker]] existed after [[event:the breaking]]?",
+    scale_bounds=(1, 5),
+    scale_labels={1: "Very unlikely", 5: "Very likely"},
+)
+
+item = add_spans_to_item(item, spans=[
+    Span(span_id="span_0",
+         segments=[SpanSegment(element_name="text", indices=[0, 1])],
+         label=SpanLabel(label="breaker")),
+    Span(span_id="span_1",
+         segments=[SpanSegment(element_name="text", indices=[2])],
+         label=SpanLabel(label="event")),
+])
+```
+
+Color consistency is guaranteed: the same `_assign_span_colors()` function assigns deterministic light/dark color pairs to each unique label. Both the stimulus renderer and the prompt resolver use these assignments, so a span labeled "event" always gets the same background color in the target text and the same highlight color in the question text. The `SpanDisplayConfig.color_palette` (light backgrounds) and `SpanDisplayConfig.dark_color_palette` (subscript badge colors) are index-aligned, producing visually matched pairs.
+
+Prompts without `[[...]]` references pass through unchanged, so existing experiments are unaffected.
+
 ## Experiment Configuration
 
 **ExperimentConfig** parameters:
