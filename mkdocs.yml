@@ -95,6 +95,12 @@ nav:
     - bead.deployment: api/deployment.md
     - bead.tokenization: api/tokenization.md
     - bead.active_learning: api/active_learning.md
+    - bead.simulation: api/simulation.md
+    - bead.evaluation: api/evaluation.md
+    - bead.dsl: api/dsl.md
+    - bead.behavioral: api/behavioral.md
+    - bead.participants: api/participants.md
+    - bead.data_collection: api/data_collection.md
     - bead.config: api/config.md
     - bead.data: api/data.md
   - Developer Guide:

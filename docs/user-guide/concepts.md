@@ -83,7 +83,7 @@ Output: `filled_templates/*.jsonl`
 
 Convert filled templates into experimental items with task-specific structure.
 
-- **8 task types**: forced-choice, ordinal scale, binary, categorical, multi-select, magnitude, free text, cloze
+- **9 task types**: forced-choice, ordinal scale, binary, categorical, multi-select, magnitude, free text, cloze, span labeling
 - **Factory functions**: task-specific constructors with validation
 - **Batch creation**: generate items from groups or cross-products
 
@@ -135,6 +135,7 @@ Bead distinguishes between **task types** (UI presentation) and **judgment types
 - `magnitude`: enter numeric value (reading time, confidence)
 - `free_text`: open-ended text response
 - `cloze`: fill in blanks
+- `span_labeling`: annotate text spans with labels
 
 **Judgment types** describe the measurement goal:
 

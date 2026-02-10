@@ -8,7 +8,7 @@ bead implements a 6-stage pipeline for linguistic experiment design:
 
 1. **Resources**: lexical items and templates with constraints
 2. **Templates**: template filling strategies (exhaustive, random, stratified, MLM, mixed)
-3. **Items**: experimental item construction (8 task types)
+3. **Items**: experimental item construction (9 task types)
 4. **Lists**: list partitioning with constraint satisfaction
 5. **Deployment**: jsPsych 8.x batch experiment generation for JATOS
 6. **Training**: active learning with GLMM support and convergence detection
@@ -16,7 +16,7 @@ bead implements a 6-stage pipeline for linguistic experiment design:
 ## Key Features
 
 - **Stand-off annotation** with UUID-based references for provenance tracking
-- **8 task types**: forced-choice, ordinal scale, binary, categorical, multi-select, magnitude, free text, cloze
+- **9 task types**: forced-choice, ordinal scale, binary, categorical, multi-select, magnitude, free text, cloze, span labeling
 - **GLMM support**: Generalized Linear Mixed Models with random effects
 - **Batch deployment**: server-side list distribution via JATOS batch sessions
 - **Language-agnostic**: works with any language supported by UniMorph

@@ -100,3 +100,50 @@ Stage 3 of the bead pipeline: experimental item construction with 9 task types.
     options:
       show_root_heading: true
       show_source: false
+
+## Model Adapters
+
+::: bead.items.adapters.base
+    options:
+      show_root_heading: true
+      show_source: false
+
+::: bead.items.adapters.huggingface
+    options:
+      show_root_heading: true
+      show_source: false
+
+::: bead.items.adapters.openai
+    options:
+      show_root_heading: true
+      show_source: false
+
+::: bead.items.adapters.anthropic
+    options:
+      show_root_heading: true
+      show_source: false
+
+::: bead.items.adapters.google
+    options:
+      show_root_heading: true
+      show_source: false
+
+::: bead.items.adapters.togetherai
+    options:
+      show_root_heading: true
+      show_source: false
+
+::: bead.items.adapters.sentence_transformers
+    options:
+      show_root_heading: true
+      show_source: false
+
+::: bead.items.adapters.registry
+    options:
+      show_root_heading: true
+      show_source: false
+
+::: bead.items.adapters.api_utils
+    options:
+      show_root_heading: true
+      show_source: false

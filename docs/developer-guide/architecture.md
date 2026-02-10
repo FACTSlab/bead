@@ -12,7 +12,7 @@ bead implements a 6-stage pipeline for constructing, deploying, and analyzing la
 |-------|--------|---------|
 | 1 | `resources/` | Lexical items and templates with constraints |
 | 2 | `templates/` | Template filling strategies (exhaustive, stratified, random) |
-| 3 | `items/` | Experimental item construction (8 task types) |
+| 3 | `items/` | Experimental item construction (9 task types) |
 | 4 | `lists/` | List partitioning with constraint satisfaction |
 | 5 | `deployment/` | jsPsych experiment generation for JATOS |
 | 6 | `active_learning/` | Training with human-in-the-loop convergence |
@@ -40,11 +40,12 @@ At every step, objects store only UUID references to their sources, never copyin
 
 ## Module Organization
 
-bead consists of 14 top-level modules organized by function:
+bead consists of 17 top-level modules organized by function:
 
 ### Core Pipeline Stages (6 modules)
 
 **bead/resources/** - Stage 1: Lexical items and templates
+
 - `lexical_item.py`: LexicalItem, MultiWordExpression
 - `lexicon.py`: Lexicon collection
 - `template.py`: Template, Slot, TemplateSequence, TemplateTree
@@ -56,6 +57,7 @@ bead consists of 14 top-level modules organized by function:
 - `template_generation.py`: Template generation utilities
 
 **bead/templates/** - Stage 2: Template filling
+
 - `filler.py`: TemplateFiller (main engine)
 - `strategies.py`: Exhaustive, Random, Stratified strategies
 - `resolver.py`: ConstraintResolver
@@ -63,19 +65,23 @@ bead consists of 14 top-level modules organized by function:
 - `combinatorics.py`: Combinatorial generation utilities
 
 **bead/items/** - Stage 3: Item construction
+
 - `item.py`: Item, UnfilledSlot, ModelOutput, ItemCollection
 - `item_template.py`: ItemTemplate, TaskType, JudgmentType, ChunkingSpec
 - `forced_choice.py`: create_forced_choice_item() and batch utilities
 - `ordinal_scale.py`, `binary.py`, `categorical.py`, `multi_select.py`,
-  `magnitude.py`, `free_text.py`, `cloze.py`: Task-type utilities (8 types)
+  `magnitude.py`, `free_text.py`, `cloze.py`: Task-type utilities
+- `spans.py`: Span annotation data models
+- `span_labeling.py`: Span labeling utilities (9th task type)
 - `validation.py`: validate_item_for_task_type()
 - `constructor.py`: ItemConstructor for item creation
 - `generation.py`: Item generation utilities
 - `scoring.py`: Item scoring functions
-- `adapters/`: Model integrations (HuggingFace, OpenAI, Anthropic, Google)
+- `adapters/`: Model integrations (HuggingFace, OpenAI, Anthropic, Google, TogetherAI)
 - `cache.py`: Content-addressable cache for model outputs
 
 **bead/lists/** - Stage 4: List partitioning
+
 - `experiment_list.py`: ExperimentList (stores item UUIDs)
 - `list_collection.py`: ListCollection
 - `constraints.py`: ListConstraint (8 types), BatchConstraint (4 types)
@@ -84,6 +90,7 @@ bead consists of 14 top-level modules organized by function:
 - `stratification.py`: Stratification strategies
 
 **bead/deployment/** - Stage 5: Experiment generation
+
 - `jspsych/generator.py`: JsPsychExperimentGenerator (batch mode only)
 - `jspsych/config.py`: ExperimentConfig, ListDistributionStrategy
 - `jspsych/trials.py`: Trial generation for jsPsych 8.x
@@ -94,10 +101,11 @@ bead consists of 14 top-level modules organized by function:
 - `distribution.py`: 8 list distribution strategies
 
 **bead/active_learning/** - Stage 6: Training and convergence
+
 - `loop.py`: ActiveLearningLoop orchestration
 - `selection.py`: UncertaintySampler for item selection
 - `strategies.py`: Active learning strategies
-- `models/`: Task-specific models (8 types matching items/)
+- `models/`: Task-specific models (9 types matching items/)
   - `forced_choice.py`: ForcedChoiceModel with GLMM support
   - `base.py`: ActiveLearningModel interface
   - `random_effects.py`: RandomEffectsManager for mixed effects
@@ -110,9 +118,10 @@ bead consists of 14 top-level modules organized by function:
   - `registry.py`: Trainer registry
 - `config.py`: MixedEffectsConfig, RandomEffectsSpec
 
-### Supporting Modules (8 modules)
+### Supporting Modules (11 modules)
 
 **bead/data/** - Foundation layer
+
 - `base.py`: BeadBaseModel (UUID, timestamps, metadata)
 - `identifiers.py`: generate_uuid() (UUIDv7)
 - `timestamps.py`: now_iso8601() (ISO 8601 timestamps)
@@ -123,6 +132,7 @@ bead consists of 14 top-level modules organized by function:
 - `repository.py`: Data repository pattern
 
 **bead/dsl/** - Constraint DSL (7 files)
+
 - `parser.py`: Lark-based parser for constraint expressions
 - `evaluator.py`: DSL evaluation engine
 - `stdlib.py`: Built-in functions (membership, comparison, arithmetic)
@@ -132,6 +142,7 @@ bead consists of 14 top-level modules organized by function:
 - `__init__.py`: Module exports
 
 **bead/config/** - Configuration system (18 files)
+
 - `config.py`: ProjectConfig (root configuration)
 - `paths.py`: PathsConfig
 - `resources.py`: ResourcesConfig
@@ -144,12 +155,12 @@ bead consists of 14 top-level modules organized by function:
 - Plus 9 other modules: `defaults.py`, `env.py`, `loader.py`, `logging.py`, `model.py`, `profiles.py`, `serialization.py`, `validation.py`, `__init__.py`
 
 **bead/evaluation/** - Metrics and reporting
+
 - `convergence.py`: ConvergenceDetector (Krippendorff's alpha)
 - `interannotator.py`: InterAnnotatorMetrics (Cohen, Fleiss, Krippendorff)
-- `model_metrics.py`: ModelMetrics for classification
-- `cross_validation.py`: CrossValidator for validation strategies
 
 **bead/simulation/** - Simulation framework
+
 - `annotators/`: Simulated annotators
   - `base.py`: Annotator interface
   - `lm_based.py`: Language model annotators
@@ -161,21 +172,24 @@ bead consists of 14 top-level modules organized by function:
   - `temperature.py`: Temperature-based noise
   - `random_noise.py`: Random noise injection
   - `systematic.py`: Systematic noise patterns
-- `strategies/`: Task-specific simulation strategies (8 types)
+- `strategies/`: Task-specific simulation strategies (9 types)
   - `base.py`: Strategy interface
   - One strategy per task type: `binary.py`, `categorical.py`, `cloze.py`, `forced_choice.py`, `free_text.py`, `magnitude.py`, `multi_select.py`, `ordinal_scale.py`
 - `dsl_extension/`: DSL extensions for simulation
 - `runner.py`: Simulation orchestration
 
 **bead/data_collection/** - Data retrieval
+
 - `jatos.py`: JATOS API client for downloading results
 - `prolific.py`: Prolific metadata integration
 - `merger.py`: Merge JATOS results with Prolific metadata
 
 **bead/adapters/** - External resources
+
 - `huggingface.py`: HuggingFace model integration
 
 **bead/cli/** - Command-line interface
+
 - `main.py`: Click root command (entry point)
 - `resources.py`: Resource commands
 - `templates.py`: Template commands
@@ -197,6 +211,25 @@ bead consists of 14 top-level modules organized by function:
 - `resource_loaders.py`: Resource loading utilities
 - `completion.py`: Shell completion
 - `utils.py`: CLI utilities
+
+**bead/behavioral/** - Behavioral analytics
+
+- `analytics.py`: JudgmentAnalytics and aggregation
+- `extraction.py`: Extract behavioral measures from experiment responses
+- `merging.py`: Merge behavioral data across participants and sessions
+
+**bead/participants/** - Participant metadata
+
+- `models.py`: Participant, ParticipantIDMapping models
+- `collection.py`: ParticipantCollection management
+- `merging.py`: Merge participant data from multiple sources
+- `metadata_spec.py`: ParticipantMetadataSpec and FieldSpec validation
+
+**bead/tokenization/** - Multilingual tokenization
+
+- `tokenizers.py`: WhitespaceTokenizer, SpacyTokenizer, StanzaTokenizer
+- `config.py`: TokenizerConfig, TokenizerBackend
+- `alignment.py`: Token-to-character alignment utilities
 
 ## Design Principles
 
@@ -468,11 +501,11 @@ partitioner.partition_with_batch_constraints(
 
 ### Task-Type Utilities Pattern
 
-**Decision**: Provide 8 task-type-specific modules with consistent API for item creation.
+**Decision**: Provide 9 task-type-specific modules with consistent API for item creation.
 
-**Task types**: forced_choice, ordinal_scale, binary, categorical, multi_select, magnitude, free_text, cloze
+**Task types**: forced_choice, ordinal_scale, binary, categorical, multi_select, magnitude, free_text, cloze, span_labeling
 
-**API pattern** (consistent across all 8 types):
+**API pattern** (consistent across all 9 types):
 ```python
 # Core creation function
 def create_forced_choice_item(
@@ -519,7 +552,7 @@ validate_item_for_task_type(item, "forced_choice")  # Raises ValueError if inval
 **Rationale**:
 1. **Correctness**: Type-specific utilities enforce correct structure (e.g., forced_choice requires n_alternatives metadata)
 2. **Discoverability**: IDE autocomplete shows create_forced_choice_item() in bead.items.forced_choice
-3. **Consistency**: All 8 task types follow same API pattern
+3. **Consistency**: All 9 task types follow same API pattern
 4. **Future expansion**: Adding task type 9 follows established pattern
 
 **Comparison**:
@@ -877,9 +910,9 @@ Items reference filled templates by UUID, not by importing FilledTemplate. Const
 bead's architecture prioritizes:
 
 1. **Provenance**: UUID-based stand-off annotation creates unbroken provenance chains
-2. **Modularity**: 15 modules organized by function, 6 pipeline stages
+2. **Modularity**: 17 modules organized by function, 6 pipeline stages
 3. **Type Safety**: Full Python 3.13 type hints with Pydantic v2 validation
-4. **Flexibility**: Configuration-first design, 8 task types, 12 constraint types
+4. **Flexibility**: Configuration-first design, 9 task types, 12 constraint types
 5. **Research Validity**: GLMM support, batch deployment, convergence detection
 
 Key architectural decisions (no models.py, stand-off annotation, task-type utilities, GLMM modes, batch-only deployment, 12-type constraints, content-addressable caching) reflect lessons learned from production linguistic research workflows.

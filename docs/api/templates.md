@@ -32,3 +32,20 @@ Stage 2 of the bead pipeline: template filling strategies and constraint resolut
     options:
       show_root_heading: true
       show_source: false
+
+## Template Adapters
+
+::: bead.templates.adapters.base
+    options:
+      show_root_heading: true
+      show_source: false
+
+::: bead.templates.adapters.huggingface
+    options:
+      show_root_heading: true
+      show_source: false
+
+::: bead.templates.adapters.cache
+    options:
+      show_root_heading: true
+      show_source: false
