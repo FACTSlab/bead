@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import pytest
+from pydantic import ValidationError
 
 from bead.tokenization.config import TokenizerConfig
 from bead.tokenization.tokenizers import (
@@ -146,9 +147,7 @@ class TestTokenizedText:
             tokens=[
                 DisplayToken(text="The", space_after=True, start_char=0, end_char=3),
                 DisplayToken(text="cat", space_after=True, start_char=4, end_char=7),
-                DisplayToken(
-                    text="sat.", space_after=False, start_char=8, end_char=12
-                ),
+                DisplayToken(text="sat.", space_after=False, start_char=8, end_char=12),
             ],
             original_text="The cat sat.",
         )
@@ -181,7 +180,7 @@ class TestCreateTokenizer:
     def test_unknown_backend_raises(self) -> None:
         """Test that unknown backend raises ValueError."""
         # Pydantic validation will reject invalid Literal values
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             TokenizerConfig(backend="unknown")
 
     def test_spacy_backend_without_install(self) -> None:

@@ -520,9 +520,7 @@ class TestParsePromptReferences:
 
     def test_multiple_references(self) -> None:
         """Multiple references are parsed in order of appearance."""
-        refs = _parse_prompt_references(
-            "Did [[agent]] cause [[event:the breaking]]?"
-        )
+        refs = _parse_prompt_references("Did [[agent]] cause [[event:the breaking]]?")
 
         assert len(refs) == 2
         assert refs[0].label == "agent"
@@ -573,9 +571,7 @@ class TestAssignSpanColors:
 
         color_map = _assign_span_colors(spans, span_display)
 
-        assert (
-            color_map.light_by_span_id["s0"] != color_map.light_by_span_id["s1"]
-        )
+        assert color_map.light_by_span_id["s0"] != color_map.light_by_span_id["s1"]
 
     def test_unlabeled_span_gets_own_color(self) -> None:
         """An unlabeled span receives its own unique color."""
@@ -596,9 +592,7 @@ class TestAssignSpanColors:
         color_map = _assign_span_colors(spans, span_display)
 
         assert "s1" in color_map.light_by_span_id
-        assert (
-            color_map.light_by_span_id["s1"] != color_map.light_by_span_id["s0"]
-        )
+        assert color_map.light_by_span_id["s1"] != color_map.light_by_span_id["s0"]
 
 
 class TestResolvePromptReferences:
@@ -680,9 +674,7 @@ class TestResolvePromptReferences:
                 "Did [[nonexistent]] do it?", span_item, color_map
             )
 
-    def test_color_consistency(
-        self, span_item: Item, color_map: SpanColorMap
-    ) -> None:
+    def test_color_consistency(self, span_item: Item, color_map: SpanColorMap) -> None:
         """Resolved HTML uses the same colors as the color map."""
         result = _resolve_prompt_references(
             "Did [[breaker]] do it?", span_item, color_map
@@ -694,9 +686,7 @@ class TestResolvePromptReferences:
         assert expected_light in result
         assert expected_dark in result
 
-    def test_same_label_twice(
-        self, span_item: Item, color_map: SpanColorMap
-    ) -> None:
+    def test_same_label_twice(self, span_item: Item, color_map: SpanColorMap) -> None:
         """Two references to the same label use the same background color."""
         result = _resolve_prompt_references(
             "Did [[breaker]] meet [[breaker:him]]?", span_item, color_map

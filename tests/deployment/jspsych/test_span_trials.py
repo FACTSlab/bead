@@ -4,20 +4,17 @@ from __future__ import annotations
 
 from uuid import uuid4
 
-import pytest
-
 from bead.deployment.distribution import (
     DistributionStrategyType,
     ListDistributionStrategy,
 )
 from bead.deployment.jspsych.config import (
     ExperimentConfig,
-    RatingScaleConfig,
     SpanDisplayConfig,
 )
 from bead.deployment.jspsych.trials import (
-    _generate_span_stimulus_html,
     _create_span_labeling_trial,
+    _generate_span_stimulus_html,
     _serialize_item_metadata,
     create_trial,
 )
@@ -34,9 +31,7 @@ from bead.items.spans import (
 
 def _make_strategy() -> ListDistributionStrategy:
     """Create a test distribution strategy."""
-    return ListDistributionStrategy(
-        strategy_type=DistributionStrategyType.BALANCED
-    )
+    return ListDistributionStrategy(strategy_type=DistributionStrategyType.BALANCED)
 
 
 class TestSpanMetadataSerialization:
@@ -226,7 +221,9 @@ class TestSpanStimulusHtml:
         html = _generate_span_stimulus_html(item, config)
 
         # Tokens should be adjacent (no space between don and 't)
-        assert "don</span><span" in html or "don</span>'t" in html or "don</span>" in html
+        assert (
+            "don</span><span" in html or "don</span>'t" in html or "don</span>" in html
+        )
 
 
 class TestSpanLabelingTrial:

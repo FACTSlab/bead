@@ -18,7 +18,6 @@ from bead.items.spans import (
     Span,
     SpanLabel,
     SpanSegment,
-    SpanSpec,
 )
 from bead.tokenization.config import TokenizerConfig
 
@@ -249,9 +248,7 @@ class TestTokenizeItem:
             rendered_elements={"text": "Hello world"},
         )
 
-        result = tokenize_item(
-            item, TokenizerConfig(backend="whitespace")
-        )
+        result = tokenize_item(item, TokenizerConfig(backend="whitespace"))
 
         assert result.tokenized_elements["text"] == ["Hello", "world"]
         assert result.token_space_after["text"] == [True, False]
@@ -266,9 +263,7 @@ class TestTokenizeItem:
             },
         )
 
-        result = tokenize_item(
-            item, TokenizerConfig(backend="whitespace")
-        )
+        result = tokenize_item(item, TokenizerConfig(backend="whitespace"))
 
         assert "context" in result.tokenized_elements
         assert "target" in result.tokenized_elements

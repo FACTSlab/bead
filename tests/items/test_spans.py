@@ -8,10 +8,7 @@ import pytest
 
 from bead.items.item import Item
 from bead.items.spans import (
-    LabelSourceType,
     Span,
-    SpanIndexMode,
-    SpanInteractionMode,
     SpanLabel,
     SpanRelation,
     SpanSegment,
