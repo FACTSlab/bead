@@ -56,3 +56,30 @@ Stage 1 of the bead pipeline: lexical items, templates, and constraints.
     options:
       show_root_heading: true
       show_source: false
+
+## Resource Adapters
+
+::: bead.resources.adapters.base
+    options:
+      show_root_heading: true
+      show_source: false
+
+::: bead.resources.adapters.glazing
+    options:
+      show_root_heading: true
+      show_source: false
+
+::: bead.resources.adapters.unimorph
+    options:
+      show_root_heading: true
+      show_source: false
+
+::: bead.resources.adapters.cache
+    options:
+      show_root_heading: true
+      show_source: false
+
+::: bead.resources.adapters.registry
+    options:
+      show_root_heading: true
+      show_source: false

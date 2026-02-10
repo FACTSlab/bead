@@ -101,33 +101,33 @@ uv run pytest tests/
 
 **Specific module**:
 ```bash
-uv run uv run pytest tests/resources/
-uv run uv run pytest tests/lists/
+uv run pytest tests/resources/
+uv run pytest tests/lists/
 ```
 
 **Specific file**:
 ```bash
-uv run uv run uv run pytest tests/resources/test_lexical_item.py
+uv run pytest tests/resources/test_lexical_item.py
 ```
 
 **Specific test**:
 ```bash
-uv run uv run uv run uv run pytest tests/resources/test_lexical_item.py::TestLexicalItemCreation::test_create_with_all_fields
+uv run pytest tests/resources/test_lexical_item.py::TestLexicalItemCreation::test_create_with_all_fields
 ```
 
 **With verbose output**:
 ```bash
-uv run uv run pytest tests/ -v
+uv run pytest tests/ -v
 ```
 
 **Stop on first failure**:
 ```bash
-uv run uv run pytest tests/ -x
+uv run pytest tests/ -x
 ```
 
 **Show print statements**:
 ```bash
-uv run uv run pytest tests/ -s
+uv run pytest tests/ -s
 ```
 
 ## Fixtures
@@ -289,7 +289,7 @@ bead uses pytest-cov to measure code coverage. Target >90% coverage for all modu
 
 **Run with coverage**:
 ```bash
-uv run uv run pytest tests/ --cov=bead --cov-report=term-missing
+uv run pytest tests/ --cov=bead --cov-report=term-missing
 ```
 
 Output shows coverage per file with uncovered line numbers:
@@ -316,7 +316,7 @@ The "Missing" column shows line numbers not covered by tests.
 Generate visual coverage report:
 
 ```bash
-uv run uv run pytest tests/ --cov=bead --cov-report=html
+uv run pytest tests/ --cov=bead --cov-report=html
 ```
 
 Open htmlcov/index.html in a browser. This shows:
@@ -740,7 +740,7 @@ def test_openai_integration():
 Run tests excluding slow tests:
 
 ```bash
-uv run uv run pytest tests/ -m "not slow"
+uv run pytest tests/ -m "not slow"
 ```
 
 ## Continuous Integration
@@ -828,7 +828,7 @@ def sample_new_feature_data():
 ### 4. Run Tests Locally
 
 ```bash
-uv run uv run uv run pytest tests/lists/test_new_feature.py -v
+uv run pytest tests/lists/test_new_feature.py -v
 ```
 
 Verify all tests pass and coverage is >90%.
@@ -850,6 +850,6 @@ Follow these testing practices:
 7. **Use parametrize** for testing multiple inputs
 8. **Include doctest examples** in docstrings
 9. **Run tests before committing**: `uv run pytest tests/`
-10. **Check coverage**: `uv run uv run pytest tests/ --cov=bead --cov-report=term-missing`
+10. **Check coverage**: `uv run pytest tests/ --cov=bead --cov-report=term-missing`
 
 For architecture details, see [architecture.md](architecture.md). For contribution guidelines, see [contributing.md](contributing.md). For development setup, see [setup.md](setup.md).
