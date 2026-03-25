@@ -1,5 +1,23 @@
 /* Minimal custom styles - let jsPsych handle the layout */
 
+/* === Forced choice styles === */
+
+.bead-forced-choice-container { max-width: 720px; margin: 0 auto; }
+.bead-forced-choice-prompt { font-size: 1.3em; font-weight: 500; text-align: center; margin-bottom: 24px; color: #212121; }
+
+.bead-forced-choice-alternatives.bead-layout-horizontal { display: flex; gap: 24px; justify-content: center; align-items: stretch; }
+.bead-forced-choice-alternatives.bead-layout-vertical { display: flex; flex-direction: column; gap: 16px; align-items: center; }
+
+.bead-card.bead-alternative { background: #fff; border: 2px solid #e0e0e0; border-radius: 12px; padding: 24px; cursor: pointer; transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s; flex: 1; max-width: 320px; text-align: center; }
+.bead-card.bead-alternative:hover { border-color: #90CAF9; box-shadow: 0 2px 12px rgba(25, 118, 210, 0.15); transform: translateY(-2px); }
+.bead-card.bead-alternative.selected { border-color: #1976D2; box-shadow: 0 2px 16px rgba(25, 118, 210, 0.25); background: #E3F2FD; }
+
+.bead-alternative-label { font-size: 0.8em; text-transform: uppercase; letter-spacing: 1px; color: #9E9E9E; margin-bottom: 8px; font-weight: 600; }
+.bead-alternative-content { font-size: 1.1em; line-height: 1.5; color: #424242; margin-bottom: 16px; }
+
+.bead-button.bead-choice-button { background: #1976D2; color: white; border: none; border-radius: 6px; padding: 8px 24px; font-size: 0.95em; font-weight: 500; cursor: pointer; transition: background 0.2s; }
+.bead-button.bead-choice-button:hover { background: #1565C0; }
+
 /* === Span labeling styles === */
 
 /* Token grid */

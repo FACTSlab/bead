@@ -7,6 +7,7 @@ server-side list distribution.
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from uuid import UUID
 
@@ -203,6 +204,7 @@ class JsPsychExperimentGenerator:
         self._generate_experiment_script()
         self._generate_config_file()
         self._copy_list_distributor_script()
+        self._copy_gallery_bundle()
 
         # copy slopit bundle if enabled
         if self.config.slopit.enabled:
@@ -395,6 +397,11 @@ class JsPsychExperimentGenerator:
                 f"Strategy type: {self.config.distribution_strategy.strategy_type}"
             ) from e
 
+    @staticmethod
+    def _strip_esm_exports(content: str) -> str:
+        """Strip ESM export statements so the file works as a classic <script>."""
+        return re.sub(r"^export\s*\{[^}]*\}\s*;?\s*$", "", content, flags=re.MULTILINE)
+
     def _copy_list_distributor_script(self) -> None:
         """Copy list_distributor.js from compiled dist/ to js/ directory.
 
@@ -416,10 +423,30 @@ class JsPsychExperimentGenerator:
             )
 
         try:
-            output_path.write_text(dist_path.read_text())
+            content = self._strip_esm_exports(dist_path.read_text())
+            output_path.write_text(content)
         except OSError as e:
             raise OSError(
                 f"Failed to copy list_distributor.js to {output_path}: {e}. "
+                f"Check write permissions."
+            ) from e
+
+    def _copy_gallery_bundle(self) -> None:
+        """Copy gallery-bundle.js (IIFE) from dist/ to js/ directory."""
+        dist_path = Path(__file__).parent / "dist" / "gallery-bundle.global.js"
+        output_path = self.output_dir / "js" / "gallery-bundle.js"
+
+        if not dist_path.exists():
+            raise FileNotFoundError(
+                f"gallery-bundle.global.js not found at {dist_path}. "
+                f"Run 'npm run build:gallery' in the jspsych directory."
+            )
+
+        try:
+            output_path.write_text(dist_path.read_text())
+        except OSError as e:
+            raise OSError(
+                f"Failed to copy gallery-bundle.js to {output_path}: {e}. "
                 f"Check write permissions."
             ) from e
 
@@ -606,7 +633,7 @@ class JsPsychExperimentGenerator:
 
         output_path = self.output_dir / "js" / "slopit-bundle.js"
         try:
-            output_path.write_text(bundle_path.read_text())
+            output_path.write_text(self._strip_esm_exports(bundle_path.read_text()))
         except OSError as e:
             raise OSError(
                 f"Failed to copy slopit bundle to {output_path}: {e}. "
@@ -699,5 +726,5 @@ class JsPsychExperimentGenerator:
             src_path = dist_dir / src_name
             dest_path = self.output_dir / dest_name
             if src_path.exists():
-                dest_path.write_text(src_path.read_text())
+                dest_path.write_text(self._strip_esm_exports(src_path.read_text()))
             # silently skip if not built yet (TypeScript may not be compiled)

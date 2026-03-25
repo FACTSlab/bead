@@ -27,7 +27,8 @@ async function runExperiment() {
         // Load items from JSONL
         const items = await loadItems('data/items.jsonl');
 
-        // Initialize list distributor
+        {% if use_jatos %}
+        // Initialize list distributor (JATOS batch session)
         distributor = new ListDistributor(distConfig, lists);
 
         // Assign list to this participant
@@ -35,6 +36,13 @@ async function runExperiment() {
         const assignedList = distributor.getAssignedList();
 
         console.log(`Assigned to list: ${assignedList.name} (index: ${listIndex})`);
+        {% else %}
+        // Local mode: use the first (only) list directly
+        const listIndex = 0;
+        const assignedList = lists[0];
+
+        console.log(`Local mode - using list: ${assignedList.name}`);
+        {% endif %}
 
         {% if slopit_enabled %}
         // Initialize slopit extension
@@ -57,10 +65,12 @@ async function runExperiment() {
             on_trial_start: jatos.addAbortButton,
             {% endif %}
             on_finish: async function() {
+                {% if use_jatos %}
                 // Mark as completed in batch session
                 if (distributor) {
                     await distributor.markCompleted();
                 }
+                {% endif %}
 
                 {% if use_jatos %}
                 // Submit data and end study
@@ -235,9 +245,30 @@ async function runExperiment() {
             );
         }
 
-        // Add pre-generated trials to timeline
+        // Map plugin name strings to actual plugin classes
+        const pluginRegistry = {
+            'bead-forced-choice': BeadForcedChoicePlugin,
+            'bead-rating': BeadRatingPlugin,
+            'bead-binary-choice': BeadBinaryChoicePlugin,
+            'bead-slider-rating': BeadSliderRatingPlugin,
+            'bead-cloze-multi': BeadClozeMultiPlugin,
+            'bead-span-label': BeadSpanLabelPlugin,
+            'bead-categorical': BeadCategoricalPlugin,
+            'bead-magnitude': BeadMagnitudePlugin,
+            'bead-free-text': BeadFreeTextPlugin,
+            'bead-multi-select': BeadMultiSelectPlugin,
+        };
+
+        // Add pre-generated trials to timeline, resolving plugin types
         for (const trial of listTrials) {
-            timeline.push(trial);
+            const pluginClass = pluginRegistry[trial.type];
+            if (!pluginClass) {
+                throw new Error(
+                    `Unknown plugin type: "${trial.type}". ` +
+                    `Available: ${Object.keys(pluginRegistry).join(', ')}`
+                );
+            }
+            timeline.push({ ...trial, type: pluginClass });
         }
 
         // Completion
