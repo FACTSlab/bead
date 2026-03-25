@@ -8,17 +8,15 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Callable, Hashable
-from typing import Any, TypeVar
+from typing import Any
 from uuid import UUID
 
 import numpy as np
 
 from bead.items.item import MetadataValue
 
-T = TypeVar("T")
 
-
-def assign_quantiles(
+def assign_quantiles[T](
     items: list[T],
     property_getter: Callable[[T], float],
     n_quantiles: int = 10,
@@ -122,7 +120,7 @@ def assign_quantiles(
     return result
 
 
-def _assign_quantiles_single_group(
+def _assign_quantiles_single_group[T](
     items: list[T],
     property_getter: Callable[[T], float],
     n_quantiles: int,

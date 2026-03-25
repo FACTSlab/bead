@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import re
+import warnings
 from pathlib import Path
 from uuid import UUID
 
@@ -437,10 +438,13 @@ class JsPsychExperimentGenerator:
         output_path = self.output_dir / "js" / "gallery-bundle.js"
 
         if not dist_path.exists():
-            raise FileNotFoundError(
+            warnings.warn(
                 f"gallery-bundle.global.js not found at {dist_path}. "
-                f"Run 'npm run build:gallery' in the jspsych directory."
+                f"Bead plugins will not be available in the experiment. "
+                f"Run 'npm run build:gallery' in the jspsych directory.",
+                stacklevel=2,
             )
+            return
 
         try:
             output_path.write_text(dist_path.read_text())
