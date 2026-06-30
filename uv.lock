@@ -263,7 +263,7 @@ requires-dist = [
     { name = "hypothesis", marker = "extra == 'dev'", specifier = ">=6.155.0" },
     { name = "jinja2", specifier = ">=3.0.0" },
     { name = "krippendorff", specifier = ">=0.6.0" },
-    { name = "lairs", editable = "../lairs" },
+    { name = "lairs", specifier = ">=0.5.0" },
     { name = "langcodes", specifier = ">=3.3.0" },
     { name = "lark", specifier = ">=1.0.0" },
     { name = "openai", marker = "extra == 'api'", specifier = ">=1.0.0" },
@@ -1043,7 +1043,7 @@ wheels = [
 [[package]]
 name = "lairs"
 version = "0.5.0"
-source = { editable = "../lairs" }
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "didactic" },
     { name = "duckdb" },
@@ -1055,97 +1055,9 @@ dependencies = [
     { name = "textual" },
     { name = "websockets" },
 ]
-
-[package.metadata]
-requires-dist = [
-    { name = "av", marker = "extra == 'video'" },
-    { name = "brat", marker = "extra == 'brat'" },
-    { name = "conllu", marker = "extra == 'conllu'" },
-    { name = "datasets", marker = "extra == 'hf'" },
-    { name = "decord", marker = "python_full_version < '3.14' and extra == 'video'" },
-    { name = "didactic", specifier = ">=0.9.0" },
-    { name = "duckdb" },
-    { name = "fsspec", marker = "extra == 'fsspec'" },
-    { name = "geopandas", marker = "extra == 'geo'" },
-    { name = "glazing", marker = "extra == 'lexical'", specifier = ">=0.2.3" },
-    { name = "habanero", marker = "extra == 'scholarly'" },
-    { name = "httpx" },
-    { name = "httpx", marker = "extra == 'appview'" },
-    { name = "httpx", marker = "extra == 'reconciliation'" },
-    { name = "huggingface-hub", marker = "extra == 'hf'" },
-    { name = "label-studio-sdk", marker = "extra == 'labelstudio'" },
-    { name = "lairs", extras = ["fsspec"], marker = "extra == 'ml'" },
-    { name = "lairs", extras = ["hf"], marker = "extra == 'ml'" },
-    { name = "lairs", extras = ["torch"], marker = "extra == 'ml'" },
-    { name = "libipld" },
-    { name = "librosa", marker = "extra == 'audio'" },
-    { name = "mlflow", marker = "extra == 'tracking'" },
-    { name = "mne", marker = "extra == 'neural'" },
-    { name = "multiformats" },
-    { name = "obonet", marker = "extra == 'bio'" },
-    { name = "panproto", specifier = ">=0.56.0" },
-    { name = "penman", marker = "extra == 'amr'" },
-    { name = "polars", marker = "extra == 'polars'" },
-    { name = "pyalex", marker = "extra == 'scholarly'" },
-    { name = "pyarrow" },
-    { name = "pympi-ling", marker = "extra == 'elan'" },
-    { name = "qwikidata", marker = "extra == 'wikidata'" },
-    { name = "shapely", marker = "extra == 'geo'" },
-    { name = "soundfile", marker = "extra == 'audio'" },
-    { name = "spacy", marker = "extra == 'spacy'" },
-    { name = "sparqlwrapper", marker = "extra == 'wikidata'" },
-    { name = "tensorflow", marker = "python_full_version < '3.14' and extra == 'tf'" },
-    { name = "textgrid", marker = "extra == 'textgrid'" },
-    { name = "textual", specifier = ">=8" },
-    { name = "torch", marker = "extra == 'torch'" },
-    { name = "wandb", marker = "extra == 'tracking'" },
-    { name = "webdataset", marker = "extra == 'webdataset'" },
-    { name = "websockets", specifier = ">=13" },
-    { name = "xarray", marker = "extra == 'neural'" },
-]
-provides-extras = ["hf", "torch", "tf", "webdataset", "polars", "fsspec", "conllu", "brat", "elan", "textgrid", "amr", "spacy", "labelstudio", "wikidata", "lexical", "reconciliation", "scholarly", "geo", "bio", "audio", "video", "neural", "tracking", "appview", "ml"]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "hypothesis" },
-    { name = "lairs", extras = ["amr"] },
-    { name = "lairs", extras = ["appview"] },
-    { name = "lairs", extras = ["audio"] },
-    { name = "lairs", extras = ["bio"] },
-    { name = "lairs", extras = ["brat"] },
-    { name = "lairs", extras = ["conllu"] },
-    { name = "lairs", extras = ["elan"] },
-    { name = "lairs", extras = ["fsspec"] },
-    { name = "lairs", extras = ["geo"] },
-    { name = "lairs", extras = ["hf"] },
-    { name = "lairs", extras = ["lexical"] },
-    { name = "lairs", extras = ["neural"] },
-    { name = "lairs", extras = ["polars"] },
-    { name = "lairs", extras = ["reconciliation"] },
-    { name = "lairs", extras = ["scholarly"] },
-    { name = "lairs", extras = ["spacy"] },
-    { name = "lairs", extras = ["textgrid"] },
-    { name = "lairs", extras = ["tf"] },
-    { name = "lairs", extras = ["torch"] },
-    { name = "lairs", extras = ["tracking"] },
-    { name = "lairs", extras = ["video"] },
-    { name = "lairs", extras = ["webdataset"] },
-    { name = "lairs", extras = ["wikidata"] },
-    { name = "numpy", specifier = ">=2.3" },
-    { name = "pytest" },
-    { name = "pytest-cov" },
-    { name = "pytest-recording" },
-    { name = "ruff" },
-    { name = "ty" },
-]
-docs = [
-    { name = "griffe", specifier = ">=1.5" },
-    { name = "mkdocs", specifier = ">=1.6" },
-    { name = "mkdocs-autorefs", specifier = ">=1.2" },
-    { name = "mkdocs-cinder", specifier = ">=1.2" },
-    { name = "mkdocstrings", extras = ["python"], specifier = ">=0.27" },
-    { name = "pygments", specifier = ">=2.18" },
-    { name = "pymdown-extensions", specifier = ">=10.7" },
+sdist = { url = "https://files.pythonhosted.org/packages/c1/e3/638d8889ce32c3a296ee077788e80d5a8a8dc73bb8749e810a0c91e5a4fb/lairs-0.5.0.tar.gz", hash = "sha256:fb01df67e4cd47b2dbbb2e8604550413dbffbe14783a062004843e5af51c21e0", size = 718022, upload-time = "2026-06-30T01:17:05.137Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/69/50/77b73f0d065ab94fb4f7fa6a96ad489835ca01f543a3c2b2b726108bcce6/lairs-0.5.0-py3-none-any.whl", hash = "sha256:b49d94297e47c61c073b880049a84053588d06320b6b351522329855ebe8f1c5", size = 431602, upload-time = "2026-06-30T01:17:03.263Z" },
 ]
 
 [[package]]

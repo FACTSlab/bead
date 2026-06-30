@@ -192,9 +192,3 @@ exclude = [
 dev = [
     "hypothesis>=6.155.0",
 ]
-
-# lairs 0.5.0 (built on didactic 0.9 / panproto 0.56) is not yet on PyPI; resolve
-# it from the local sibling checkout during development. uv ignores this source
-# when bead is published, leaving the plain ``lairs>=0.5.0`` requirement.
-[tool.uv.sources]
-lairs = { path = "../lairs", editable = true }

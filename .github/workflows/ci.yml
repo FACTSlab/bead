@@ -161,15 +161,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # lairs 0.5.0 is not yet on PyPI; install it from its public source repo
-      # (mirrors the tool.uv.sources path used for local development).
-      - name: Check out lairs
-        uses: actions/checkout@v4
-        with:
-          repository: layers-pub/lairs
-          ref: main
-          path: lairs
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -178,7 +169,6 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install ./lairs
           pip install -e ".[dev,behavioral-analysis]"
 
       - name: Run pyright
@@ -190,15 +180,6 @@ jobs:
     needs: [ts-build]  # Python tests need TypeScript compiled
     steps:
       - uses: actions/checkout@v4
-
-      # lairs 0.5.0 is not yet on PyPI; install it from its public source repo
-      # (mirrors the tool.uv.sources path used for local development).
-      - name: Check out lairs
-        uses: actions/checkout@v4
-        with:
-          repository: layers-pub/lairs
-          ref: main
-          path: lairs
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
@@ -242,7 +223,6 @@ jobs:
       - name: Install dependencies in venv
         run: |
           .venv/bin/pip install --upgrade pip
-          .venv/bin/pip install ./lairs
           .venv/bin/pip install -e ".[dev,api,training,stats,behavioral-analysis]"
 
       - name: Set up test fixtures
