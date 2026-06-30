@@ -16,6 +16,9 @@ What is mapped:
 - a dependency parse to a layers ``tokenization`` with part-of-speech and
   dependency annotation layers bundled as a :class:`ParsedSentenceLayers` view
   (see ``parse_lens``).
+- an ``Item``'s spans and relations to span and relation annotation layers (see
+  ``item_bridge``), with a ``bead`` lairs codec over an ``ItemCollection`` (see
+  ``codec``) and corpus ingest/egress helpers (see ``corpus_io``).
 - bead's resources to their layers counterparts: ``LexicalItem`` to an
   ``entry``, ``Lexicon`` to a ``collection``, and ``Template`` to a ``template``
   (see ``resource_lens``).
@@ -28,11 +31,29 @@ from bead.interop.layers.bridges import (
     RecordExpressionLens,
     record_to_expression,
 )
+from bead.interop.layers.codec import BeadCodec
+from bead.interop.layers.corpus_io import (
+    corpus_to_graph,
+    corpus_to_items,
+    corpus_to_records,
+    expression_to_record,
+    graph_to_corpus,
+    items_to_corpus,
+    load_layers_corpus,
+    materialize_corpus,
+    publish_corpus,
+    save_corpus_repo,
+)
 from bead.interop.layers.graph_lens import (
     CORPUS_GRAPH_LAYERS,
     CorpusGraphLayers,
     CorpusGraphLayersLens,
     graph_to_layers,
+)
+from bead.interop.layers.item_bridge import (
+    ITEM_LAYERS,
+    ItemLayersLens,
+    item_to_layers,
 )
 from bead.interop.layers.parse_lens import (
     PARSED_SENTENCE_LAYERS,
@@ -52,13 +73,16 @@ from bead.interop.layers.resource_lens import (
 
 __all__ = [
     "CORPUS_GRAPH_LAYERS",
+    "ITEM_LAYERS",
     "LEXICAL_ITEM_ENTRY",
     "LEXICON_COLLECTION",
     "PARSED_SENTENCE_LAYERS",
     "RECORD_EXPRESSION",
     "TEMPLATE_LAYERS",
+    "BeadCodec",
     "CorpusGraphLayers",
     "CorpusGraphLayersLens",
+    "ItemLayersLens",
     "LexicalItemEntryLens",
     "LexiconCollectionLens",
     "LexiconLayers",
@@ -66,7 +90,18 @@ __all__ = [
     "ParsedSentenceLayersIso",
     "RecordExpressionLens",
     "TemplateLayersLens",
+    "corpus_to_graph",
+    "corpus_to_items",
+    "corpus_to_records",
+    "expression_to_record",
+    "graph_to_corpus",
     "graph_to_layers",
+    "item_to_layers",
+    "items_to_corpus",
+    "load_layers_corpus",
+    "materialize_corpus",
     "parse_to_layers",
+    "publish_corpus",
     "record_to_expression",
+    "save_corpus_repo",
 ]

@@ -105,6 +105,9 @@ corpus = [
 [project.scripts]
 bead = "bead.cli.main:cli"
 
+[project.entry-points."lairs.codecs"]
+bead = "bead.interop.layers.codec:BeadCodec"
+
 [tool.pytest.ini_options]
 testpaths = ["tests", "docs/user-guide/cli"]
 norecursedirs = ["tests/fixtures", ".hypothesis"]
