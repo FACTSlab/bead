@@ -185,9 +185,15 @@ acceptability_model:
   max_pairs_per_annotator: 200
   seed: 42
 
+  # dev split: hold out this fraction of unique sentences (and all their
+  # ratings) so the dev set contains only sentences unseen during training;
+  # used for early stopping
+  dev_fraction: 0.15
+
   # derived training set artifacts (read by prepare/train scripts)
   paths:
     training_items: "items/megaacceptability_2afc.jsonl"
+    dev_items: "items/megaacceptability_2afc_dev.jsonl"
     raw_corpus_dir: "items/megaacceptability_raw_corpus"
     training_corpus_dir: "items/megaacceptability_2afc_corpus"
 
@@ -197,7 +203,8 @@ acceptability_model:
   mixed_effects_mode: "random_intercepts"
   learning_rate: 2e-5
   batch_size: 16
-  epochs: 3
+  epochs: 10
+  early_stopping_patience: 2   # stop after N dev epochs without improvement
   device: "cpu"
   checkpoint_dir: "checkpoints/acceptability_init"
 

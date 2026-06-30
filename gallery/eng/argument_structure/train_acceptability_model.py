@@ -18,7 +18,6 @@ weights or running training.
 from __future__ import annotations
 
 import argparse
-import json
 import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -72,7 +71,7 @@ def load_training_items(path: Path, *, limit: int | None = None) -> list[Item]:
             line = line.strip()
             if not line:
                 continue
-            items.append(Item(**json.loads(line)))
+            items.append(Item.model_validate_json(line))
     return items
 
 
@@ -138,6 +137,7 @@ def build_model_config(section: dict[str, object]) -> ForcedChoiceModelConfig:
         batch_size=int(section.get("batch_size", DEFAULT_BATCH_SIZE)),
         num_epochs=int(section.get("epochs", DEFAULT_EPOCHS)),
         device=str(section.get("device", DEFAULT_DEVICE)),
+        early_stopping_patience=int(section.get("early_stopping_patience", 2)),
         mixed_effects=MixedEffectsConfig(mode=mode),
     )
 
@@ -211,6 +211,9 @@ def main(
     training_items_path = base_dir / str(
         paths_section.get("training_items", DEFAULT_TRAINING_ITEMS)
     )
+    dev_items_path = base_dir / str(
+        paths_section.get("dev_items", "items/megaacceptability_2afc_dev.jsonl")
+    )
     checkpoint_dir = base_dir / str(
         section.get("checkpoint_dir", DEFAULT_CHECKPOINT_DIR)
     )
@@ -243,7 +246,21 @@ def main(
         print_error("No training items loaded. Exiting.")
         sys.exit(1)
     n_participants = len(set(participant_ids))
-    print_success(f"Loaded {len(items):,} items from {n_participants:,} annotators\n")
+    print_success(f"Loaded {len(items):,} items from {n_participants:,} annotators")
+
+    # Load the held-out dev set (unseen sentences) for early stopping, if present
+    dev_items: list[Item] = []
+    dev_labels: list[str] = []
+    if dev_items_path.exists():
+        dev_items = load_training_items(dev_items_path, limit=item_limit)
+        dev_labels, _ = extract_labels_and_participants(dev_items)
+        print_success(f"Loaded {len(dev_items):,} dev items from {dev_items_path.name}")
+    else:
+        print_warning(
+            "No dev set found; training without early stopping. "
+            "Run prepare_megaacceptability.py to create one."
+        )
+    console.print()
 
     # 2. Build config and train (heavy imports deferred to here)
     print_header("2/3 Training Forced-Choice Model")
@@ -260,7 +277,13 @@ def main(
 
         model = ForcedChoiceModel(model_config)
         with console.status("[bold]Training (this can be slow on CPU)...[/bold]"):
-            metrics = model.train(items, labels, participant_ids=participant_ids)
+            metrics = model.train(
+                items,
+                labels,
+                participant_ids=participant_ids,
+                validation_items=dev_items or None,
+                validation_labels=dev_labels or None,
+            )
     except Exception as exc:  # noqa: BLE001
         print_error(f"Training failed: {exc}")
         sys.exit(1)

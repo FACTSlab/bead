@@ -262,6 +262,42 @@ def build_per_annotator_pairs(
     return items
 
 
+def split_rows_by_sentence(
+    rows: list[RatingRow], dev_fraction: float, seed: int
+) -> tuple[list[RatingRow], list[RatingRow]]:
+    """Split rows into train and dev so no sentence appears in both.
+
+    Unique sentences are partitioned: a ``dev_fraction`` of them (and every
+    rating of those sentences) is held out as the dev split, the rest form the
+    train split. Holding out whole sentences guarantees the dev set contains
+    only sentences never seen during training, so dev performance measures
+    generalization to new stimuli rather than new annotator pairings.
+
+    Parameters
+    ----------
+    rows : list[RatingRow]
+        All rating rows.
+    dev_fraction : float
+        Fraction of unique sentences to hold out for the dev split.
+    seed : int
+        Seed for the deterministic sentence shuffle.
+
+    Returns
+    -------
+    tuple[list[RatingRow], list[RatingRow]]
+        The train rows and dev rows.
+    """
+    if dev_fraction <= 0.0:
+        return list(rows), []
+    sentences = sorted({row.sentence for row in rows})
+    Random(seed).shuffle(sentences)
+    n_dev = max(1, round(len(sentences) * dev_fraction))
+    dev_sentences = set(sentences[:n_dev])
+    train_rows = [row for row in rows if row.sentence not in dev_sentences]
+    dev_rows = [row for row in rows if row.sentence in dev_sentences]
+    return train_rows, dev_rows
+
+
 # --- raw item construction --------------------------------------------------
 
 
@@ -533,9 +569,14 @@ def main(
     base_paths = config.get("paths")
     base_paths = base_paths if isinstance(base_paths, dict) else {}
 
+    dev_fraction = float(section.get("dev_fraction", 0.15))
+
     cache_dir = base_dir / str(base_paths.get("cache_dir", ".cache"))
     training_items_path = base_dir / str(
         paths_section.get("training_items", "items/megaacceptability_2afc.jsonl")
+    )
+    dev_items_path = base_dir / str(
+        paths_section.get("dev_items", "items/megaacceptability_2afc_dev.jsonl")
     )
     raw_corpus_dir = base_dir / str(
         paths_section.get("raw_corpus_dir", "items/megaacceptability_raw_corpus")
@@ -589,11 +630,20 @@ def main(
     )
     console.print()
 
-    # 3. Derive per-annotator 2AFC pairs
+    # 3. Split by sentence (dev sentences are unseen during training), then
+    #    derive per-annotator 2AFC pairs within each split
     print_header("3/4 Building Per-Annotator 2AFC Pairs")
+    train_rows, dev_rows = split_rows_by_sentence(rows, dev_fraction, seed)
     with console.status("[bold]Pairing within-rater sentences...[/bold]"):
         pair_items = build_per_annotator_pairs(
-            rows,
+            train_rows,
+            scope=scope,
+            drop_ties=drop_ties,
+            max_per_annotator=max_per_annotator,
+            seed=seed,
+        )
+        dev_items = build_per_annotator_pairs(
+            dev_rows,
             scope=scope,
             drop_ties=drop_ties,
             max_per_annotator=max_per_annotator,
@@ -602,15 +652,21 @@ def main(
     if not pair_items:
         print_error("No 2AFC pairs were derived. Exiting.")
         sys.exit(1)
-    print_success(f"Derived {len(pair_items):,} forced-choice training items\n")
+    print_success(
+        f"Derived {len(pair_items):,} train and {len(dev_items):,} dev items "
+        f"(dev sentences held out)\n"
+    )
 
-    # 4. Persist the derived training set (JSONL + layers corpus)
+    # 4. Persist the derived train and dev sets (JSONL + layers corpus)
     print_header("4/4 Persisting Derived Training Set")
     try:
         write_items_jsonl(pair_items, training_items_path)
-        print_success(f"Wrote {len(pair_items):,} items to {training_items_path}")
+        print_success(f"Wrote {len(pair_items):,} train items to {training_items_path}")
+        if dev_items:
+            write_items_jsonl(dev_items, dev_items_path)
+            print_success(f"Wrote {len(dev_items):,} dev items to {dev_items_path}")
     except Exception as exc:  # noqa: BLE001
-        print_error(f"Failed to write {training_items_path}: {exc}")
+        print_error(f"Failed to write items: {exc}")
         sys.exit(1)
     emit_layers_corpus(
         pair_items,

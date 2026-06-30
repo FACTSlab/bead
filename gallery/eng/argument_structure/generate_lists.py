@@ -7,7 +7,6 @@ according to the configuration in config.yaml.
 
 from __future__ import annotations
 
-import json
 import sys
 import traceback
 from pathlib import Path
@@ -68,8 +67,10 @@ def load_2afc_pairs(pairs_path: Path) -> tuple[list[Item], dict[UUID, dict]]:
 
         with open(pairs_path) as f:
             for line in f:
-                data = json.loads(line)
-                item = Item(**data)
+                line = line.strip()
+                if not line:
+                    continue
+                item = Item.model_validate_json(line)
                 items.append(item)
 
                 # Build metadata dict for constraint checking
@@ -339,9 +340,7 @@ def main() -> None:
     fragment_rel = config["paths"].get("experiment_lists_fragment")
     if fragment_rel:
         fragment_path = base_dir / fragment_rel
-        layers_io.write_experiment_lists_layers(
-            list(experiment_lists), fragment_path
-        )
+        layers_io.write_experiment_lists_layers(list(experiment_lists), fragment_path)
         print_success(f"Wrote layers list collections to {fragment_path.name}")
     console.print()
 

@@ -81,7 +81,9 @@ def load_pairs(config: dict[str, Any], base_dir: Path) -> list[Item]:
     items: list[Item] = []
     with open(pairs_path) as f:
         for line in f:
-            items.append(Item(**json.loads(line)))
+            line = line.strip()
+            if line:
+                items.append(Item.model_validate_json(line))
     return items
 
 
