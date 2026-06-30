@@ -55,6 +55,19 @@ from bead.interop.layers.item_bridge import (
     ItemLayersLens,
     item_to_layers,
 )
+from bead.interop.layers.judgment_lens import (
+    ANNOTATION_RECORD_JUDGMENT,
+    AnnotationRecordJudgmentLens,
+    judgment_set_to_records,
+    records_to_judgment_set,
+)
+from bead.interop.layers.list_lens import (
+    EXPERIMENT_LIST_LAYERS,
+    LIST_CONSTRAINT,
+    ExperimentListLayers,
+    ExperimentListLens,
+    ListConstraintLens,
+)
 from bead.interop.layers.parse_lens import (
     PARSED_SENTENCE_LAYERS,
     ParsedSentenceLayers,
@@ -62,9 +75,11 @@ from bead.interop.layers.parse_lens import (
     parse_to_layers,
 )
 from bead.interop.layers.resource_lens import (
+    FILLED_TEMPLATE_FILLING,
     LEXICAL_ITEM_ENTRY,
     LEXICON_COLLECTION,
     TEMPLATE_LAYERS,
+    FilledTemplateFillingLens,
     LexicalItemEntryLens,
     LexiconCollectionLens,
     LexiconLayers,
@@ -72,20 +87,29 @@ from bead.interop.layers.resource_lens import (
 )
 
 __all__ = [
+    "ANNOTATION_RECORD_JUDGMENT",
     "CORPUS_GRAPH_LAYERS",
+    "EXPERIMENT_LIST_LAYERS",
+    "FILLED_TEMPLATE_FILLING",
     "ITEM_LAYERS",
     "LEXICAL_ITEM_ENTRY",
     "LEXICON_COLLECTION",
+    "LIST_CONSTRAINT",
     "PARSED_SENTENCE_LAYERS",
     "RECORD_EXPRESSION",
     "TEMPLATE_LAYERS",
+    "AnnotationRecordJudgmentLens",
     "BeadCodec",
     "CorpusGraphLayers",
     "CorpusGraphLayersLens",
+    "ExperimentListLayers",
+    "ExperimentListLens",
+    "FilledTemplateFillingLens",
     "ItemLayersLens",
     "LexicalItemEntryLens",
     "LexiconCollectionLens",
     "LexiconLayers",
+    "ListConstraintLens",
     "ParsedSentenceLayers",
     "ParsedSentenceLayersIso",
     "RecordExpressionLens",
@@ -98,10 +122,12 @@ __all__ = [
     "graph_to_layers",
     "item_to_layers",
     "items_to_corpus",
+    "judgment_set_to_records",
     "load_layers_corpus",
     "materialize_corpus",
     "parse_to_layers",
     "publish_corpus",
     "record_to_expression",
+    "records_to_judgment_set",
     "save_corpus_repo",
 ]
