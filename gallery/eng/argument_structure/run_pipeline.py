@@ -86,9 +86,19 @@ def load_pairs(config: dict[str, Any], base_dir: Path) -> list[Item]:
 
 
 def build_item_template(config_path: Path) -> ItemTemplate:
-    """Build the 2AFC ItemTemplate from the protocol declared in config.yaml."""
+    """Build the 2AFC ItemTemplate that the forced-choice model validates against.
+
+    The protocol declares per-item (FORCED_CHOICE) options, so its task spec
+    leaves ``options`` unset. The active-learning model, however, validates each
+    item against the template's ``task_spec.options`` and reads those option
+    names out of ``rendered_elements``. The 2AFC pairs use ``option_a`` /
+    ``option_b``, so we set those on the model-facing template.
+    """
     family = acceptability_family(build_protocol(config_path))
-    return family_to_item_template(family, judgment_type="acceptability")
+    template = family_to_item_template(family, judgment_type="acceptability")
+    return template.with_(
+        task_spec=template.task_spec.with_(options=("option_a", "option_b"))
+    )
 
 
 def build_loop_config(config: dict[str, Any]) -> ActiveLearningLoopConfig:
@@ -121,6 +131,7 @@ def load_acceptability_model(checkpoint_dir: Path, device: str) -> Any:
     ForcedChoiceModel
         The pretrained model, ready to seed the active-learning loop.
     """
+    from bead.active_learning.config import MixedEffectsConfig  # noqa: PLC0415
     from bead.active_learning.models.forced_choice import (  # noqa: PLC0415
         ForcedChoiceModel,
     )
@@ -128,6 +139,11 @@ def load_acceptability_model(checkpoint_dir: Path, device: str) -> Any:
 
     model = ForcedChoiceModel(ForcedChoiceModelConfig(device=device))  # type: ignore[arg-type]
     model.load(str(checkpoint_dir))
+    # The model was pretrained with per-annotator random intercepts. The loop
+    # fine-tunes at the population level (it trains without participant ids), so
+    # switch the seeded model to fixed effects; the pretrained encoder carries
+    # over.
+    model.config = model.config.with_(mixed_effects=MixedEffectsConfig(mode="fixed"))
     return model
 
 
