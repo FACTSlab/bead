@@ -90,9 +90,9 @@ def _token_spans(
     return spans
 
 
-def _knowledge_refs(label_id: str | None, label: str | None) -> tuple[
-    defs.KnowledgeRef, ...
-]:
+def _knowledge_refs(
+    label_id: str | None, label: str | None
+) -> tuple[defs.KnowledgeRef, ...]:
     if label_id is None:
         return ()
     source = "wikidata" if _WIKIDATA_QID.fullmatch(label_id) else "custom"
@@ -210,9 +210,7 @@ class ItemLayersLens(dx.Lens[Item, CorpusFragment, JsonValue]):
                             createdAt=item.created_at,
                             expression=_expression_uri(element),
                             kind="span",
-                            tokenizationId=defs.Uuid(
-                                value=_tokenization_uuid(element)
-                            ),
+                            tokenizationId=defs.Uuid(value=_tokenization_uuid(element)),
                         ),
                     )
                 )
@@ -283,9 +281,7 @@ class ItemLayersLens(dx.Lens[Item, CorpusFragment, JsonValue]):
 
         token_space_after = {
             key: tuple(bool(flag) for flag in value)
-            for key, value in json.loads(
-                j_str(comp["token_space_after"])
-            ).items()
+            for key, value in json.loads(j_str(comp["token_space_after"])).items()
         }
         item = Item(
             item_template_id=UUID(j_str(comp["item_template_id"])),
@@ -308,8 +304,7 @@ class ItemLayersLens(dx.Lens[Item, CorpusFragment, JsonValue]):
             ),
             item_metadata=loads_meta(comp["item_metadata"]),
             spans=tuple(
-                Span.model_validate_json(j_str(span))
-                for span in j_list(comp["spans"])
+                Span.model_validate_json(j_str(span)) for span in j_list(comp["spans"])
             ),
             span_relations=tuple(
                 SpanRelation.model_validate_json(j_str(relation))

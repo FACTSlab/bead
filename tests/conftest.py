@@ -143,7 +143,9 @@ def _docker_available() -> bool:
     return probe.returncode == 0
 
 
-def _compose(args: Iterable[str], env: dict[str, str]) -> subprocess.CompletedProcess[bytes]:
+def _compose(
+    args: Iterable[str], env: dict[str, str]
+) -> subprocess.CompletedProcess[bytes]:
     return subprocess.run(
         ["docker", "compose", "-f", str(_PDS_COMPOSE), *args],
         capture_output=True,
@@ -209,7 +211,9 @@ def pds_server() -> Iterator[PdsServer]:
     }
     started = _compose(["up", "-d"], env)
     if started.returncode != 0:
-        pytest.skip(f"could not start the pds container: {started.stderr.decode()[:300]}")
+        pytest.skip(
+            f"could not start the pds container: {started.stderr.decode()[:300]}"
+        )
     try:
         if not _wait_healthy(endpoint, _PDS_HEALTH_TIMEOUT_S):
             pytest.skip("the pds container did not become healthy in time")

@@ -23,18 +23,14 @@ def _assert_roundtrip(item: Item) -> None:
 def _span_layer(item: Item, element: str) -> annotation.AnnotationLayer:
     view = item_to_layers(item)
     record = next(
-        record
-        for record in view.records
-        if record.local_id == f"spans:{element}"
+        record for record in view.records if record.local_id == f"spans:{element}"
     )
     return annotation.AnnotationLayer.model_validate_json(record.value_json)
 
 
 def _relation_layer(item: Item) -> annotation.AnnotationLayer:
     view = item_to_layers(item)
-    record = next(
-        record for record in view.records if record.local_id == "relations"
-    )
+    record = next(record for record in view.records if record.local_id == "relations")
     return annotation.AnnotationLayer.model_validate_json(record.value_json)
 
 

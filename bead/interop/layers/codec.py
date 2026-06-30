@@ -123,7 +123,9 @@ def _rebuild_collection(
     stats = comp["construction_stats"]
     collection = ItemCollection(
         name=j_str(comp["name"]),
-        source_template_collection_id=UUID(j_str(comp["source_template_collection_id"])),
+        source_template_collection_id=UUID(
+            j_str(comp["source_template_collection_id"])
+        ),
         source_filled_collection_id=UUID(j_str(comp["source_filled_collection_id"])),
         items=items,
         construction_stats={

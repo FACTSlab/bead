@@ -137,9 +137,7 @@ def _span_from_annotation(
         else None
     )
     label = (
-        SpanLabel(
-            label=item_annotation.label, label_id=label_id, confidence=confidence
-        )
+        SpanLabel(label=item_annotation.label, label_id=label_id, confidence=confidence)
         if item_annotation.label is not None
         else None
     )

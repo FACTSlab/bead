@@ -142,9 +142,7 @@ class CorpusGraphLayersLens(dx.Lens[CorpusGraph, CorpusGraphLayers, JsonValue]):
         }
         return view, complement
 
-    def backward(
-        self, view: CorpusGraphLayers, complement: JsonValue
-    ) -> CorpusGraph:
+    def backward(self, view: CorpusGraphLayers, complement: JsonValue) -> CorpusGraph:
         """Reconstruct the graph from its layers view and bead complement."""
         comp = j_obj(complement)
         node_complements = j_obj(comp["node_complements"])

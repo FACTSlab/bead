@@ -237,9 +237,7 @@ class TemplateLayersLens(dx.Lens[Template, resource.Template, JsonValue]):
         }
         return view, complement
 
-    def backward(
-        self, view: resource.Template, complement: JsonValue
-    ) -> Template:
+    def backward(self, view: resource.Template, complement: JsonValue) -> Template:
         """Reconstruct a template from its layers template and complement."""
         comp = j_obj(complement)
         slot_complements = j_obj(comp["slot_complements"])
