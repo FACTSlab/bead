@@ -77,7 +77,7 @@ class _DevEarlyStopping(TrainerCallback):
         state: TrainerState,
         control: TrainerControl,
         **kwargs: object,
-    ) -> TrainerControl:
+    ) -> None:
         loss = self._dev_cross_entropy()
         if loss < self._best_loss - 1e-4:
             self._best_loss = loss
@@ -96,7 +96,6 @@ class _DevEarlyStopping(TrainerCallback):
             self._wait += 1
             if self._wait >= self._patience:
                 control.should_training_stop = True
-        return control
 
     def on_train_end(
         self,
@@ -104,12 +103,11 @@ class _DevEarlyStopping(TrainerCallback):
         state: TrainerState,
         control: TrainerControl,
         **kwargs: object,
-    ) -> TrainerControl:
+    ) -> None:
         if self._best_state is not None:
             encoder_state, head_state = self._best_state
             self._encoder.load_state_dict(encoder_state)
             self._classifier_head.load_state_dict(head_state)
-        return control
 
 
 class ForcedChoiceModel(ActiveLearningModel):
@@ -970,14 +968,16 @@ class ForcedChoiceModel(ActiveLearningModel):
                         param_name="mu",
                         create_if_missing=False,
                     )
-                    logits[i] = logits[i] + bias
+                    # Random-effects params live on CPU; move to the logits
+                    # device (matters on mps/cuda).
+                    logits[i] = logits[i] + bias.to(logits.device)
 
             elif self.config.mixed_effects.mode == "random_slopes":
                 logits_list = []
                 for i, pid in enumerate(participant_ids):
                     participant_head = self.random_effects.get_slopes(
                         pid, fixed_head=self.classifier_head, create_if_missing=False
-                    )
+                    ).to(embeddings.device)
                     logits_i = participant_head(embeddings[i : i + 1])
                     logits_list.append(logits_i)
                 logits = torch.cat(logits_list, dim=0)

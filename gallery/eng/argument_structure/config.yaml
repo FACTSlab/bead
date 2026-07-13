@@ -208,7 +208,7 @@ acceptability_model:
   batch_size: 16
   epochs: 10
   early_stopping_patience: 2   # stop after N dev epochs without improvement
-  device: "cpu"
+  device: "mps"   # Apple Silicon GPU; the ~760k-pair set is impractical on CPU
   checkpoint_dir: "checkpoints/acceptability_init"
 
 # layers / lairs interop
