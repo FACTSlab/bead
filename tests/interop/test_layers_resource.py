@@ -127,7 +127,9 @@ class TestFilledTemplateFilling:
                     source="bleached",
                 ),
                 "verb": LexicalItem(
-                    lemma="chase", form="chased", language_code="eng",
+                    lemma="chase",
+                    form="chased",
+                    language_code="eng",
                     features={"pos": "VERB"},
                 ),
             },

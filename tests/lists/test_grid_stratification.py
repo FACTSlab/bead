@@ -222,9 +222,7 @@ class TestGridStratificationConstraint:
     """The constraint validates its dimensions and parameters."""
 
     def test_valid(self) -> None:
-        dim = GridDimension(
-            property_expression="item['a']", binning=_q(3)
-        )
+        dim = GridDimension(property_expression="item['a']", binning=_q(3))
         constraint = GridStratificationConstraint(
             constraint_type="grid_stratification",
             dimensions=(dim,),
@@ -262,7 +260,10 @@ class TestBalancerByCell:
         cell_of = {uid: i % 4 for i, uid in enumerate(uuids)}
         balancer = QuantileBalancer(n_quantiles=2, random_seed=0)
         lists = balancer.balance_by_cell(
-            uuids, lambda uid: cell_of[uid], n_cells=4, n_lists=2,
+            uuids,
+            lambda uid: cell_of[uid],
+            n_cells=4,
+            n_lists=2,
             items_per_cell_per_list=5,
         )
         assert len(lists) == 2
@@ -308,7 +309,10 @@ class TestPartitionerGrid:
         )
         partitioner = ListPartitioner(random_seed=42)
         lists = partitioner.partition(
-            items, n_lists=4, constraints=[constraint], strategy="stratified",
+            items,
+            n_lists=4,
+            constraints=[constraint],
+            strategy="stratified",
             metadata=meta,
         )
         assert len(lists) == 4
