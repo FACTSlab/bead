@@ -18,6 +18,8 @@ round-trips exactly.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import didactic.api as dx
 from lairs.records import defs, judgment
 
@@ -31,6 +33,10 @@ from bead.interop.layers._convert import (
     j_str,
     object_ref,
 )
+from bead.interop.layers.participant_lens import agent_ref_of, participant_features
+
+if TYPE_CHECKING:
+    from bead.participants.models import Participant
 
 # layers requires an experiment reference on every judgment set; bead annotation
 # records carry none, so the view uses an empty at-uri and nothing round-trips.
@@ -84,6 +90,7 @@ ANNOTATION_RECORD_JUDGMENT = AnnotationRecordJudgmentLens()
 
 def records_to_judgment_set(
     records: tuple[AnnotationRecord, ...],
+    participant: Participant | None = None,
 ) -> tuple[judgment.JudgmentSet, JsonValue]:
     """Project records sharing one annotator to a layers judgment set.
 
@@ -94,11 +101,23 @@ def records_to_judgment_set(
     complement carries the shared annotator id and the per-record complements, so
     :func:`judgment_set_to_records` inverts it exactly.
 
+    When the annotator's :class:`~bead.participants.models.Participant` is
+    supplied, the set's ``agent`` is that participant's ``agentRef`` and its
+    ``features`` carries the participant's study fields (demographics, sessions,
+    consent), which the ``judgmentSet`` schema documents as the home for
+    "annotator demographics, session metadata, completion time, payment info".
+    The participant is supplementary provenance on the view: the records
+    reconstruct from the complement alone, so ``judgment_set_to_records`` is
+    unaffected.
+
     Parameters
     ----------
     records : tuple[AnnotationRecord, ...]
         Annotation records that all share one ``annotator_id``. Must be
         non-empty.
+    participant : Participant | None, optional
+        The annotator behind ``records``. When given, its identity and study
+        fields enrich the judgment set's ``agent`` and ``features``.
 
     Returns
     -------
@@ -136,10 +155,13 @@ def records_to_judgment_set(
         judgments.append(judgment_view)
         record_complements.append(record_complement)
 
+    agent = agent_ref_of(participant) if participant else defs.AgentRef(id=annotator_id)
+    features = participant_features(participant) if participant else None
     view = judgment.JudgmentSet(
-        agent=defs.AgentRef(id=annotator_id),
+        agent=agent,
         createdAt=min(record.created_at for record in records),
         experimentRef=_NO_EXPERIMENT_REF,
+        features=features,
         judgments=tuple(judgments),
     )
     complement: JsonValue = {

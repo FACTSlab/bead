@@ -22,6 +22,8 @@ What is mapped:
 - bead's resources to their layers counterparts: ``LexicalItem`` to an
   ``entry``, ``Lexicon`` to a ``collection``, and ``Template`` to a ``template``
   (see ``resource_lens``).
+- a ``Participant`` to a layers ``agentRef`` identity, with its study fields
+  rendered as the ``featureMap`` of a ``judgmentSet`` (see ``participant_lens``).
 """
 
 from __future__ import annotations
@@ -74,6 +76,12 @@ from bead.interop.layers.parse_lens import (
     ParsedSentenceLayersIso,
     parse_to_layers,
 )
+from bead.interop.layers.participant_lens import (
+    PARTICIPANT_AGENT,
+    ParticipantAgentLens,
+    agent_ref_of,
+    participant_features,
+)
 from bead.interop.layers.resource_lens import (
     FILLED_TEMPLATE_FILLING,
     LEXICAL_ITEM_ENTRY,
@@ -96,6 +104,7 @@ __all__ = [
     "LEXICON_COLLECTION",
     "LIST_CONSTRAINT",
     "PARSED_SENTENCE_LAYERS",
+    "PARTICIPANT_AGENT",
     "RECORD_EXPRESSION",
     "TEMPLATE_LAYERS",
     "AnnotationRecordJudgmentLens",
@@ -112,8 +121,10 @@ __all__ = [
     "ListConstraintLens",
     "ParsedSentenceLayers",
     "ParsedSentenceLayersIso",
+    "ParticipantAgentLens",
     "RecordExpressionLens",
     "TemplateLayersLens",
+    "agent_ref_of",
     "corpus_to_graph",
     "corpus_to_items",
     "corpus_to_records",
@@ -126,6 +137,7 @@ __all__ = [
     "load_layers_corpus",
     "materialize_corpus",
     "parse_to_layers",
+    "participant_features",
     "publish_corpus",
     "record_to_expression",
     "records_to_judgment_set",

@@ -58,12 +58,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   from a layers `judgment.ListConstraint`, and `ExperimentListLens`
   (`EXPERIMENT_LIST_LAYERS`) maps an `ExperimentList` to a layers `collection`
   with one `collectionMembership` per item plus its list constraints.
+- `ParticipantAgentLens` (`PARTICIPANT_AGENT`) maps a bead `Participant` to and
+  from a layers `AgentRef` identity, and `participant_features` renders the
+  participant's study fields (demographics, study id, sessions, consent) as the
+  `FeatureMap` that a `judgment.JudgmentSet` documents as the home for annotator
+  demographics, session metadata, and payment info. `records_to_judgment_set`
+  now takes an optional `participant`, so a judgment set carries that annotator's
+  identity and study fields natively. A layers `persona.Persona` is an annotator
+  role and interpretive framework, not a concrete enrolled participant, so it is
+  not the target of this mapping.
 
-  All of these round-trip exactly. A bead `Participant` is intentionally not
-  mapped: a layers `persona.Persona` is an annotator role and interpretive
-  framework, not a concrete enrolled participant, whose identity is instead an
-  `AgentRef` and whose study fields (consent, sessions, demographics) are outside
-  the shared schema.
+  All of these round-trip exactly.
 
 #### Forced-choice training: dev-set early stopping
 
