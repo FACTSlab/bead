@@ -182,7 +182,10 @@ acceptability_model:
   pairing_strategy: "per_annotator"
   pairing_scope: "same_frame"   # all, same_verb, or same_frame
   drop_ties: true
-  max_pairs_per_annotator: 200
+  # no cap: use every within-rater same-frame pair (different verbs, one frame).
+  # MegaAcceptability lists have no repeated verb or frame, so same-frame pairs
+  # come from a rater seeing each frame once per list across their lists.
+  max_pairs_per_annotator: null
   seed: 42
 
   # dev split: hold out this fraction of unique sentences (and all their
