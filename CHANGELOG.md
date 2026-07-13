@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.8.0] - 2026-06-30
+## [0.8.0] - 2026-07-02
 
 ### Added
 
@@ -64,6 +64,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   framework, not a concrete enrolled participant, whose identity is instead an
   `AgentRef` and whose study fields (consent, sessions, demographics) are outside
   the shared schema.
+
+#### Forced-choice training: dev-set early stopping
+
+- `ForcedChoiceModel` supports early stopping on a held-out dev set. A new
+  `early_stopping_patience` config field stops training after that many epochs
+  without dev cross-entropy improvement and restores the best encoder and head.
+  The `eng` gallery holds out whole sentences (never seen during training) for the
+  dev set and, with `max_pairs_per_annotator` unset, trains over every within-rater
+  same-frame pair.
+
+### Fixed
+
+- `ForcedChoiceModel` reports train and validation accuracy, precision, recall,
+  and F1 from the model's own predict path. The shared mixed-effects trainer's
+  `evaluate()` only labels cloze batches, so it could not score forced choice, and
+  train accuracy previously always read `0.0`. `compute_binary_metrics` and
+  `compute_multiclass_metrics` no longer pass `zero_division` to `evaluate`'s F1,
+  which this version rejects.
+- Forced-choice training and prediction move the per-participant random-effects
+  parameters to the model device, so the model runs on MPS and CUDA, not only CPU.
 
 ## [0.7.0] - 2026-06-29
 
