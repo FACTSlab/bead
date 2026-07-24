@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-07-24
+
+### Added
+
+- `HuggingFaceLanguageModel` and `LanguageModelScorer` accept a `dtype` parameter
+  (default `"auto"`) selecting the precision causal language-model weights load in;
+  `LanguageModelScorer` threads it through to the adapter.
+- `ListPartitioner` warns, once per offending expression or type, when a constraint
+  property expression cannot be evaluated or a constraint type is not enforced during
+  assignment, so a misconfigured constraint no longer fails silently.
+
+### Changed
+
+- `ListConstraint` subclasses now default `constraint_type` to their own discriminator
+  value, so it no longer has to be restated when constructing a constraint.
+- Causal language models load in the checkpoint's own dtype by default rather than being
+  forced to float32, halving the memory used by a half-precision checkpoint.
+
 ## [0.8.0] - 2026-07-13
 
 ### Added
@@ -647,7 +665,8 @@ guards as type-checkers.
 - CI/CD: GitHub Actions for testing, docs, PyPI publishing
 - Read the Docs integration
 
-[Unreleased]: https://github.com/FACTSlab/bead/compare/v0.8.0...HEAD
+[Unreleased]: https://github.com/FACTSlab/bead/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/FACTSlab/bead/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/FACTSlab/bead/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/FACTSlab/bead/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/FACTSlab/bead/compare/v0.5.0...v0.6.0
