@@ -24,6 +24,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   value, so it no longer has to be restated when constructing a constraint.
 - Causal language models load in the checkpoint's own dtype by default rather than being
   forced to float32, halving the memory used by a half-precision checkpoint.
+- `bead.__version__` is read from the installed distribution metadata, making the version
+  declared in `pyproject.toml` the single source of truth rather than a second literal
+  that has to be kept in step.
+
+### Fixed
+
+- `bead.__version__` reported a stale version, so `bead --version` disagreed with the
+  installed distribution.
 
 ## [0.8.0] - 2026-07-13
 

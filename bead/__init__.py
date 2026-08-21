@@ -6,6 +6,8 @@ designing and deploying linguistic judgment experiments at scale.
 
 from __future__ import annotations
 
-__version__ = "0.9.0"
+from importlib.metadata import version
+
+__version__ = version("bead")
 __author__ = "Aaron Steven White"
 __email__ = "aaron.white@rochester.edu"
