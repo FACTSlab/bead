@@ -10,6 +10,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  # Pinned to the version uv.lock resolves, so CI and `uv run ruff` agree.
+  RUFF_VERSION: "0.14.14"
+
 jobs:
   # TypeScript jobs
   ts-check:
@@ -133,7 +137,7 @@ jobs:
           python-version: "3.14"
 
       - name: Install ruff
-        run: pip install ruff
+        run: pip install "ruff==${{ env.RUFF_VERSION }}"
 
       - name: Run ruff linter
         run: ruff check .
@@ -150,7 +154,7 @@ jobs:
           python-version: "3.14"
 
       - name: Install ruff
-        run: pip install ruff
+        run: pip install "ruff==${{ env.RUFF_VERSION }}"
 
       - name: Check formatting
         run: ruff format --check .
