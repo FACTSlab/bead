@@ -1,0 +1,6 @@
+.cache/
+__pycache__/
+*.pyc
+filled_templates/*.jsonl
+items/*.jsonl
+lists/*.jsonl

@@ -1,0 +1,9 @@
+word,semantic_class,aspect,valency,lemma_vp,infinitive_vp,present_clause,past_clause
+csinál,activity,dynamic,transitive,{{ object }} csinál,{{ object }} csinálni,{{ subject }} {{ object }} csinál,{{ subject }} {{ object }} csinált
+van,state,stative,intransitive,van,lenni,{{ subject }} van,{{ subject }} volt
+megy,change,dynamic,intransitive,megy,menni,{{ subject }} megy,{{ subject }} ment
+kap,change,dynamic,transitive,{{ object }} kap,{{ object }} kapni,{{ subject }} {{ object }} kap,{{ subject }} {{ object }} kapott
+ad,transfer,dynamic,ditransitive,{{ recipient }} {{ object }} ad,{{ recipient }} {{ object }} adni,{{ subject }} {{ recipient }} {{ object }} ad,{{ subject }} {{ recipient }} {{ object }} adott
+készít,causation,dynamic,transitive,{{ object }} készít,{{ object }} készíteni,{{ subject }} {{ object }} készít,{{ subject }} {{ object }} készített
+történik,event,dynamic,intransitive,történik,történni,{{ subject }} történik,{{ subject }} történt
+jön,change,dynamic,intransitive,jön,jönni,{{ subject }} jön,{{ subject }} jött

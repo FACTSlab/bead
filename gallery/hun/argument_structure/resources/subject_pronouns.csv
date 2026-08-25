@@ -1,0 +1,7 @@
+lemma,form,pronoun_type,case,person,number,definiteness
+én,én,personal,NOM,1,SG,DEF
+te,te,personal,NOM,2,SG,DEF
+ő,ő,personal,NOM,3,SG,DEF
+mi,mi,personal,NOM,1,PL,DEF
+ti,ti,personal,NOM,2,PL,DEF
+ők,ők,personal,NOM,3,PL,DEF

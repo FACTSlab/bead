@@ -1,0 +1,261 @@
+# Hungarian Stage-1 argument-structure pipeline.
+# All available verb lemmas are crossed with the controlled frame inventory so
+# licensed and unlicensed verb-frame combinations can both be evaluated.
+
+# Project Metadata
+# ============================================================================
+project:
+  name: "argument_structure"
+  language_code: "hun"
+
+# Paths Configuration
+# ============================================================================
+paths:
+  # Base directories
+  data_dir: "."
+  output_dir: "."
+  cache_dir: ".cache"
+
+  # Specific paths
+  lexicons_dir: "lexicons"
+  templates_dir: "templates"
+  items_dir: "items"
+  lists_dir: "lists"
+  filled_templates_dir: "filled_templates"
+  # Output files
+  cross_product_items: "items/cross_product_items.jsonl"
+  2afc_pairs: "items/2afc_pairs.jsonl"
+  experiment_lists: "lists/experiment_lists.jsonl"
+
+# Resource Configuration
+# ============================================================================
+resources:
+  # Lexicons
+  lexicons:
+    - path: "lexicons/verbs.jsonl"
+      name: "verbs"
+      description: "UniMorph verbs with frame information"
+
+    - path: "lexicons/bleached_nouns.jsonl"
+      name: "bleached_nouns"
+      description: "Semantically light nouns for filling argument slots"
+
+    - path: "lexicons/bleached_verbs.jsonl"
+      name: "bleached_verbs"
+      description: "Semantically light verbs for complex predicates"
+
+    - path: "lexicons/bleached_adjectives.jsonl"
+      name: "bleached_adjectives"
+      description: "Semantically light adjectives for result/state slots"
+
+    - path: "lexicons/case_markers.jsonl"
+      name: "case_markers"
+      description: "Hungarian case-schema metadata; noun forms are already fully inflected"
+
+    - path: "lexicons/auxiliary_verbs.jsonl"
+      name: "auxiliary_verbs"
+      description: "Hungarian auxiliary and copular forms"
+
+    - path: "lexicons/subject_pronouns.jsonl"
+      name: "subject_pronouns"
+      description: "Hungarian nominative personal pronouns with person and number features"
+
+    - path: "lexicons/determiners.jsonl"
+      name: "determiners"
+      description: "Hungarian definite and indefinite determiners"
+
+    - path: "lexicons/preverbs.jsonl"
+      name: "preverbs"
+      description: "Hungarian verbal prefixes/preverbs"
+
+    - path: "lexicons/particles.jsonl"
+      name: "particles"
+      description: "Hungarian negation, additive, focus, and aspectual particles"
+
+  # Templates
+  templates:
+    - path: "templates/generic_frames.jsonl"
+      name: "generic_frames"
+      description: "Generic frame structures constructed manually"
+
+# Template Filling Strategy
+# ============================================================================
+template:
+  # Strategy type: "exhaustive", "mlm", or "mixed"
+  filling_strategy: "mixed"
+
+  # Output path for filled templates
+  output_path: "filled_templates/generic_frames_filled.jsonl"
+
+  # MLM (Masked Language Model) settings for smart filling
+  mlm:
+    model_name: "SZTAKI-HLT/hubert-base-cc"
+    beam_size: 5
+    top_k: 10
+    device: "cpu"
+    cache_enabled: true
+
+  # Slot-specific strategies
+  # Hungarian argument slots use exhaustive lexicon filling because noun forms
+  # are already fully inflected for case in bleached_nouns.jsonl. Template
+  # constraints select the correct case, agreement, and definiteness features.
+  slot_strategies:
+    verb:
+      strategy: "exhaustive"
+      description: "Hungarian finite matrix verb satisfying template constraints"
+
+    subject:
+      strategy: "exhaustive"
+      description: "Hungarian nominative subject"
+
+    object:
+      strategy: "exhaustive"
+      description: "Hungarian accusative direct object"
+
+    determiner:
+      strategy: "exhaustive"
+      description: "Hungarian determiner selected for object definiteness"
+
+    dative:
+      strategy: "exhaustive"
+      description: "Hungarian dative-marked argument"
+
+    location:
+      strategy: "exhaustive"
+      description: "Hungarian Stage-1 neutral locative argument, realized with SUP (helyen)"
+
+    instrument:
+      strategy: "exhaustive"
+      description: "Hungarian instrumental-comitative argument, realized with INS"
+
+    ongoing:
+      strategy: "exhaustive"
+      description: "Hungarian ongoing-event marker éppen"
+
+    comp_subject:
+      strategy: "exhaustive"
+      description: "Nominative embedded-clause subject"
+
+    comp_verb:
+      strategy: "exhaustive"
+      description: "Finite embedded-clause verb"
+
+# Controlled 2AFC Pair Generation
+# ============================================================================
+# Hungarian keeps the two ENG/KOR pair families, but the pair generator now
+# requires the shared lexical material to match. This prevents comparisons that
+# differ only because one sentence happened to use ember and the other csoport.
+create_2afc_pairs:
+  input_path: "filled_templates/generic_frames_filled.jsonl"
+  output_path: "items/2afc_pairs.jsonl"
+  cache_dir: ".cache/language_models"
+  model_name: "NYTK/PULI-GPT-2"
+  n_quantiles: 10
+  preverbs_path: "lexicons/preverbs.jsonl"
+
+# List Partitioning Configuration
+# ============================================================================
+lists:
+  # Partitioning strategy
+  strategy: "quantile_balanced_minimal_pairs"
+
+  # Number of experimental lists to create
+  n_lists: 16
+
+  # Items per list
+  items_per_list: 50
+
+  # Quantile settings for difficulty stratification
+  quantile_bins: 10
+  items_per_quantile: 10
+
+  # Constraints for list balancing
+  constraints:
+    # Balance pair types
+    - type: "balance"
+      property_expression: "item.metadata.pair_type"
+      target_counts:
+        same_verb: 25
+        different_verb: 25
+      description: "Equal numbers of same-verb and different-verb pairs"
+
+    # Ensure verb uniqueness within lists (use verb for same-verb pairs, verb1 for different-verb pairs)
+    - type: "uniqueness"
+      property_expression: "item.metadata.get('verb1', item.metadata.get('verb'))"
+      description: "No verb appears multiple times in same list"
+
+    # Stratify by LM score difference (grouped by pair type)
+    - type: "grouped_quantile"
+      property_expression: "item.metadata.lm_score_diff"
+      group_by_expression: "item.metadata.pair_type"
+      n_quantiles: 10
+      items_per_quantile: 2
+      description: "Sample LM score-difference bins within each pair type"
+
+    # Contrast diversity. Same-verb pairs can contain two template IDs, so
+    # contrast_type is a cleaner property for list-level diversity.
+    - type: "diversity"
+      property_expression: "item.metadata.contrast_type"
+      min_unique_values: 5
+      description: "Include several linguistic contrast types in each list"
+
+  # Batch-level constraints (apply across ALL lists)
+  batch_constraints:
+    # Make sure the final batch includes every controlled contrast family.
+    - type: "coverage"
+      property_expression: "item['contrast_type']"
+      target_values: ["add_dative", "add_locative", "add_instrumental", "object_definiteness", "clausal_complement", "ongoing_context", "tense", "lexical_verb"]
+      min_coverage: 1.0
+      description: "Require every Stage-1 contrast family somewhere in the batch"
+
+    # Ensure balanced pair types across entire batch
+    - type: "balance"
+      property_expression: "item['pair_type']"
+      target_distribution:
+        same_verb: 0.5
+        different_verb: 0.5
+      tolerance: 0.05
+      description: "50/50 split of pair types across all lists combined"
+
+    # Ensure each quantile appears at least 50 times total
+    - type: "min_occurrence"
+      property_expression: "item['quantile']"
+      min_occurrences: 50
+      description: "Minimum representation of each quantile bin"
+
+    # Ensure no verb appears in more than 4 lists
+    - type: "diversity"
+      property_expression: "item.get('verb1', item.get('verb'))"
+      max_lists_per_value: 4
+      description: "Spread verbs across experiment lists"
+
+# Deployment Configuration
+deployment:
+  platform: "jatos"
+  n_lists_to_deploy: 16
+  random_seed: 42
+  output_dir: "deployment"
+  experiment:
+    title: "Sentence Acceptability Judgments"
+    description: "Select the sentence that sounds more natural"
+    instructions: "You will see pairs of sentences. Please select the sentence that sounds more natural to you."
+  jspsych:
+    randomize_order: true
+    randomize_choices: true
+  distribution_strategy: {}
+
+# Logging Configuration
+# ============================================================================
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+  file:
+    enabled: true
+    path: "pipeline.log"
+    max_bytes: 10485760
+    backup_count: 5
+
+  console:
+    enabled: true
+    colored: true

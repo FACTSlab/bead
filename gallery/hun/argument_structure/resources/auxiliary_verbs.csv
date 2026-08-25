@@ -1,0 +1,4 @@
+lemma,form,pos,tense,function
+van,van,AUX,PRS,copular_existential
+van,volt,AUX,PST,copular_existential
+lesz,lesz,AUX,FUT,copular_existential

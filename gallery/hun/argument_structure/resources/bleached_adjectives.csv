@@ -1,0 +1,11 @@
+word,semantic_class,gradability,stage_vs_individual,notes
+jó,evaluation,gradable,individual,
+rossz,evaluation,gradable,individual,
+helyes,evaluation,non-gradable,stage,
+hibás,evaluation,non-gradable,stage,
+rendben lévő,evaluation,gradable,stage,
+biztos,epistemic,non-gradable,stage,
+kész,aspectual,non-gradable,stage,
+befejezett,aspectual,non-gradable,stage,
+más,comparison,gradable,individual,
+azonos,comparison,gradable,individual,
