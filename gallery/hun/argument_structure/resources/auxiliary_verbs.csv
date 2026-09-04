@@ -1,4 +1,10 @@
-lemma,form,pos,tense,function
-van,van,AUX,PRS,copular_existential
-van,volt,AUX,PST,copular_existential
-lesz,lesz,AUX,FUT,copular_existential
+lemma,form,finiteness,mood,tense,person,number,function
+van,van,FIN,IND,PRS,3,SG,copular_existential
+van,volt,FIN,IND,PST,3,SG,copular_existential
+van,vannak,FIN,IND,PRS,3,PL,copular_existential
+van,voltak,FIN,IND,PST,3,PL,copular_existential
+lesz,lesz,FIN,IND,FUT,3,SG,copular_future
+lesz,lesznek,FIN,IND,FUT,3,PL,copular_future
+lesz,lett,FIN,IND,PST,3,SG,inchoative_copular
+szokott,szokott,FIN,IND,PST,3,SG,habitual
+volna,volna,FIN,COND,PRS,3,SG,conditional_marker

@@ -72,6 +72,14 @@ resources:
       name: "particles"
       description: "Hungarian negation, additive, focus, and aspectual particles"
 
+    - path: "lexicons/spatial_postpositions.jsonl"
+      name: "spatial_postpositions"
+      description: "Bare postpositions governing a caseless complement, in ESS/LAT/ABL series"
+
+    - path: "lexicons/complex_postpositions.jsonl"
+      name: "complex_postpositions"
+      description: "Postpositions governing an overtly case-marked complement"
+
   # Templates
   templates:
     - path: "templates/generic_frames.jsonl"
@@ -139,6 +147,42 @@ template:
     comp_verb:
       strategy: "exhaustive"
       description: "Finite embedded-clause verb"
+
+    # Korean-parallel adjuncts. Hungarian realizes these with case rather than
+    # particles; comitative shares INS with instrumental and is distinguished
+    # only by the semantic class of the noun.
+    goal:
+      strategy: "exhaustive"
+      description: "Sublative goal argument, realized with SUB (helyre)"
+
+    source:
+      strategy: "exhaustive"
+      description: "Delative source argument, realized with DEL (helyről)"
+
+    comitative:
+      strategy: "exhaustive"
+      description: "Comitative argument, realized with INS on a human noun (emberrel)"
+
+    terminus:
+      strategy: "exhaustive"
+      description: "Terminative argument, realized with TER (helyig)"
+
+    origin:
+      strategy: "exhaustive"
+      description: "Ablative starting-point argument, realized with ABL (helytől)"
+
+    # Postposition frames.
+    postp_object:
+      strategy: "exhaustive"
+      description: "Caseless complement of a bare postposition"
+
+    complex_postp_object:
+      strategy: "exhaustive"
+      description: "Complement of a case-governing postposition; case set by constraint"
+
+    postposition:
+      strategy: "exhaustive"
+      description: "Hungarian postposition, spatial or case-governing"
 
 # Controlled 2AFC Pair Generation
 # ============================================================================

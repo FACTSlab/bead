@@ -1,29 +1,56 @@
-﻿frame_number,template_name,frame_description,hungarian_example,english_translation
-1,subj_nom-verb.,Subject + verb,Egy ember dolgozik.,A person works.
-2,subj_nom-noun_dat-verb.,Subject + dative + verb,Egy ember egy csoportnak dolgozik.,A person works for a group.
-3,subj_nom-noun_loc-verb.,Subject + locative + verb,Egy ember egy helyen dolgozik.,A person works at a place.
-4,subj_nom-noun_inst-verb.,Subject + instrumental + verb,Egy ember egy eszközzel dolgozik.,A person works with a tool.
-5,subj_nom-noun_inst-noun_loc-verb.,Subject + instrumental + locative + verb,Egy ember egy eszközzel egy helyen dolgozik.,A person works with a tool at a place.
-6,subj_nom-noun_inst-noun_dat-verb.,Subject + instrumental + dative + verb,Egy ember egy eszközzel egy csoportnak dolgozik.,A person works with a tool for a group.
-7,subj_nom-noun_loc-noun_dat-verb.,Subject + locative + dative + verb,Egy ember egy helyen egy csoportnak dolgozik.,A person works at a place for a group.
-8,tr-indef.,Subject + indefinite object + verb,Egy ember egy tárgyat készít.,A person makes an object.
-9,tr-def.,Subject + definite object + verb,Egy ember a tárgyat készíti.,A person makes the object.
-10,tr_dat-indef.,Subject + indefinite object + dative + verb,Egy ember egy tárgyat egy csoportnak készít.,A person makes an object for a group.
-11,tr_dat-def.,Subject + definite object + dative + verb,Egy ember a tárgyat egy csoportnak készíti.,A person makes the object for a group.
-12,tr_loc-indef.,Subject + indefinite object + locative + verb,Egy ember egy tárgyat egy helyen tárol.,A person stores an object at a place.
-13,tr_loc-def.,Subject + definite object + locative + verb,Egy ember a tárgyat egy helyen tárolja.,A person stores the object at a place.
-14,tr_ins-indef.,Subject + indefinite object + instrumental + verb,Egy ember egy tárgyat egy eszközzel vág.,A person cuts an object with a tool.
-15,tr_ins-def.,Subject + definite object + instrumental + verb,Egy ember a tárgyat egy eszközzel vágja.,A person cuts the object with a tool.
-16,tr_ins_loc-indef.,Subject + indefinite object + instrumental + locative + verb,Egy ember egy tárgyat egy eszközzel egy helyen vág.,A person cuts an object with a tool at a place.
-17,tr_ins_loc-def.,Subject + definite object + instrumental + locative + verb,Egy ember a tárgyat egy eszközzel egy helyen vágja.,A person cuts the object with a tool at a place.
-18,tr_ins_dat-indef.,Subject + indefinite object + instrumental + dative + verb,Egy ember egy tárgyat egy eszközzel egy csoportnak készít.,A person makes an object with a tool for a group.
-19,tr_ins_dat-def.,Subject + definite object + instrumental + dative + verb,Egy ember a tárgyat egy eszközzel egy csoportnak készíti.,A person makes the object with a tool for a group.
-20,tr_loc_dat-indef.,Subject + indefinite object + locative + dative + verb,Egy ember egy tárgyat egy helyen egy csoportnak készít.,A person makes an object at a place for a group.
-21,tr_loc_dat-def.,Subject + definite object + locative + dative + verb,Egy ember a tárgyat egy helyen egy csoportnak készíti.,A person makes the object at a place for a group.
-22,subj_nom-verb-hogy_ind.,Subject + verb + finite direct-object hogy clause,"Egy ember mondja, hogy egy esemény történik.",A person says that an event is happening.
-23,subj_nom-eppen-verb_prs.,Subject + éppen + present verb,Egy ember éppen dolgozik.,A person is working right now.
-24,subj_nom-eppen-obj_acc-indf-verb_prs.,Subject + éppen + indefinite object + present verb,Egy ember éppen egy tárgyat készít.,A person is making an object right now.
-25,subj_nom-eppen-obj_acc-def-verb_prs.,Subject + éppen + definite object + present verb,Egy ember éppen a tárgyat készíti.,A person is making the object right now.
-26,subj_nom-eppen-verb_pst.,Subject + éppen + past verb,Egy ember éppen dolgozott.,A person was working just then.
-27,subj_nom-eppen-obj_acc-indf-verb_pst.,Subject + éppen + indefinite object + past verb,Egy ember éppen egy tárgyat készített.,A person was making an object just then.
-28,subj_nom-eppen-obj_acc-def-verb_pst.,Subject + éppen + definite object + past verb,Egy ember éppen a tárgyat készítette.,A person was making the object just then.
+frame_number,template_name,frame_family,transitivity,object_definiteness,frame_description,hungarian_example,english_translation
+1,subj_nom-verb.,INTR,intransitive,,Subject + verb,Egy ember dolgozik.,A person works.
+2,subj_nom-noun_dat-verb.,INTR-DAT,intransitive,,Subject + dative + verb,Egy ember egy csoportnak dolgozik.,A person works for a group.
+3,subj_nom-noun_loc-verb.,INTR-LOC,intransitive,,Subject + locative + verb,Egy ember egy helyen dolgozik.,A person works at a place.
+4,subj_nom-noun_inst-verb.,INTR-INS,intransitive,,Subject + instrumental + verb,Egy ember egy eszközzel dolgozik.,A person works with a tool.
+5,subj_nom-noun_inst-noun_loc-verb.,INTR-INS-LOC,intransitive,,Subject + instrumental + locative + verb,Egy ember egy eszközzel egy helyen dolgozik.,A person works with a tool at a place.
+6,subj_nom-noun_inst-noun_dat-verb.,INTR-INS-DAT,intransitive,,Subject + instrumental + dative + verb,Egy ember egy eszközzel egy csoportnak dolgozik.,A person works with a tool for a group.
+7,subj_nom-noun_loc-noun_dat-verb.,INTR-LOC-DAT,intransitive,,Subject + locative + dative + verb,Egy ember egy helyen egy csoportnak dolgozik.,A person works at a place for a group.
+8,subj_nom-noun_goal-verb.,INTR-GOAL,intransitive,,Subject + goal + verb,Egy ember egy helyre megy.,A person goes to a place.
+9,subj_nom-noun_src-verb.,INTR-SRC,intransitive,,Subject + source + verb,Egy ember egy helyről megy.,A person goes from a place.
+10,subj_nom-noun_com-verb.,INTR-COM,intransitive,,Subject + comitative + verb,Egy ember egy emberrel dolgozik.,A person works with a person.
+11,subj_nom-noun_ter-verb.,INTR-TER,intransitive,,Subject + terminative + verb,Egy ember egy helyig megy.,A person goes as far as a place.
+12,subj_nom-noun_init-verb.,INTR-INIT,intransitive,,Subject + starting-point + verb,Egy ember egy helytől megy.,A person goes from a place.
+13,tr-indef.,TR,transitive,INDF,Subject + indefinite object + verb,Egy ember egy tárgyat tesz.,A person puts an object.
+14,tr-def.,TR,transitive,DEF,Subject + definite object + verb (objective conjugation),Egy ember a tárgyat teszi.,A person puts the object.
+15,tr_dat-indef.,TR-DAT,transitive,INDF,Subject + indefinite object + dative + verb,Egy ember egy tárgyat egy csoportnak tesz.,A person puts an object for a group.
+16,tr_dat-def.,TR-DAT,transitive,DEF,Subject + definite object + dative + verb (objective conjugation),Egy ember a tárgyat egy csoportnak teszi.,A person puts the object for a group.
+17,tr_loc-indef.,TR-LOC,transitive,INDF,Subject + indefinite object + locative + verb,Egy ember egy tárgyat egy helyen tesz.,A person puts an object at a place.
+18,tr_loc-def.,TR-LOC,transitive,DEF,Subject + definite object + locative + verb (objective conjugation),Egy ember a tárgyat egy helyen teszi.,A person puts the object at a place.
+19,tr_ins-indef.,TR-INS,transitive,INDF,Subject + indefinite object + instrumental + verb,Egy ember egy tárgyat egy eszközzel tesz.,A person puts an object with a tool.
+20,tr_ins-def.,TR-INS,transitive,DEF,Subject + definite object + instrumental + verb (objective conjugation),Egy ember a tárgyat egy eszközzel teszi.,A person puts the object with a tool.
+21,tr_ins_loc-indef.,TR-INS-LOC,transitive,INDF,Subject + indefinite object + instrumental + locative + verb,Egy ember egy tárgyat egy eszközzel egy helyen tesz.,A person puts an object with a tool at a place.
+22,tr_ins_loc-def.,TR-INS-LOC,transitive,DEF,Subject + definite object + instrumental + locative + verb (objective conjugation),Egy ember a tárgyat egy eszközzel egy helyen teszi.,A person puts the object with a tool at a place.
+23,tr_ins_dat-indef.,TR-INS-DAT,transitive,INDF,Subject + indefinite object + instrumental + dative + verb,Egy ember egy tárgyat egy eszközzel egy csoportnak tesz.,A person puts an object with a tool for a group.
+24,tr_ins_dat-def.,TR-INS-DAT,transitive,DEF,Subject + definite object + instrumental + dative + verb (objective conjugation),Egy ember a tárgyat egy eszközzel egy csoportnak teszi.,A person puts the object with a tool for a group.
+25,tr_loc_dat-indef.,TR-LOC-DAT,transitive,INDF,Subject + indefinite object + locative + dative + verb,Egy ember egy tárgyat egy helyen egy csoportnak tesz.,A person puts an object at a place for a group.
+26,tr_loc_dat-def.,TR-LOC-DAT,transitive,DEF,Subject + definite object + locative + dative + verb (objective conjugation),Egy ember a tárgyat egy helyen egy csoportnak teszi.,A person puts the object at a place for a group.
+27,tr_goal-indef.,TR-GOAL,transitive,INDF,Subject + indefinite object + goal + verb,Egy ember egy tárgyat egy helyre tesz.,A person puts an object to a place.
+28,tr_goal-def.,TR-GOAL,transitive,DEF,Subject + definite object + goal + verb (objective conjugation),Egy ember a tárgyat egy helyre teszi.,A person puts the object to a place.
+29,tr_src-indef.,TR-SRC,transitive,INDF,Subject + indefinite object + source + verb,Egy ember egy tárgyat egy helyről tesz.,A person puts an object from a place.
+30,tr_src-def.,TR-SRC,transitive,DEF,Subject + definite object + source + verb (objective conjugation),Egy ember a tárgyat egy helyről teszi.,A person puts the object from a place.
+31,tr_com-indef.,TR-COM,transitive,INDF,Subject + indefinite object + comitative + verb,Egy ember egy tárgyat egy emberrel tesz.,A person puts an object with a person.
+32,tr_com-def.,TR-COM,transitive,DEF,Subject + definite object + comitative + verb (objective conjugation),Egy ember a tárgyat egy emberrel teszi.,A person puts the object with a person.
+33,tr_ter-indef.,TR-TER,transitive,INDF,Subject + indefinite object + terminative + verb,Egy ember egy tárgyat egy helyig tesz.,A person puts an object as far as a place.
+34,tr_ter-def.,TR-TER,transitive,DEF,Subject + definite object + terminative + verb (objective conjugation),Egy ember a tárgyat egy helyig teszi.,A person puts the object as far as a place.
+35,tr_init-indef.,TR-INIT,transitive,INDF,Subject + indefinite object + starting-point + verb,Egy ember egy tárgyat egy helytől tesz.,A person puts an object from a place.
+36,tr_init-def.,TR-INIT,transitive,DEF,Subject + definite object + starting-point + verb (objective conjugation),Egy ember a tárgyat egy helytől teszi.,A person puts the object from a place.
+37,subj_nom-verb-hogy_ind.,HOGY-IND,,,Subject + finite direct-object hogy-clause + verb,"Egy ember mondja, hogy egy esemény történik.",A person works that an event is happening.
+38,subj_nom-eppen-verb_prs.,INTR-ONGOING,,,Subject + éppen (present) + verb,Egy ember éppen dolgozik.,A person is right now working.
+39,subj_nom-eppen-obj_acc-indf-verb_prs.,TR-ONGOING,,INDF,Subject + éppen (present) + verb,Egy ember éppen egy tárgyat dolgozik.,A person is right now working.
+40,subj_nom-eppen-obj_acc-def-verb_prs.,TR-ONGOING,,DEF,Subject + éppen (present) + verb (objective conjugation),Egy ember éppen a tárgyat dolgozik.,A person is right now working.
+41,subj_nom-eppen-verb_pst.,INTR-ONGOING,,,Subject + éppen (past) + verb,Egy ember éppen dolgozott.,A person worked.
+42,subj_nom-eppen-obj_acc-indf-verb_pst.,TR-ONGOING,,INDF,Subject + éppen (past) + verb,Egy ember éppen egy tárgyat dolgozott.,A person worked.
+43,subj_nom-eppen-obj_acc-def-verb_pst.,TR-ONGOING,,DEF,Subject + éppen (past) + verb (objective conjugation),Egy ember éppen a tárgyat dolgozott.,A person worked.
+44,subj_nom-spostp_ess-verb.,SPOSTP-ESS,intransitive,,Subject + essive bare postposition + verb,Egy ember egy hely mögött dolgozik.,A person works behind a place.
+45,tr_spostp_ess-indef.,SPOSTP-ESS,transitive,INDF,Subject + indefinite object + essive bare postposition + verb,Egy ember egy tárgyat egy hely mögött tesz.,A person puts an object behind a place.
+46,tr_spostp_ess-def.,SPOSTP-ESS,transitive,DEF,Subject + definite object + essive bare postposition + verb (objective conjugation),Egy ember a tárgyat egy hely mögött teszi.,A person puts the object behind a place.
+47,subj_nom-spostp_lat-verb.,SPOSTP-LAT,intransitive,,Subject + lative bare postposition + verb,Egy ember egy hely mögé megy.,A person goes to behind a place.
+48,tr_spostp_lat-indef.,SPOSTP-LAT,transitive,INDF,Subject + indefinite object + lative bare postposition + verb,Egy ember egy tárgyat egy hely mögé tesz.,A person puts an object to behind a place.
+49,tr_spostp_lat-def.,SPOSTP-LAT,transitive,DEF,Subject + definite object + lative bare postposition + verb (objective conjugation),Egy ember a tárgyat egy hely mögé teszi.,A person puts the object to behind a place.
+50,subj_nom-spostp_abl-verb.,SPOSTP-ABL,intransitive,,Subject + ablative bare postposition + verb,Egy ember egy hely mögül megy.,A person goes from behind a place.
+51,tr_spostp_abl-indef.,SPOSTP-ABL,transitive,INDF,Subject + indefinite object + ablative bare postposition + verb,Egy ember egy tárgyat egy hely mögül tesz.,A person puts an object from behind a place.
+52,tr_spostp_abl-def.,SPOSTP-ABL,transitive,DEF,Subject + definite object + ablative bare postposition + verb (objective conjugation),Egy ember a tárgyat egy hely mögül teszi.,A person puts the object from behind a place.
+53,subj_nom-cpostp-verb.,CPOSTP,intransitive,,Subject + case-governing postposition + verb,Egy ember egy ember szerint dolgozik.,A person works according to a person.
+54,tr_cpostp-indef.,CPOSTP,transitive,INDF,Subject + indefinite object + case-governing postposition + verb,Egy ember egy tárgyat egy ember szerint tesz.,A person puts an object according to a person.
+55,tr_cpostp-def.,CPOSTP,transitive,DEF,Subject + definite object + case-governing postposition + verb (objective conjugation),Egy ember a tárgyat egy ember szerint teszi.,A person puts the object according to a person.

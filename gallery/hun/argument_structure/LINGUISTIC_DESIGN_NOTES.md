@@ -51,6 +51,40 @@ The controlled instrument noun is `eszköz`, yielding `egy eszközzel` (“with 
 tool”). Keeping it distinct from the direct-object noun reduces avoidable
 semantic oddness without encoding which verbs license an instrumental dependent.
 
+Controlled slots are pinned **by lemma** in `generate_templates.py`
+(`CONTROLLED_LEMMAS`). They were previously selected by semantic class alone,
+which behaved as a control only because each class happened to contain exactly
+one noun; adding a second location or instrument noun would have quietly
+un-controlled the baseline without any code change. The test suite asserts the
+pinning, and separately asserts that the slots documented as *varying* draw on
+more than one lemma, so neither kind of slot can drift into the other.
+
+## 4a. Instrumental and comitative are syncretic
+
+Korean distinguishes an instrumental (으)로 from a comitative 와/과. Hungarian
+uses INS `-val/-vel` for both. The Stage-1 inventory therefore contains an
+instrumental frame and a comitative frame that share a case and differ only in
+the semantic class of the noun (`egy eszközzel` vs `egy emberrel`). This is a
+property of Hungarian, not an unfilled cell: the two frames are not
+morphologically distinguishable, and any contrast between them is lexical.
+
+## 4b. Postpositions
+
+Korean's spatial relational nouns (위, 앞, 뒤) combined with 에 / 에서 / 로
+correspond to Hungarian bare postpositions, which govern a caseless complement
+and come in the same three-way series: `alatt` / `alá` / `alól`,
+`mögött` / `mögé` / `mögül`. The Hungarian frames use that series directly
+rather than reconstructing the Korean particle contrast.
+
+Korean's complex postpositions (에 대해서, 을 통해서) correspond to Hungarian
+case-governing postpositions. The governed case varies by postposition
+(`képest` takes ALL, `együtt` takes INS, `keresztül` takes SUP, `szerint` takes
+a caseless NOM), so the template leaves the complement's case open and a
+cross-slot constraint ties it to the postposition's `gov_case` feature. This is
+the Hungarian counterpart of the `fc_agree` constraint Korean uses for particle
+allomorphy: the requirement lives in the lexicon, not hard-coded per frame, so
+adding a postposition does not require editing a template.
+
 ## 5. `éppen` is not a progressive morpheme
 
 Hungarian does not have a direct morphological counterpart of Korean `-고 있다`
@@ -66,8 +100,44 @@ argument-structure frames.
 ## 6. What automatic tests can and cannot establish
 
 Automatic tests establish that a frame was realized as specified: case,
-agreement, determiner choice, tense, word boundaries, controlled fillers, and
-2AFC slot invariants. They do **not** establish that every matrix verb is
-acceptable in every frame. If all verb-frame outputs were forced to be natural,
-the generator would have already encoded the valency facts that the experiment
-is supposed to measure.
+agreement, determiner choice, tense, word boundaries, controlled fillers,
+postposition government, and 2AFC slot invariants. They do **not** establish
+that every matrix verb is acceptable in every frame. If all verb-frame outputs
+were forced to be natural, the generator would have already encoded the valency
+facts that the experiment is supposed to measure.
+
+The suite lives in `tests/` and also guards two failure modes that are
+otherwise silent:
+
+- **Column drift.** `generate_lexicons.py` names the CSV columns it wants and
+  skips any that are absent without error. Three resource files had drifted:
+  `case_markers.csv` supplied `harmony` where the loader read `harmony_pattern`,
+  so every case marker reached the lexicon carrying only `pos` and `case`.
+  `tests/test_resources.py` now asserts the contract in both directions.
+- **Documentation drift.** `resources/bleached_nouns.csv` and
+  `FRAME_REFERENCE.csv` are generated, and the tests re-run their generators and
+  compare, so a hand edit cannot diverge unnoticed.
+- **Wiring drift.** `fill_templates.py` loads only the lexicons named in
+  `config.yaml`. A lexicon that is generated but not declared is loaded by
+  nothing, and every frame depending on it produces no candidate filler; the
+  filler logs "No fills" and continues, so the frame family silently yields zero
+  sentences. `tests/test_config.py` asserts the two lists match.
+- **Constraint dialect.** Constraints are strings evaluated by bead's DSL, not
+  by Python. The grammar has no `is` operator and its boolean literals are
+  lowercase `true`/`false`, so `is True` parses in Python and fails in the DSL.
+  Every constraint the generator emits is linted for this.
+
+## 7. Word order is a parameter, not an assumption
+
+The Stage-1 frames place arguments between the subject and the verb. In
+Hungarian the immediately preverbal position is the focus position, so this is
+a marked order, and stacking several constituents there is more marked still.
+For an acceptability experiment that risks depressing ratings across the board
+and interacting with the verb-frame manipulation being measured.
+
+Rather than silently rewrite the frames, `generate_templates.py` takes
+`--word-order`. `preverbal` is the default and reproduces the original Stage-1
+strings exactly; `neutral` puts the finite verb directly after the subject.
+Both orders are generated from one frame inventory, so the question can be
+settled with a pilot rather than by assertion. `éppen` stays adjacent to the
+subject under both, because it is the element that creates the ongoing reading.

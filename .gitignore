@@ -37,3 +37,4 @@ tests/fixtures/cli_work/
 .claude/
 # Hypothesis example database
 .hypothesis/
+.DS_Store

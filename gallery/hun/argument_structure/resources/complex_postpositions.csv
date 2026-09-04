@@ -1,0 +1,23 @@
+form,postp_type,gov_case,semantic_class,eng_gloss,stage1
+szerint,complex,NOM,perspective,according to,true
+miatt,complex,NOM,cause,because of,true
+helyett,complex,NOM,substitution,instead of,true
+nélkül,complex,NOM,privative,without,true
+révén,complex,NOM,means,by means of/through,true
+által,complex,NOM,agent,by (agent),true
+számára,complex,NOM,benefactive,for/for the benefit of,true
+ellenére,complex,NOM,concessive,despite/in spite of,true
+iránt,complex,NOM,orientation,toward/towards (attitude),true
+végett,complex,NOM,purpose,for the purpose of,true
+képest,complex,ALL,comparison,compared to,true
+együtt,complex,INS,comitative,together with,true
+szemben,complex,INS,opposition,opposite/against,true
+fogva,complex,ABL,temporal_onset,from/starting from,true
+kezdve,complex,ABL,temporal_onset,starting from,true
+eltekintve,complex,ABL,exception,apart from/leaving aside,true
+keresztül,complex,SUP,path,through/via,true
+át,complex,SUP,path,through/across,true
+túl,complex,SUP,beyond,beyond/past,true
+kívül,complex,SUP,exception,besides/outside,true
+belül,complex,SUP,containment,within/inside,true
+nézve,complex,SUB,perspective,with respect to,true

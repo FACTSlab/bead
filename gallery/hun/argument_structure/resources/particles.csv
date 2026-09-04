@@ -1,8 +1,12 @@
 lemma,form,function,stage1_manipulated
+éppen,éppen,aspectual_temporal_ongoing,true
 nem,nem,negation,false
 sem,sem,negative_additive,false
 is,is,additive,false
 csak,csak,focus_particle,false
 már,már,aspectual_temporal,false
 még,még,aspectual_temporal,false
-éppen,éppen,aspectual_temporal_ongoing,false
+mindig,mindig,frequency,false
+gyakran,gyakran,frequency,false
+tegnap,tegnap,temporal_deictic_past,false
+most,most,temporal_deictic_present,false

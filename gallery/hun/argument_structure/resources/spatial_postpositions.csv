@@ -1,0 +1,21 @@
+form,postp_type,spatial_class,series,gov_case,eng_gloss,stage1
+alatt,spatial,vertical_down,ESS,NOM,under/below,true
+alá,spatial,vertical_down,LAT,NOM,(to) under/below,true
+alól,spatial,vertical_down,ABL,NOM,from under/below,true
+fölött,spatial,vertical_up,ESS,NOM,above/over,true
+fölé,spatial,vertical_up,LAT,NOM,(to) above/over,true
+fölül,spatial,vertical_up,ABL,NOM,from above/over,true
+mögött,spatial,back,ESS,NOM,behind,true
+mögé,spatial,back,LAT,NOM,(to) behind,true
+mögül,spatial,back,ABL,NOM,from behind,true
+előtt,spatial,front,ESS,NOM,in front of/before,true
+elé,spatial,front,LAT,NOM,(to) in front of,true
+elől,spatial,front,ABL,NOM,from in front of,true
+mellett,spatial,side,ESS,NOM,beside/next to,true
+mellé,spatial,side,LAT,NOM,(to) beside/next to,true
+mellől,spatial,side,ABL,NOM,from beside/next to,true
+között,spatial,medial,ESS,NOM,between/among,true
+közé,spatial,medial,LAT,NOM,(to) between/among,true
+közül,spatial,medial,ABL,NOM,from between/among,true
+körül,spatial,surround,ESS,NOM,around,true
+köré,spatial,surround,LAT,NOM,(to) around,true

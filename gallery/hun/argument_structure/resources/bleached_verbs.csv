@@ -1,9 +1,23 @@
-word,semantic_class,aspect,valency,lemma_vp,infinitive_vp,present_clause,past_clause
-csinál,activity,dynamic,transitive,{{ object }} csinál,{{ object }} csinálni,{{ subject }} {{ object }} csinál,{{ subject }} {{ object }} csinált
-van,state,stative,intransitive,van,lenni,{{ subject }} van,{{ subject }} volt
-megy,change,dynamic,intransitive,megy,menni,{{ subject }} megy,{{ subject }} ment
-kap,change,dynamic,transitive,{{ object }} kap,{{ object }} kapni,{{ subject }} {{ object }} kap,{{ subject }} {{ object }} kapott
-ad,transfer,dynamic,ditransitive,{{ recipient }} {{ object }} ad,{{ recipient }} {{ object }} adni,{{ subject }} {{ recipient }} {{ object }} ad,{{ subject }} {{ recipient }} {{ object }} adott
-készít,causation,dynamic,transitive,{{ object }} készít,{{ object }} készíteni,{{ subject }} {{ object }} készít,{{ subject }} {{ object }} készített
-történik,event,dynamic,intransitive,történik,történni,{{ subject }} történik,{{ subject }} történt
-jön,change,dynamic,intransitive,jön,jönni,{{ subject }} jön,{{ subject }} jött
+word,tense,semantic_class,aspectual_class,valency,frame_type,subject_role,object_role,oblique_role,telicity,lemma_vp,infinitive_vp,present_clause,past_clause
+csinál,PRS,activity,dynamic,transitive,NOM_ACC,agent,theme,,atelic,{{ object }} csinál,{{ object }} csinálni,{{ subject }} {{ object }} csinál,{{ subject }} {{ object }} csinált
+tesz,PRS,activity,dynamic,transitive,NOM_ACC,agent,theme,,atelic,{{ object }} tesz,{{ object }} tenni,{{ subject }} {{ object }} tesz,{{ subject }} {{ object }} tett
+van,PRS,state,stative,intransitive,NOM,theme,,,atelic,van,lenni,{{ subject }} van,{{ subject }} volt
+marad,PRS,state,stative,intransitive,NOM,theme,,,atelic,marad,maradni,{{ subject }} marad,{{ subject }} maradt
+áll,PRS,state,stative,intransitive,NOM,theme,,,atelic,áll,állni,{{ subject }} áll,{{ subject }} állt
+tart,PRS,state,stative,transitive,NOM_ACC,agent,theme,,atelic,{{ object }} tart,{{ object }} tartani,{{ subject }} {{ object }} tart,{{ subject }} {{ object }} tartott
+megy,PRS,change,dynamic,intransitive,NOM,theme,,,telic,megy,menni,{{ subject }} megy,{{ subject }} ment
+jön,PRS,change,dynamic,intransitive,NOM,theme,,,telic,jön,jönni,{{ subject }} jön,{{ subject }} jött
+lesz,PRS,change,dynamic,intransitive,NOM,theme,,,telic,lesz,lenni,{{ subject }} lesz,{{ subject }} lett
+kerül,PRS,change,dynamic,intransitive,NOM_OBL,theme,,goal,telic,kerül,kerülni,{{ subject }} kerül,{{ subject }} került
+kap,PRS,change,dynamic,transitive,NOM_ACC,recipient,theme,,telic,{{ object }} kap,{{ object }} kapni,{{ subject }} {{ object }} kap,{{ subject }} {{ object }} kapott
+vesz,PRS,change,dynamic,transitive,NOM_ACC,agent,theme,,telic,{{ object }} vesz,{{ object }} venni,{{ subject }} {{ object }} vesz,{{ subject }} {{ object }} vett
+ad,PRS,transfer,dynamic,ditransitive,NOM_ACC_DAT,agent,theme,recipient,telic,{{ recipient }} {{ object }} ad,{{ recipient }} {{ object }} adni,{{ subject }} {{ recipient }} {{ object }} ad,{{ subject }} {{ recipient }} {{ object }} adott
+hoz,PRS,transfer,dynamic,ditransitive,NOM_ACC_DAT,agent,theme,recipient,telic,{{ recipient }} {{ object }} hoz,{{ recipient }} {{ object }} hozni,{{ subject }} {{ recipient }} {{ object }} hoz,{{ subject }} {{ recipient }} {{ object }} hozott
+visz,PRS,transfer,dynamic,ditransitive,NOM_ACC_DAT,agent,theme,recipient,telic,{{ recipient }} {{ object }} visz,{{ recipient }} {{ object }} vinni,{{ subject }} {{ recipient }} {{ object }} visz,{{ subject }} {{ recipient }} {{ object }} vitt
+készít,PRS,causation,dynamic,transitive,NOM_ACC,agent,theme,,telic,{{ object }} készít,{{ object }} készíteni,{{ subject }} {{ object }} készít,{{ subject }} {{ object }} készített
+történik,PRS,event,dynamic,intransitive,NOM,theme,,,telic,történik,történni,{{ subject }} történik,{{ subject }} történt
+mond,PRS,communication,dynamic,clausal_transitive,NOM_ACC_CP,agent,proposition,addressee,atelic,{{ object }} mond,{{ object }} mondani,{{ subject }} {{ object }} mond,{{ subject }} {{ object }} mondott
+tud,PRS,cognition,stative,clausal_transitive,NOM_ACC_CP,experiencer,proposition,,atelic,{{ object }} tud,{{ object }} tudni,{{ subject }} {{ object }} tud,{{ subject }} {{ object }} tudott
+gondol,PRS,cognition,stative,clausal_transitive,NOM_ACC_CP,experiencer,proposition,,atelic,{{ object }} gondol,{{ object }} gondolni,{{ subject }} {{ object }} gondol,{{ subject }} {{ object }} gondolt
+akar,PRS,volition,stative,clausal_transitive,NOM_ACC_CP,experiencer,proposition,,atelic,{{ object }} akar,{{ object }} akarni,{{ subject }} {{ object }} akar,{{ subject }} {{ object }} akart
+lát,PRS,perception,stative,clausal_transitive,NOM_ACC_CP,experiencer,theme,,atelic,{{ object }} lát,{{ object }} látni,{{ subject }} {{ object }} lát,{{ subject }} {{ object }} látott

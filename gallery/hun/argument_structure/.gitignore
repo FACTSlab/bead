@@ -4,3 +4,10 @@ __pycache__/
 filled_templates/*.jsonl
 items/*.jsonl
 lists/*.jsonl
+deployment/
+
+# Accidental archives. A 5.6 MB project-name.zip snapshot of this directory was
+# committed here once; keep that from happening again.
+*.zip
+*.tar
+*.tar.gz

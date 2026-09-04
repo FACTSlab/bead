@@ -50,14 +50,18 @@ def load_csv_items(csv_path: Path, pos: str, feature_columns: list[str]) -> list
     items = []
 
     for _, row in df.iterrows():
-        if "lemma" in df.columns:
-            lemma = str(row["lemma"]).strip()
-        elif "word" in df.columns:
-            lemma = str(row["word"]).strip()
-        elif "marker" in df.columns:
-            lemma = str(row["marker"]).strip()
+        # `form` is last so that a CSV carrying both a lemma and an inflected
+        # form still keys on the lemma. Uninflected inventories such as the
+        # postposition tables only have `form`, and key on that.
+        for identifier_column in ("lemma", "word", "marker", "form"):
+            if identifier_column in df.columns:
+                lemma = str(row[identifier_column]).strip()
+                break
         else:
-            raise ValueError(f"{csv_path.name} must contain one of these columns: 'lemma', 'word', or 'marker'.")
+            raise ValueError(
+                f"{csv_path.name} must contain one of these columns: "
+                "'lemma', 'word', 'marker', or 'form'."
+            )
 
         if "form" in df.columns and pd.notna(row["form"]) and str(row["form"]).strip():
             form = str(row["form"]).strip()
@@ -139,7 +143,15 @@ def main(verb_limit: int | None = None):
     noun_items = load_csv_items(
         noun_csv,
         pos="NOUN",
-        feature_columns=["case", "number", "semantic_class", "countability", "animacy"],
+        feature_columns=[
+            "case",
+            "number",
+            "semantic_class",
+            "countability",
+            "animacy",
+            "harmony",
+            "role",
+        ],
     )
 
     noun_lexicon = save_lexicon(
@@ -170,6 +182,10 @@ def main(verb_limit: int | None = None):
             "object_role",
             "oblique_role",
             "telicity",
+            "lemma_vp",
+            "infinitive_vp",
+            "present_clause",
+            "past_clause",
         ],
     )
 
@@ -346,6 +362,67 @@ def main(verb_limit: int | None = None):
     )
 
     print(f"✓ Saved {len(particle_items)} particles")
+    # 11. SPATIAL POSTPOSITIONS
+    print("\n" + "=" * 80)
+    print("GENERATING SPATIAL POSTPOSITIONS LEXICON")
+    print("=" * 80)
+
+    csv_path = resources_dir / "spatial_postpositions.csv"
+
+    spatial_items = load_csv_items(
+        csv_path,
+        pos="POSTP",
+        feature_columns=[
+            "postp_type",
+            "spatial_class",
+            "series",
+            "gov_case",
+            "eng_gloss",
+            "stage1",
+        ],
+    )
+
+    spatial_lexicon = save_lexicon(
+        name="spatial_postpositions",
+        description=(
+            "Hungarian bare postpositions governing a caseless (NOM) complement, "
+            "in essive/lative/ablative series"
+        ),
+        items=spatial_items,
+        output_path=lexicons_dir / "spatial_postpositions.jsonl",
+    )
+
+    print(f"✓ Saved {len(spatial_items)} spatial postpositions")
+    # 12. COMPLEX POSTPOSITIONS
+    print("\n" + "=" * 80)
+    print("GENERATING COMPLEX POSTPOSITIONS LEXICON")
+    print("=" * 80)
+
+    csv_path = resources_dir / "complex_postpositions.csv"
+
+    complex_postposition_items = load_csv_items(
+        csv_path,
+        pos="POSTP",
+        feature_columns=[
+            "postp_type",
+            "gov_case",
+            "semantic_class",
+            "eng_gloss",
+            "stage1",
+        ],
+    )
+
+    complex_postposition_lexicon = save_lexicon(
+        name="complex_postpositions",
+        description=(
+            "Hungarian postpositions governing an overtly case-marked complement, "
+            "plus non-spatial NOM-governing postpositions"
+        ),
+        items=complex_postposition_items,
+        output_path=lexicons_dir / "complex_postpositions.jsonl",
+    )
+
+    print(f"✓ Saved {len(complex_postposition_items)} complex postpositions")
     # SUMMARY
     print("\n" + "=" * 80)
     print("LEXICON GENERATION COMPLETE")
@@ -353,18 +430,20 @@ def main(verb_limit: int | None = None):
 
     print(
         f"""
-Generated 10 lexicon files:
+Generated 12 lexicon files:
 
-  1. verbs.jsonl:               {len(verb_lexicon.items)}
-  2. bleached_nouns.jsonl:      {len(noun_lexicon.items)}
-  3. bleached_verbs.jsonl:      {len(bleached_verb_lexicon.items)}
-  4. bleached_adjectives.jsonl: {len(adjective_lexicon.items)}
-  5. case_markers.jsonl:        {len(case_lexicon.items)}
-  6. determiners.jsonl:         {len(determiner_lexicon.items)}
-  7. subject_pronouns.jsonl:    {len(pronoun_lexicon.items)}
-  8. auxiliary_verbs.jsonl:     {len(auxiliary_lexicon.items)}
-  9. preverbs.jsonl:            {len(preverb_lexicon.items)}
- 10. particles.jsonl:           {len(particle_lexicon.items)}
+  1. verbs.jsonl:                   {len(verb_lexicon.items)}
+  2. bleached_nouns.jsonl:          {len(noun_lexicon.items)}
+  3. bleached_verbs.jsonl:          {len(bleached_verb_lexicon.items)}
+  4. bleached_adjectives.jsonl:     {len(adjective_lexicon.items)}
+  5. case_markers.jsonl:            {len(case_lexicon.items)}
+  6. determiners.jsonl:             {len(determiner_lexicon.items)}
+  7. subject_pronouns.jsonl:        {len(pronoun_lexicon.items)}
+  8. auxiliary_verbs.jsonl:         {len(auxiliary_lexicon.items)}
+  9. preverbs.jsonl:                {len(preverb_lexicon.items)}
+ 10. particles.jsonl:               {len(particle_lexicon.items)}
+ 11. spatial_postpositions.jsonl:   {len(spatial_lexicon.items)}
+ 12. complex_postpositions.jsonl:   {len(complex_postposition_lexicon.items)}
 
 All files saved to:
     {lexicons_dir}

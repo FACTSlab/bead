@@ -258,6 +258,206 @@ SAME_VERB_CONTRASTS = [
         allow_verb_form_change=True,
         allow_tense_change=True,
     ),
+
+    # ------------------------------------------------------------------
+    # Korean-parallel adjuncts.
+    #
+    # These follow exactly the same shape as the add_dative/add_locative
+    # contrasts above: the right-hand frame adds one oblique dependent and
+    # nothing else changes. add_comitative is worth reading carefully — the
+    # comitative and instrumental frames share Hungarian INS, so the two
+    # differ only in the semantic class of the noun, not in case.
+    # ------------------------------------------------------------------
+    ContrastSpec(
+        'subj_nom-verb.',
+        'subj_nom-noun_goal-verb.',
+        'add_goal',
+        'Add a sublative goal dependent',
+    ),
+    ContrastSpec(
+        'subj_nom-verb.',
+        'subj_nom-noun_src-verb.',
+        'add_source',
+        'Add a delative source dependent',
+    ),
+    ContrastSpec(
+        'subj_nom-verb.',
+        'subj_nom-noun_com-verb.',
+        'add_comitative',
+        'Add a comitative dependent (INS on a human noun)',
+    ),
+    ContrastSpec(
+        'subj_nom-verb.',
+        'subj_nom-noun_ter-verb.',
+        'add_terminative',
+        'Add a terminative dependent',
+    ),
+    ContrastSpec(
+        'subj_nom-verb.',
+        'subj_nom-noun_init-verb.',
+        'add_initiative',
+        'Add an ablative starting-point dependent',
+    ),
+    ContrastSpec(
+        'tr-indef.',
+        'tr_goal-indef.',
+        'add_goal',
+        'Add a goal to an indefinite-object transitive frame',
+    ),
+    ContrastSpec(
+        'tr-indef.',
+        'tr_src-indef.',
+        'add_source',
+        'Add a source to an indefinite-object transitive frame',
+    ),
+    ContrastSpec(
+        'tr-indef.',
+        'tr_com-indef.',
+        'add_comitative',
+        'Add a comitative to an indefinite-object transitive frame',
+    ),
+    ContrastSpec(
+        'tr-indef.',
+        'tr_ter-indef.',
+        'add_terminative',
+        'Add a terminative to an indefinite-object transitive frame',
+    ),
+    ContrastSpec(
+        'tr-indef.',
+        'tr_init-indef.',
+        'add_initiative',
+        'Add a starting point to an indefinite-object transitive frame',
+    ),
+    ContrastSpec(
+        'tr-def.',
+        'tr_goal-def.',
+        'add_goal',
+        'Add a goal to a definite-object transitive frame',
+    ),
+    ContrastSpec(
+        'tr-def.',
+        'tr_src-def.',
+        'add_source',
+        'Add a source to a definite-object transitive frame',
+    ),
+    ContrastSpec(
+        'tr-def.',
+        'tr_com-def.',
+        'add_comitative',
+        'Add a comitative to a definite-object transitive frame',
+    ),
+    ContrastSpec(
+        'tr-def.',
+        'tr_ter-def.',
+        'add_terminative',
+        'Add a terminative to a definite-object transitive frame',
+    ),
+    ContrastSpec(
+        'tr-def.',
+        'tr_init-def.',
+        'add_initiative',
+        'Add a starting point to a definite-object transitive frame',
+    ),
+
+    # ------------------------------------------------------------------
+    # Postposition frames.
+    #
+    # Only "does the verb tolerate a postpositional dependent at all" is
+    # tested here. Contrasting the essive/lative/ablative series against each
+    # other (mögött / mögé / mögül) would hold the postposition slot as the
+    # manipulation, and shared_slots() currently treats `postposition` as
+    # shared material that must match, so every such pair would be rejected.
+    # Adding that contrast means excluding `postposition` there first.
+    # ------------------------------------------------------------------
+    ContrastSpec(
+        'subj_nom-verb.',
+        'subj_nom-spostp_ess-verb.',
+        'add_spatial_postposition',
+        'Add a bare spatial postpositional phrase',
+    ),
+    ContrastSpec(
+        'tr-indef.',
+        'tr_spostp_ess-indef.',
+        'add_spatial_postposition',
+        'Add a spatial postpositional phrase to an indefinite-object frame',
+    ),
+    ContrastSpec(
+        'tr-def.',
+        'tr_spostp_ess-def.',
+        'add_spatial_postposition',
+        'Add a spatial postpositional phrase to a definite-object frame',
+    ),
+    ContrastSpec(
+        'subj_nom-verb.',
+        'subj_nom-cpostp-verb.',
+        'add_complex_postposition',
+        'Add a case-governing postpositional phrase',
+    ),
+    ContrastSpec(
+        'tr-indef.',
+        'tr_cpostp-indef.',
+        'add_complex_postposition',
+        'Add a case-governing postpositional phrase to an indefinite-object frame',
+    ),
+    ContrastSpec(
+        'tr-def.',
+        'tr_cpostp-def.',
+        'add_complex_postposition',
+        'Add a case-governing postpositional phrase to a definite-object frame',
+    ),
+
+    # ------------------------------------------------------------------
+    # Object definiteness in the frames added above.
+    # ------------------------------------------------------------------
+    ContrastSpec(
+        'tr_goal-indef.',
+        'tr_goal-def.',
+        'object_definiteness',
+        'Indefinite versus definite object with a goal',
+        allow_verb_form_change=True,
+    ),
+    ContrastSpec(
+        'tr_src-indef.',
+        'tr_src-def.',
+        'object_definiteness',
+        'Indefinite versus definite object with a source',
+        allow_verb_form_change=True,
+    ),
+    ContrastSpec(
+        'tr_com-indef.',
+        'tr_com-def.',
+        'object_definiteness',
+        'Indefinite versus definite object with a comitative',
+        allow_verb_form_change=True,
+    ),
+    ContrastSpec(
+        'tr_ter-indef.',
+        'tr_ter-def.',
+        'object_definiteness',
+        'Indefinite versus definite object with a terminative',
+        allow_verb_form_change=True,
+    ),
+    ContrastSpec(
+        'tr_init-indef.',
+        'tr_init-def.',
+        'object_definiteness',
+        'Indefinite versus definite object with a starting point',
+        allow_verb_form_change=True,
+    ),
+    ContrastSpec(
+        'tr_spostp_ess-indef.',
+        'tr_spostp_ess-def.',
+        'object_definiteness',
+        'Indefinite versus definite object with a spatial postposition',
+        allow_verb_form_change=True,
+    ),
+    ContrastSpec(
+        'tr_cpostp-indef.',
+        'tr_cpostp-def.',
+        'object_definiteness',
+        'Indefinite versus definite object with a case-governing postposition',
+        allow_verb_form_change=True,
+    ),
 ]
 
 
