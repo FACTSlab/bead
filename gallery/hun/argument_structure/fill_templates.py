@@ -134,7 +134,7 @@ def ordered_verb_lemmas(lexicon: Lexicon) -> List[str]:
     lemmas: List[str] = []
     seen = set()
 
-    for item in lexicon.items.values():
+    for item in lexicon.items:
         if item.lemma not in seen:
             seen.add(item.lemma)
             lemmas.append(item.lemma)
@@ -144,7 +144,7 @@ def ordered_verb_lemmas(lexicon: Lexicon) -> List[str]:
 
 def make_verb_subset(full_verb_lexicon: Lexicon, lemmas: set[str]) -> Lexicon:
     """Create a temporary verb lexicon containing all forms of selected lemmas."""
-    items = {item_id: item for item_id, item in full_verb_lexicon.items.items() if item.lemma in lemmas}
+    items = tuple(item for item in full_verb_lexicon.items if item.lemma in lemmas)
 
     return Lexicon(
         name="verbs",
@@ -283,7 +283,7 @@ def main() -> None:
     logger.info("Loading templates from %s", templates_path)
 
     template_collection = TemplateCollection.from_jsonl(templates_path, "generic_frames")
-    templates = list(template_collection.templates.values())
+    templates = list(template_collection.templates)
 
     logger.info("Loaded %d templates", len(templates))
 

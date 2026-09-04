@@ -16,13 +16,11 @@ from bead.resources.lexicon import Lexicon
 # HELPERS
 
 def save_lexicon(name: str, description: str, items: list[LexicalItem], output_path: Path):
-    item_dict = {str(item.id): item for item in items}
-
     lexicon = Lexicon(
         name=name,
         description=description,
         language_code="hun",
-        items=item_dict,
+        items=tuple(items),
     )
 
     lexicon.to_jsonl(str(output_path))
