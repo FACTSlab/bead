@@ -7,6 +7,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Configuration composition (file loading, `defaults:` lists and config groups,
+  overlay files, dotted `--set` overrides and `${...}` interpolation) is provided by
+  `didactic-settings>=0.17.0`. `bead.config` re-exports `compose`, `ConfigError`,
+  `InterpolationError`, `ConfigValue` and `register_resolver` from `didactic.settings`;
+  `load_config` keeps its signature. Per-leaf provenance is available through
+  `didactic.settings.compose_traced(...).provenance`.
+- `${bead.path:rel}` is registered by `bead.config.resolvers` against the
+  `didactic.settings` registry and reads `paths.data_dir` through the engine's
+  `lookup`, so a reference cycle through it is reported as an `InterpolationError`
+  instead of overflowing the stack.
+- Profile defaults are strict-checked like every other layer: a key a profile sets
+  that `BeadConfig` does not declare is refused at load time with its dotted path.
+- `--set` values and `load_config(key__sub=value)` are read by the declared type of
+  the key they set (booleans, numbers, JSON lists and objects, comma-separated
+  sequence items, strings) rather than parsed as YAML; a bare word is a string, and
+  YAML flow syntax with bare words (`[a, b]`) is refused. Keyword overrides are
+  merged as typed values without a YAML round trip.
+- A `${...}` expression standing as the whole value of a config section (`items:
+  ${other}`) pastes the resolved subtree, which is then checked against the
+  section's schema like any other layer; a tagged-union slot refuses it.
+- `dict` fields (`protocol.metadata`, `templates.slot_strategies`) merge key by key
+  across layers instead of a later layer replacing the whole mapping.
+- didactic is required at `>=0.17.0`, didactic-settings[yaml] at `>=0.17.0`, panproto
+  at `>=0.74.3`.
+
+### Removed
+
+- The `bead.config.compose` subpackage, its tests, and `bead.config.ComposeValue`.
+
+### Fixed
+
+- Entries of `dict[str, Model]` fields such as `templates.slot_strategies` can be
+  set from YAML, overlay files and `--set`; previously each entry name was refused
+  as an unknown key of the entry model.
+- `--set` overrides to undeclared keys are refused at merge time as `ConfigError`
+  with the dotted path rather than surfacing from validation.
+- `--set` values that the field cannot read (`lists.num_lists=abc`) are refused as
+  `CoercionError` naming the key and the override rather than surfacing from
+  validation.
+
 ## [0.9.0] - 2026-08-21
 
 ### Added
