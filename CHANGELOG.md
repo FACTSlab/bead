@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-09-16
+
 ### Changed
 
 - Configuration composition (file loading, `defaults:` lists and config groups,
