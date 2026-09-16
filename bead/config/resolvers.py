@@ -1,19 +1,18 @@
 """Bead-aware interpolation resolvers.
 
-Registered at import time against the
-:mod:`bead.config.compose.interpolation` registry. These resolvers
-reference bead-side concepts (paths, anchors) and therefore would
-*not* be part of an extracted ``didacticonf`` package.
+Importing this module registers ``${bead.path:rel}`` against the
+:mod:`didactic.settings` resolver registry, so any composition run
+after :mod:`bead.config` is imported can use it. The resolver reads
+the in-flight tree through :func:`didactic.settings.lookup`, which
+shares the engine's cycle detection: a reference cycle through
+``bead.path`` is reported as an :class:`InterpolationError` rather
+than recursing until the interpreter gives up.
 
 Resolvers
 ---------
-- ``${bead.path:rel}`` — join ``rel`` against the value at
+- ``${bead.path:rel}``: join ``rel`` against the value at
   ``paths.data_dir`` in the composed config. Convenient shorthand
   for ``${paths.data_dir}/rel``.
-
-The compose pipeline sets the in-flight root via a contextvar so
-:func:`bead.config.compose.active_root` returns the dict being
-interpolated.
 
 Post-validation anchor resolution (``${bead.anchor:name[,attr]}``)
 needs a validated :class:`AnnotationProtocol` and therefore lives at
@@ -26,42 +25,26 @@ import re
 from pathlib import PurePosixPath
 from typing import cast
 
-from bead.config.compose import active_root, register_resolver, resolve
-from bead.config.compose.errors import InterpolationError
-from bead.config.compose.interpolation import ComposeValue
+from didactic.settings import InterpolationError, lookup, register_resolver
 
 
 def _bead_path(*args: str) -> str:
-    """``${bead.path:rel}`` — join ``rel`` against ``paths.data_dir``.
+    """``${bead.path:rel}``: join ``rel`` against ``paths.data_dir``.
 
-    Reads ``paths.data_dir`` from the in-flight composed root. The
-    resulting string uses forward slashes (``PurePosixPath``);
-    callers wrap with :class:`pathlib.Path` as needed.
+    ``paths.data_dir`` is read through :func:`didactic.settings.lookup`,
+    so it is itself interpolated first and a missing key raises the
+    engine's own unresolved-reference error. The result uses forward
+    slashes (:class:`~pathlib.PurePosixPath`); callers wrap it in
+    :class:`pathlib.Path` as needed.
     """
-    if not args:
+    if not args or not args[0]:
         raise InterpolationError("bead.path requires a relative path")
-    rel = ",".join(args)
-
-    root = active_root()
-    if root is None:
-        raise InterpolationError(
-            "bead.path called outside an active compose() pipeline"
-        )
-    paths_section = root.get("paths")
-    if not isinstance(paths_section, dict):
-        raise InterpolationError("bead.path requires a 'paths' section in the config")
-    data_dir: ComposeValue = paths_section.get("data_dir")
-    if data_dir is None:
-        raise InterpolationError("bead.path requires paths.data_dir to be set")
+    data_dir = lookup("paths.data_dir")
     if not isinstance(data_dir, str):
-        resolved = resolve(data_dir, root=root)
-        if not isinstance(resolved, str):
-            raise InterpolationError(
-                f"paths.data_dir resolved to {type(resolved).__name__}, expected str"
-            )
-        data_dir = resolved
-
-    return str(PurePosixPath(data_dir) / rel)
+        raise InterpolationError(
+            f"paths.data_dir resolved to {type(data_dir).__name__}, expected str"
+        )
+    return str(PurePosixPath(data_dir) / ",".join(args))
 
 
 register_resolver("bead.path", _bead_path, replace=True)

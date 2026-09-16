@@ -1,6 +1,6 @@
-"""Bead-specific entrypoint to the compose pipeline.
+"""Bead-specific entrypoint to the composition engine.
 
-A thin wrapper around :func:`bead.config.compose.compose` that binds
+A thin wrapper around :func:`didactic.settings.compose` that binds
 the schema to :class:`~bead.config.config.BeadConfig` and starts from
 the profile defaults declared in :mod:`bead.config.profiles`.
 """
@@ -11,12 +11,11 @@ import json
 from collections.abc import Sequence
 from pathlib import Path
 
-# Importing this module registers bead-specific resolvers
-# (${bead.anchor:...}, ${bead.path:...}) against the compose
-# interpolation engine.
+from didactic.settings import ConfigValue, compose
+
+# Importing this module registers the ${bead.path:...} resolver
+# against the didactic.settings interpolation registry.
 from bead.config import resolvers as _bead_resolvers
-from bead.config.compose import compose
-from bead.config.compose.interpolation import ComposeValue
 from bead.config.config import BeadConfig
 from bead.config.profiles import get_profile
 
@@ -29,24 +28,29 @@ def load_config(
     profile: str = "default",
     overrides: Sequence[str] = (),
     extra: Sequence[Path | str] = (),
-    **kw_overrides: ComposeValue,
+    **kw_overrides: ConfigValue,
 ) -> BeadConfig:
     """Compose a :class:`BeadConfig` from a profile, file, and overrides.
 
     Precedence (lowest to highest):
 
-      1. Profile defaults (``bead.config.profiles.get_profile``).
-      2. Each path listed in the primary YAML's ``defaults: [...]``
+      1. Profile defaults (``bead.config.profiles.get_profile``), the
+         base layer.
+      2. Each fragment listed in the primary file's ``defaults: [...]``
          key, in order.
-      3. The primary YAML body.
+      3. The primary file body.
       4. Each ``extra`` overlay file, in order.
-      5. ``overrides`` — dotted-key ``key=value`` strings.
-      6. ``kw_overrides`` — legacy ``key__sub=value`` keyword form.
-         Each is rewritten as ``"key.sub=value"`` and merged after
-         ``overrides``.
+      5. ``overrides``: dotted-key ``key=value`` strings, whose values
+         are read by the leaf's declared type.
+      6. ``kw_overrides``: the ``key__sub=value`` keyword form. Each
+         key is rewritten as ``"key.sub"`` and the value is merged as
+         given, after ``overrides``.
 
-    Interpolation is resolved last; the resolved dict is validated as
-    a :class:`BeadConfig`.
+    Every layer, the profile included, is checked against
+    :class:`BeadConfig` as it is merged, so an unknown key is refused
+    as a :class:`~didactic.settings.ConfigError` naming its dotted
+    path and the layer that set it. Interpolation is resolved last;
+    the resolved tree is validated as a :class:`BeadConfig`.
 
     Parameters
     ----------
@@ -59,31 +63,24 @@ def load_config(
         CLI-style overrides (``["paths.data_dir=/tmp"]``).
     extra : Sequence[Path | str], optional
         Additional overlay files merged after the primary YAML.
-    **kw_overrides : ComposeValue
-        Legacy keyword overrides; ``__`` separates nested levels.
+    **kw_overrides : ConfigValue
+        Keyword overrides; ``__`` separates nested levels.
 
     Returns
     -------
     BeadConfig
         Fully composed and validated configuration.
     """
-    profile_dict: dict[str, ComposeValue] = json.loads(
+    profile_dict: dict[str, ConfigValue] = json.loads(
         get_profile(profile).model_dump_json()
     )
-
-    all_overrides: list[str] = list(overrides)
-    for key, value in kw_overrides.items():
-        dotted = key.replace("__", ".")
-        # Use yaml.safe_dump to preserve the value's type when it's
-        # parsed back in parse_override (e.g. int / float / bool).
-        import yaml  # noqa: PLC0415
-
-        all_overrides.append(f"{dotted}={yaml.safe_dump(value).strip()}")
-
     return compose(
         config_path,
         schema=BeadConfig,
-        profile_dict=profile_dict,
-        overrides=all_overrides,
-        extra=extra,
+        base=profile_dict,
+        overlays=extra,
+        overrides=[
+            *overrides,
+            *((key.replace("__", "."), value) for key, value in kw_overrides.items()),
+        ],
     )
