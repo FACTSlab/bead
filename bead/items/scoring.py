@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from bead.active_learning.models.forced_choice import ForcedChoiceModel
     from bead.items.adapters.huggingface import HuggingFaceLanguageModel
 from collections.abc import Callable
 from uuid import UUID, uuid4
@@ -133,6 +134,9 @@ class LanguageModelScorer(ItemScorer):
         Key in item.rendered_elements to use as text (default: "text").
     model_version : str
         Version string for cache tracking.
+    dtype : str
+        Torch dtype to load the weights in, such as ``"bfloat16"``. Defaults to
+        ``"auto"``, keeping the dtype the checkpoint was saved in.
 
     Examples
     --------
@@ -154,12 +158,14 @@ class LanguageModelScorer(ItemScorer):
         device: str = "cpu",
         text_key: str = "text",
         model_version: str = "unknown",
+        dtype: str = "auto",
     ) -> None:
         self.model_name = model_name
         self.cache_dir = Path(cache_dir) if cache_dir else None
         self.device = device
         self.text_key = text_key
         self.model_version = model_version
+        self.dtype = dtype
 
         # lazy loading of model and cache
         self._model: HuggingFaceLanguageModel | None = None
@@ -192,6 +198,7 @@ class LanguageModelScorer(ItemScorer):
                 cache=self._cache,
                 device=self.device,  # type: ignore[arg-type]
                 model_version=self.model_version,
+                dtype=self.dtype,
             )
 
         return self._model
@@ -401,7 +408,7 @@ class ForcedChoiceScorer(ItemScorer):
         return self.comparison_fn(option_scores)
 
     def _extract_precomputed_scores(self, item: Item) -> list[float] | None:
-        """Extract precomputed scores from item metadata if available.
+        """Extract precomputed option scores from item metadata if available.
 
         Looks for keys like: lm_score_0, lm_score_1, ... or
         lm_score_a, lm_score_b, ...
@@ -446,3 +453,113 @@ class ForcedChoiceScorer(ItemScorer):
                 break
 
         return scores if scores else None
+
+
+class AcceptabilityScorer(ItemScorer):
+    """Scorer wrapping a trained forced-choice acceptability model.
+
+    Scores a forced-choice item by the model's predicted preference margin
+    ``|2 * P(prefer first option) - 1|``, a value in ``[0, 1]`` where 0 is a
+    near-tie (the model has no preference) and 1 is a clear winner. The margin
+    is the stratification signal that replaces a raw language-model score
+    difference.
+
+    Parameters
+    ----------
+    model : ForcedChoiceModel
+        A trained 2AFC model exposing ``predict_proba``.
+
+    Examples
+    --------
+    >>> from bead.items.scoring import AcceptabilityScorer
+    >>> scorer = AcceptabilityScorer(model)  # doctest: +SKIP
+    >>> margin = scorer.score(item)  # doctest: +SKIP
+    >>> 0.0 <= margin <= 1.0  # doctest: +SKIP
+    True
+    """
+
+    def __init__(self, model: ForcedChoiceModel) -> None:
+        self._model = model
+
+    @classmethod
+    def from_checkpoint(cls, path: str | Path) -> AcceptabilityScorer:
+        """Load a trained forced-choice model from a checkpoint directory.
+
+        Parameters
+        ----------
+        path : str | Path
+            Directory written by ``ForcedChoiceModel.save``.
+
+        Returns
+        -------
+        AcceptabilityScorer
+            Scorer wrapping the loaded model.
+        """
+        from bead.active_learning.models.forced_choice import (  # noqa: PLC0415
+            ForcedChoiceModel,
+        )
+        from bead.config.active_learning import (  # noqa: PLC0415
+            ForcedChoiceModelConfig,
+        )
+
+        model = ForcedChoiceModel(ForcedChoiceModelConfig())
+        model.load(str(path))
+        return cls(model)
+
+    def _participant_ids(self, n_items: int) -> list[str] | None:
+        """Population-level participant ids for prediction.
+
+        Fixed-effects models take ``None``; mixed-effects models take a constant
+        unknown id so prediction falls back to the population mean.
+        """
+        mode = self._model.config.mixed_effects.mode
+        if mode == "fixed":
+            return None
+        return ["__population__"] * n_items
+
+    def _margins(self, items: list[Item]) -> list[float]:
+        """Predicted preference margins for a batch of forced-choice items."""
+        proba = self._model.predict_proba(items, self._participant_ids(len(items)))
+        return [float(2.0 * np.max(row) - 1.0) for row in proba]
+
+    def score(self, item: Item) -> float:
+        """Return the predicted preference margin for a single item."""
+        return self._margins([item])[0]
+
+    def score_batch(self, items: list[Item]) -> list[float]:
+        """Return predicted preference margins for multiple items."""
+        if not items:
+            return []
+        return self._margins(items)
+
+    def score_with_metadata(
+        self, items: list[Item]
+    ) -> dict[UUID, dict[str, float | str]]:
+        """Score items and return the margin plus per-option probabilities.
+
+        Parameters
+        ----------
+        items
+            Forced-choice items to score.
+
+        Returns
+        -------
+        dict[UUID, dict[str, float | str]]
+            For each item: ``"score"`` and ``"acceptability_margin"`` (the
+            preference margin), ``"p_first"`` (probability of the first option),
+            and ``"predicted_option"`` (argmax option index).
+        """
+        if not items:
+            return {}
+
+        proba = self._model.predict_proba(items, self._participant_ids(len(items)))
+        results: dict[UUID, dict[str, float | str]] = {}
+        for item, row in zip(items, proba, strict=True):
+            margin = float(2.0 * np.max(row) - 1.0)
+            results[item.id] = {
+                "score": margin,
+                "acceptability_margin": margin,
+                "p_first": float(row[0]),
+                "predicted_option": int(np.argmax(row)),
+            }
+        return results

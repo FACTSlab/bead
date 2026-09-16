@@ -7,7 +7,9 @@ and stratified. Uses stand-off annotation (works with UUIDs only).
 
 from __future__ import annotations
 
+import logging
 from collections import Counter, defaultdict
+from collections.abc import Callable, Hashable
 from typing import Any
 from uuid import UUID
 
@@ -22,12 +24,15 @@ from bead.lists.constraints import (
     BatchCoverageConstraint,
     BatchDiversityConstraint,
     BatchMinOccurrenceConstraint,
+    GridDimension,
+    GridStratificationConstraint,
     ListConstraint,
     QuantileConstraint,
     SizeConstraint,
     UniquenessConstraint,
 )
 from bead.lists.experiment_list import ExperimentList, MetadataValue
+from bead.lists.stratification import assign_grid_cells, flatten_cell, grid_shape
 from bead.resources.constraints import ContextValue
 
 # Type aliases for clarity
@@ -38,6 +43,8 @@ type MetadataDict = dict[UUID, ItemMetadata]  # Metadata indexed by UUID
 # the field declaration so that ``with_(balance_metrics=...)`` type-checks
 # without dict-invariance noise.
 type BalanceMetrics = dict[str, "MetadataValue"]
+
+logger = logging.getLogger(__name__)
 
 
 class ListPartitioner:
@@ -76,6 +83,8 @@ class ListPartitioner:
         self.random_seed = random_seed
         self._rng = np.random.default_rng(random_seed)
         self.dsl_evaluator = DSLEvaluator()
+        self._unresolved_expressions: set[str] = set()
+        self._unenforced_types: set[str] = set()
 
     def partition(
         self,
@@ -262,7 +271,17 @@ class ListPartitioner:
         list[ExperimentList]
             Partitioned lists.
         """
-        # Find quantile constraints
+        # Prefer an N-dimensional grid constraint when present
+        grid_constraints = [
+            c for c in constraints if isinstance(c, GridStratificationConstraint)
+        ]
+        if grid_constraints:
+            balanced_lists = self._balance_grid(
+                items, grid_constraints[0], n_lists, metadata
+            )
+            return self._build_lists(balanced_lists, constraints, metadata)
+
+        # Otherwise stratify on the first one-dimensional quantile constraint
         quantile_constraints = [
             c for c in constraints if isinstance(c, QuantileConstraint)
         ]
@@ -292,7 +311,15 @@ class ListPartitioner:
             items, value_func, n_lists, qc.items_per_quantile
         )
 
-        # Convert to ExperimentList objects
+        return self._build_lists(balanced_lists, constraints, metadata)
+
+    def _build_lists(
+        self,
+        balanced_lists: list[list[UUID]],
+        constraints: list[ListConstraint],
+        metadata: MetadataDict,
+    ) -> list[ExperimentList]:
+        """Wrap balanced UUID lists in ``ExperimentList`` objects with metrics."""
         lists: list[ExperimentList] = []
         for i, item_ids in enumerate(balanced_lists):
             exp_list = ExperimentList(
@@ -309,6 +336,63 @@ class ListPartitioner:
             lists.append(exp_list)
 
         return lists
+
+    def _balance_grid(
+        self,
+        items: list[UUID],
+        constraint: GridStratificationConstraint,
+        n_lists: int,
+        metadata: MetadataDict,
+    ) -> list[list[UUID]]:
+        """Distribute items across lists by their N-dimensional grid cell.
+
+        Bins each item along every grid dimension (continuous bins computed
+        within ``group_by_expression`` groups when set), flattens the cell to a
+        single id, and spreads each cell uniformly across lists.
+        """
+        getters = [
+            self._make_dimension_getter(dim, metadata) for dim in constraint.dimensions
+        ]
+        binnings = [dim.binning for dim in constraint.dimensions]
+
+        stratify_func: Callable[[UUID], Hashable] | None
+        if constraint.group_by_expression is not None:
+            group_expr = constraint.group_by_expression
+
+            def group_getter(item_id: UUID) -> Hashable:
+                return self._extract_property_value(
+                    item_id, group_expr, constraint.context, metadata
+                )
+
+            stratify_func = group_getter
+        else:
+            stratify_func = None
+
+        coords = assign_grid_cells(items, getters, binnings, stratify_func)
+        shape = grid_shape(items, getters, binnings)
+        n_cells = int(np.prod(shape)) if shape else 1
+        cell_ids = {item_id: flatten_cell(coords[item_id], shape) for item_id in items}
+
+        balancer = QuantileBalancer(n_quantiles=2, random_seed=self.random_seed)
+        return balancer.balance_by_cell(
+            items,
+            lambda item_id: cell_ids[item_id],
+            n_cells,
+            n_lists,
+            constraint.items_per_cell,
+        )
+
+    def _make_dimension_getter(
+        self, dimension: GridDimension, metadata: MetadataDict
+    ) -> Callable[[UUID], float | str]:
+        """Build a value accessor for one grid dimension via its DSL expression."""
+
+        def getter(item_id: UUID) -> float | str:
+            return self._extract_property_value(
+                item_id, dimension.property_expression, dimension.context, metadata
+            )
+
+        return getter
 
     def _find_best_list_index(
         self,
@@ -369,6 +453,8 @@ class ListPartitioner:
             elif isinstance(constraint, SizeConstraint):
                 if not self._check_size(exp_list, constraint):
                     is_violated = True
+            else:
+                self._warn_unenforced(str(constraint.constraint_type))
 
             if is_violated:
                 priority = constraint.priority
@@ -494,6 +580,50 @@ class ListPartitioner:
             return False
 
         return True
+
+    def _warn_unresolved(self, property_expression: str, error: Exception) -> None:
+        """Report a property expression that cannot be evaluated.
+
+        Scoring skips items whose property cannot be read. Without a warning a
+        misconfigured constraint scores zero on every iteration and silently has
+        no effect, so each expression is reported once.
+
+        Parameters
+        ----------
+        property_expression : str
+            The expression that failed to evaluate.
+        error : Exception
+            The failure raised while evaluating it.
+        """
+        if property_expression in self._unresolved_expressions:
+            return
+        self._unresolved_expressions.add(property_expression)
+        logger.warning(
+            "Constraint property expression %r could not be evaluated (%s). "
+            "The constraint cannot be satisfied and is being ignored.",
+            property_expression,
+            error,
+        )
+
+    def _warn_unenforced(self, constraint_type: str) -> None:
+        """Report a constraint type that assignment cannot enforce.
+
+        Unhandled types are stored on the list and serialised, so without a
+        warning a configured constraint appears active while having no effect.
+
+        Parameters
+        ----------
+        constraint_type : str
+            Discriminator of the constraint that is not enforced.
+        """
+        if constraint_type in self._unenforced_types:
+            return
+        self._unenforced_types.add(constraint_type)
+        logger.warning(
+            "List constraint type %r is not enforced during assignment. It is "
+            "recorded on the list but does not influence partitioning.",
+            constraint_type,
+        )
 
     def _extract_property_value(
         self,
@@ -955,7 +1085,8 @@ class ListPartitioner:
                         metadata,
                     )
                     observed_values.add(value)
-                except Exception:
+                except Exception as error:
+                    self._warn_unresolved(constraint.property_expression, error)
                     continue
 
         # Compute coverage
@@ -1006,7 +1137,8 @@ class ListPartitioner:
                     )
                     counts[value] += 1
                     total += 1
-                except Exception:
+                except Exception as error:
+                    self._warn_unresolved(constraint.property_expression, error)
                     continue
 
         if total == 0:
@@ -1061,7 +1193,8 @@ class ListPartitioner:
                         metadata,
                     )
                     value_to_lists[value].add(list_idx)
-                except Exception:
+                except Exception as error:
+                    self._warn_unresolved(constraint.property_expression, error)
                     continue
 
         if not value_to_lists:
@@ -1114,7 +1247,8 @@ class ListPartitioner:
                         metadata,
                     )
                     counts[value] += 1
-                except Exception:
+                except Exception as error:
+                    self._warn_unresolved(constraint.property_expression, error)
                     continue
 
         if not counts:
