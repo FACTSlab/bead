@@ -717,7 +717,7 @@ guards as type-checkers.
 - CI/CD: GitHub Actions for testing, docs, PyPI publishing
 - Read the Docs integration
 
-[Unreleased]: https://github.com/FACTSlab/bead/compare/v0.9.0...HEAD
+[Unreleased]: https://github.com/FACTSlab/bead/compare/v0.10.0...HEAD
 [0.10.0]: https://github.com/FACTSlab/bead/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/FACTSlab/bead/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/FACTSlab/bead/compare/v0.7.0...v0.8.0
