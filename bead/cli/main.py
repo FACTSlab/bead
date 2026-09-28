@@ -56,8 +56,8 @@ console = Console()
     metavar="KEY=VALUE",
     help=(
         "Override one config key (dotted path). May be repeated. "
-        "Values are parsed as YAML so numbers, booleans, lists, "
-        "and quoted strings keep their type. Example: "
+        "Values are read as null, booleans, numbers, JSON lists and "
+        "objects, or strings (a bare word is a string). Example: "
         "--set paths.data_dir=/tmp --set protocol.lm_temperature=0.5"
     ),
 )

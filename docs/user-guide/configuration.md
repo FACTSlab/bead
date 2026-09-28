@@ -87,7 +87,8 @@ Compose multiple configurations and apply CLI-style overrides:
 from bead.config import load_config
 
 # extra files overlay after the primary YAML
-# overrides are dotted-key=value strings (YAML-parsed for typing)
+# overrides are dotted-key=value strings; each value is read by the
+# declared type of the key it sets
 config = load_config(
     "config.yaml",
     extra=["overlays/local.yaml"],
@@ -108,14 +109,38 @@ paths:
   out_dir: "${paths.data_dir}/out"
 ```
 
+Composition is provided by
+[`didactic.settings`](https://panproto.dev/didactic/guide/settings/);
+`bead.config` re-exports its `compose`, `ConfigError`,
+`InterpolationError`, `ConfigValue` and `register_resolver`. Every
+layer (the profile, each `defaults:` fragment, the file, each
+overlay and each override) is checked against `BeadConfig` as it is
+merged, so an unknown key is refused as a `ConfigError` naming its
+dotted path and the layer that set it.
+
 Interpolation follows the OmegaConf grammar:
 `${section.field}` absolute references, `${.x}` / `${..y}`
 relative references, `${a.b[0]}` and `${a.b.0}` list indexing,
 `${a.${b}}` nested expressions, `\${literal}` escape, and the
 built-in resolvers (`oc.env`, `oc.select`, `oc.decode`,
 `oc.deprecated`, `oc.create`, `oc.dict.keys`, `oc.dict.values`).
+bead adds `${bead.path:rel}`, which joins `rel` onto
+`paths.data_dir`; it is registered when `bead.config` is imported.
 Register custom resolvers with
-`bead.config.compose.register_resolver(name, fn)`.
+`bead.config.register_resolver(name, fn)`; a resolver may read the
+tree being composed through `didactic.settings.lookup`.
+
+`--set key=value` values (and `overrides=[...]`) are read by the
+declared type of the key they set: a string field keeps the text
+verbatim (a bare word is a string, so `yes` is the text `yes` at a
+string field and `True` at a boolean one), numbers and booleans are
+decoded, a sequence field accepts JSON (`--set
+lists.balance_by='["a","b"]'`) or comma-separated items
+(`--set lists.balance_by=a,b`), and a section or mapping slot
+requires a JSON object. YAML flow syntax with bare words (`[a, b]`)
+is no longer accepted; write it as JSON. A value the field cannot
+read is refused as a `CoercionError` naming the key and the
+override.
 
 TOML configs (`.toml`) load the same way as YAML.
 

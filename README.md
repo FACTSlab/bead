@@ -131,7 +131,7 @@ protocol = config.protocol.build()
 - **Model integration**: HuggingFace, OpenAI, Anthropic with caching
 - **Active learning**: uncertainty sampling with convergence detection
 - **Annotation protocols**: type-theoretic stack of `SemanticAnchor` (the question type), `ProtocolContext` (the dependent index), `RealizationStrategy` (template / contextual / LM phrasings), and `DriftGuard` (the type-checker over realized prompts), composed into conditional `AnnotationProtocol`s
-- **Config composer** (`bead.config.compose`): the full OmegaConf interpolation grammar — `${section.field}`, `${.x}` / `${..y}` relative references, `${a.b[0]}` / `${a.b.0}` list indexing, `${a.${b}}` nesting, `\${literal}` escape, built-in resolvers (`oc.env`, `oc.select`, `oc.decode`, `oc.deprecated`, `oc.create`, `oc.dict.keys`, `oc.dict.values`); `defaults: [...]` composition; strict-merge against didactic schemas; YAML and TOML
+- **Config composition** (provided by [`didactic.settings`](https://panproto.dev/didactic/guide/settings/)): the OmegaConf interpolation grammar (`${section.field}`, `${.x}` / `${..y}` relative references, `${a.b[0]}` / `${a.b.0}` list indexing, `${a.${b}}` nesting, `\${literal}` escape), the built-in resolvers (`oc.env`, `oc.select`, `oc.decode`, `oc.deprecated`, `oc.create`, `oc.dict.keys`, `oc.dict.values`) plus bead's `${bead.path:rel}`; `defaults: [...]` composition and config groups; strict merging against the `BeadConfig` schema at every layer; `--set key=value` overrides read by the engine's stdlib grammar (`--set items='["a","b"]'`; a bare word is a string); YAML and TOML
 - **jsPsych 8.x**: Material Design UI with JATOS deployment
 
 ## CLI

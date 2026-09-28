@@ -6,14 +6,15 @@ development, testing, and production environments.
 
 from __future__ import annotations
 
-from bead.config.active_learning import ActiveLearningConfig
-from bead.config.compose import (
-    ComposeValue,
+from didactic.settings import (
     ConfigError,
+    ConfigValue,
     InterpolationError,
     compose,
     register_resolver,
 )
+
+from bead.config.active_learning import ActiveLearningConfig
 from bead.config.config import BeadConfig
 from bead.config.defaults import DEFAULT_CONFIG, get_default_config
 from bead.config.deployment import DeploymentConfig
@@ -77,8 +78,8 @@ __all__ = [
     "get_profile",
     "list_profiles",
     # loading + composition
-    "ComposeValue",
     "ConfigError",
+    "ConfigValue",
     "InterpolationError",
     "compose",
     "load_config",
