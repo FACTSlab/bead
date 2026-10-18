@@ -34,3 +34,10 @@ build/
 Thumbs.db
 
 *.sh
+
+# Active-learning simulation results
+simulation_output/
+
+# Generated run summaries (the *.jsonl data beside them is ignored above)
+concrete_template_scores/*.json
+items/*.json

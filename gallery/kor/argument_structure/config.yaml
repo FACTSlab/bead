@@ -1,15 +1,24 @@
 # ============================================================================
-# Argument Structure Active Learning Pipeline Configuration
+# Korean Argument Structure Pipeline Configuration
 # ============================================================================
 #
-# This configuration defines the complete pipeline for collecting acceptability
-# judgments on verb argument structure alternations using active learning with
-# human-in-the-loop until model performance converges to human inter-annotator
-# agreement.
+# Collects 2AFC acceptability judgments on Korean verb x frame combinations,
+# both grammatical (verb licensed for the frame) and ungrammatical, with the
+# English gallery (gallery/eng/argument_structure) as the coverage baseline.
 #
-# Design Principle: Test ALL verbs in ALL frame structures (full cross-product)
-# to enable both grammatical (verb licensed for frame) and ungrammatical (verb
-# not licensed) judgments.
+# Design: every verb can meet every frame, but the full cross-product is
+# ~14.5 billion sentences, so it is sampled. A *frame* is the abstract
+# variant (NP-NOM NP-ACC ___); a *concrete template* is a frame with every
+# slot but the verb filled (사람이 물건을 ___). Concrete templates are scored
+# (concrete_template_scoring), binned per frame_class x aspect and selected
+# evenly across bins (concrete_template_binning), then paired with lexicon
+# verbs (concrete_template_pairs), partitioned into lists and deployed.
+#
+# Sections read by the current pipeline: project, paths (2afc_pairs,
+# experiment_lists), concrete_template_scoring, concrete_template_binning,
+# concrete_template_pairs, lists, deployment. Sections marked LEGACY are read
+# only by the superseded exhaustive-fill scripts (fill_templates.py,
+# create_2afc_pairs.py); sections marked UNUSED are read by nothing yet.
 # ============================================================================
 
 # Project Metadata
@@ -34,11 +43,40 @@ paths:
   filled_templates_dir: "filled_templates"
 
   # Output files
-  cross_product_items: "items/cross_product_items.jsonl"
+  cross_product_items: "items/cross_product_items.jsonl"   # LEGACY/UNUSED
   2afc_pairs: "items/2afc_pairs.jsonl"
   experiment_lists: "lists/experiment_lists.jsonl"
 
-# Resource Configuration
+# Annotation Protocol
+# ============================================================================
+# The 2AFC question, declared once. protocol.py builds it into a bead
+# AnnotationProtocol; create_concrete_template_pairs.py records the anchor
+# name on every pair, generate_deployment.py builds the item template (and
+# the prompt shown above each pair) from it, and the active-learning scripts
+# read the response space from it. `make validate-protocol` checks it builds.
+# Drift checks apply to the prompt: min_length counts characters (Korean is
+# dense, so 10 is ample), the keyword is the stem 자연스러 so 자연스러운 /
+# 자연스럽습니까 variants both pass.
+protocol:
+  name: "argument-structure-acceptability-kor"
+  drift:
+    min_length: 10
+    require_question_mark: true
+    keyword_case_sensitive: false
+  families:
+    - anchor:
+        name: "acceptability"
+        target_property: "acceptability"
+        canonical_prompt: "어느 문장이 더 자연스러운가요?"
+        options: ["first", "second"]
+        is_ordered: false
+        scale_type: "forced_choice"
+        required_keywords: ["자연스러"]
+        description: "2AFC acceptability judgment over a pair of Korean sentences."
+      realization_kind: "template"
+
+# Resource Configuration — LEGACY (read only by fill_templates.py; the current
+# scripts load every lexicons/*.jsonl and templates/generic_frames.jsonl)
 # ============================================================================
 resources:
   # Lexicons
@@ -85,7 +123,7 @@ resources:
       name: "generic_frames"
       description: "Generic frame structures constructed manually"
 
-# Template Filling Strategy
+# Template Filling Strategy — LEGACY (fill_templates.py / create_2afc_pairs.py)
 # ============================================================================
 template:
   # Strategy type: "exhaustive", "mlm", or "mixed"
@@ -327,7 +365,86 @@ template:
     #   max_fills: 5
     #   enforce_unique: true
 
-# Items Configuration
+# Concrete-Template Scoring (score_concrete_templates.py)
+# ============================================================================
+# Scores concrete templates by masking the verb and beam-decoding the model's
+# best verb form (klue/bert-base); raw_score = that form's log-probability.
+# Scoring is a sample: sample_per_cell concrete templates per frame_class x
+# aspect cell, split evenly across the cell's frames (exhaustive scoring of
+# all ~5.5M is unnecessary). CLI flags
+# override; `--exhaustive` scores everything.
+concrete_template_scoring:
+  output: "concrete_template_scores/cell_sample_scores.jsonl"
+  sample_per_cell: 250       # make data (quick) uses 40
+  seed: 0
+  beam_width: 5
+  max_verb_tokens: 3
+  chunk_size: 16             # near-optimal on CPU (larger measured slightly worse)
+
+# Concrete-Template Binning & Selection (bin_concrete_templates.py)
+# ============================================================================
+# A frame is the abstract variant (NP-NOM NP-ACC ___; templates/
+# generic_frames.jsonl); a concrete template is a frame with everything but
+# the verb filled (사람이 물건을 ___). Concrete templates are scored by
+# score_concrete_templates.py --sample-per-cell. Scores are only comparable
+# within a frame_class x aspect cell, so bins are equal-count quantiles
+# computed per cell; the same number is then drawn from every bin, keeping
+# both natural (high) and anomalous (low) ones.
+concrete_template_binning:
+  input: "concrete_template_scores/cell_sample_scores.jsonl"
+  output: "concrete_template_scores/selected_concrete_templates.jsonl"
+  summary: "concrete_template_scores/bin_summary.json"
+  score_field: "raw_score"   # beam_mass / raw_n_tokens are diagnostics only
+  n_bins: 5                  # mirrors English grid_stratification n_quantiles
+  min_per_bin: 8             # fewer bins for small cells (NP_V: 19 -> 2 bins)
+  per_bin: 4                 # selected per bin: 24 cells x 5 x 4 + 3 NP_V cells x 2 x 4 = 504
+  seed: 42
+
+# Concrete-Template Pair Construction (create_concrete_template_pairs.py)
+# ============================================================================
+# Builds 2AFC items from the selected concrete templates. different_verb: one
+# concrete template, two lexicon verbs (same form). same_verb: one verb, two
+# concrete templates of the same aspect but different frame_class. Verbs are dealt from a shuffled deck
+# of every verb-slot lemma so coverage stays even; no restriction on which
+# verbs or arguments combine -- acceptability is for the experiment to judge.
+concrete_template_pairs:
+  input: "concrete_template_scores/selected_concrete_templates.jsonl"
+  output: "items/2afc_pairs.jsonl"    # consumed by generate_lists.py
+  scoring_summary: "items/2afc_pairs_scoring.json"  # rarity-correction fit
+  drop_adjectives: true    # leave the 686 predicate adjectives out of the verb deck (false: keep)
+  different_verb_per_concrete_template: 1
+  same_verb_per_concrete_template: 1
+  score_batch_size: 64
+  seed: 42
+
+# Past-Tense Test Path (sample_concrete_templates.py -> select_pairs.py)
+# ============================================================================
+# Simplified sampling, simple-aspect frames and past-tense verbs only
+# (make data-past). Replaces beam decoding + template binning: concrete
+# templates are allocated evenly per frame with fillers balanced, and each gets
+# a two-mask carrier score ([MASK][MASK]##다: stem, then past-tense piece
+# given the stem), kept as metadata and used to
+# match same_verb partners. Pairs are scored with their real verbs, binned by
+# score gap (n_bins per pair type) and selected equally per bin, least-used
+# verbs first. Coverage target: every verb at least once, so n_lists x
+# lists.split_by.per_list pairs (27 x 25 + 25 = 1,350 covers 1,988 verbs).
+past_test:
+  templates_output: "concrete_template_scores/past_templates.jsonl"
+  templates_summary: "concrete_template_scores/past_templates_summary.json"
+  pairs_summary: "items/2afc_pairs_selection.json"   # pairs go to paths.2afc_pairs
+  n_lists: 27                  # must match PAST_N_LISTS in the Makefile
+  pair_candidate_factor: 3     # candidate pairs per selected pair (pool for the bins)
+  template_candidate_factor: 8 # uniform draws per template picked (filler balancing)
+  stem_top_k: 5                # carrier score: stems tried before filling the tense mask
+  n_bins: 5                    # score-gap bins per pair type
+  subject_mismatch_cost: 0.05  # same_verb partner matching, in carrier-percentile units
+  drop_adjectives: true
+  score_batch_size: 64
+  seed: 42
+
+# Items Configuration — LEGACY (create_2afc_pairs.py: whole-sentence LM
+# scoring with polyglot-ko). The current pairs step scores the verb with
+# klue/bert-base and corrects for verb rarity (concrete_template_pairs).
 # ============================================================================
 items:
   # Judgment type: "forced_choice", "acceptability_rating", "inference"
@@ -374,7 +491,9 @@ items:
 # List Partitioning Configuration
 # ============================================================================
 lists:
-  # Partitioning strategy
+  # Partitioning strategy. Not a bead strategy name: bead only has
+  # balanced/random/stratified, and generate_lists.py uses "balanced" (the
+  # batch and split paths never passed this value on).
   strategy: "quantile_balanced_minimal_pairs"
 
   # Number of experimental lists to create
@@ -383,26 +502,37 @@ lists:
   # Items per list
   items_per_list: 50
 
-  # Quantile settings for difficulty stratification
+  # Seed for the pool sample (n_lists x items_per_list pairs) and partitioner
+  random_seed: 42
+
+  # Quantile settings for difficulty stratification: quantile_bins is used by
+  # create_concrete_template_pairs.py (quantiles of lm_score_diff per
+  # pair_type); items_per_quantile is UNUSED.
   quantile_bins: 10
   items_per_quantile: 10
 
-  # Constraints for list balancing
-  constraints:
-    # Balance pair types
-    - type: "balance"
-      property_expression: "item.metadata.pair_type"
-      target_counts:
-        same_verb: 50
-        different_verb: 50
-      description: "Equal numbers of same-verb and different-verb pairs"
+  # Exact per-list composition: each pair_type is partitioned separately into
+  # n_lists x per_list items and list i of each is merged (generate_lists.
+  # split_partition). Replaces a list-level balance constraint on pair_type:
+  # bead's greedy partitioner treats balance as pass/fail, so 25/25 that way
+  # made list sizes drift to 47-54 without balancing (same_verb 18-30/list).
+  # per_list must sum to items_per_list.
+  split_by:
+    property_expression: "item.metadata.pair_type"
+    per_list:
+      same_verb: 25
+      different_verb: 25
 
+  # Constraints for list balancing (applied within each split stratum)
+  constraints:
     # Ensure verb uniqueness within lists (use verb for same-verb pairs, verb1 for different-verb pairs)
     - type: "uniqueness"
       property_expression: "item.metadata.get('verb1', item.metadata.get('verb'))"
       description: "No verb appears multiple times in same list"
 
-    # Stratify by LM score difference (grouped by pair type)
+    # Stratify by LM score difference (grouped by pair type). NOT ENFORCED:
+    # bead's partitioner records grouped_quantile/diversity list constraints
+    # but does not act on them (it warns). Lists still cover 9-10 quantiles.
     - type: "grouped_quantile"
       property_expression: "item.metadata.lm_score_diff"
       group_by_expression: "item.metadata.pair_type"
@@ -410,24 +540,32 @@ lists:
       items_per_quantile: 5
       description: "Stratified sampling of LM score differences by pair type"
 
-    # Template diversity
+    # Frame diversity
     - type: "diversity"
-      property_expression: "item.metadata.template_id"
+      property_expression: "item.metadata.frame_id"
       min_unique_values: 15
-      description: "Ensure diverse set of templates in each list"
+      description: "Ensure diverse set of frames in each list"
 
   # Batch-level constraints (apply across ALL lists)
   batch_constraints:
-    # Ensure all 26 templates represented across all lists
+    # Batch expressions see the same item dict as list constraints --
+    # {"metadata": item_metadata}, built by generate_lists.load_2afc_pairs --
+    # so they use item.metadata.X; the old item['X'] form never evaluated and
+    # every batch constraint was silently ignored.
+
+    # Ensure every frame in the pair pool appears somewhere in the batch.
+    # target_values "from_pool" = every distinct value in items/2afc_pairs.jsonl,
+    # computed by generate_lists.py (frame ids are UUIDs that change on
+    # regeneration, and the old hard-coded [0..25] could never match).
     - type: "coverage"
-      property_expression: "item['template_id']"
-      target_values: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25]
+      property_expression: "item.metadata.frame_id"
+      target_values: "from_pool"
       min_coverage: 1.0
-      description: "Require 100% of templates appear somewhere in the batch"
+      description: "Require 100% of frames appear somewhere in the batch"
 
     # Ensure balanced pair types across entire batch
     - type: "balance"
-      property_expression: "item['pair_type']"
+      property_expression: "item.metadata.pair_type"
       target_distribution:
         same_verb: 0.5
         different_verb: 0.5
@@ -436,17 +574,46 @@ lists:
 
     # Ensure each quantile appears at least 50 times total
     - type: "min_occurrence"
-      property_expression: "item['quantile']"
+      property_expression: "item.metadata.quantile"
       min_occurrences: 50
       description: "Minimum representation of each quantile bin"
 
     # Ensure no verb appears in more than 4 lists
     - type: "diversity"
-      property_expression: "item.get('verb1', item.get('verb'))"
+      property_expression: "item.metadata.get('verb1', item.metadata.get('verb'))"
       max_lists_per_value: 4
       description: "Spread verbs across participants (max 4/8 lists per verb)"
 
-# Training Configuration
+# Active-Learning Simulation (simulate_pipeline.py)
+# ============================================================================
+# Simulated annotators choose between a pair's two sentences with probability
+# softmax(score / temperature), from the pair's rarity-corrected verb scores
+# (score: lm_score; lm_raw = uncorrected). A forced-choice model is trained on
+# their judgments, and each round the model's most uncertain pool pairs are
+# annotated next (selector: uncertainty; random = baseline), until test
+# accuracy is within convergence_threshold of the simulated annotators' own
+# percentage agreement. The test set is held out of the pool.
+simulation:
+  pairs: "items/2afc_pairs.jsonl"
+  output_dir: "simulation_output"
+  score: "lm_score"
+  temperature: 1.0
+  test_size: 150
+  initial_size: 100
+  budget_per_iteration: 50
+  max_iterations: 10
+  selector: "uncertainty"
+  uncertainty_method: "entropy"   # entropy, margin, least_confidence
+  convergence_threshold: 0.05
+  min_iterations: 2
+  seed: 42
+  model:
+    model_name: "klue/roberta-base"
+    device: "mps"                  # cpu, cuda or mps
+    num_epochs: 3
+    batch_size: 16
+
+# Training Configuration — UNUSED (active learning not ported from English)
 # ============================================================================
 training:
   # Convergence detection settings
@@ -491,7 +658,7 @@ training:
     # Class balancing
     balance_classes: true
 
-# Active Learning Configuration
+# Active Learning Configuration — UNUSED (run_pipeline.py not ported)
 # ============================================================================
 active_learning:
   # Selection strategy: "uncertainty_sampling", "query_by_committee", "random"
@@ -519,7 +686,7 @@ active_learning:
   promote_diversity: true
   diversity_lambda: 0.1
 
-# Evaluation Configuration
+# Evaluation Configuration — UNUSED (no evaluation script yet)
 # ============================================================================
 evaluation:
   # Cross-validation settings
@@ -573,23 +740,53 @@ evaluation:
 # Deployment Configuration (for human data collection)
 # ============================================================================
 deployment:
-  # Platform: "jatos", "prolific", "mturk"
+  # Platform: "jatos", "prolific", "mturk" (UNUSED: generate_deployment.py
+  # always builds a local and a JATOS version)
   platform: "jatos"
 
-  # Number of lists to randomly select for deployment
-  n_lists_to_deploy: 20
+  # UNUSED: the list count comes from --n-lists (make deployment = 2,
+  # make deployment-full = 16). Was 20, more than the 16 lists that exist.
+  n_lists_to_deploy: 16
 
   # Random seed for reproducible list selection
   random_seed: 42
 
-  # Output directory for deployment files
+  # Output directory for deployment files (UNUSED: generate_deployment.py
+  # --output-dir, default "deployment")
   output_dir: "deployment"
 
-  # Experiment settings
+  # Experiment settings -- all participant-facing text is Korean.
   experiment:
-    title: "Sentence Acceptability Judgments"
-    description: "Rate which sentence sounds more natural"
+    title: "문장 비교 실험"
+    description: "두 문장 중 더 자연스러운 문장을 고르는 실험"
     estimated_duration_minutes: 15
+    language: "ko"                 # <html lang>
+    # The prompt shown above every pair comes from protocol.families[].anchor
+    # (canonical_prompt), not from here.
+    # One string per instruction page (translation of the English gallery's
+    # single-page instructions).
+    instructions:
+      - "두 문장이 한 쌍으로 제시됩니다. 두 문장 중 더 자연스러운 문장을 골라주세요."
+    button_label_next: "다음"
+    button_label_finish: "실험 시작"
+    # Text bead hard-codes in the generated files (experiment.js completion /
+    # error screens, "Previous" button and progress-bar label, the forced-choice plugin's
+    # "Option 1/2" and "Select", index.html lang). generate_deployment.py
+    # replaces it after generation and warns if an expected string is missing.
+    ui_text:
+      progress_bar: "진행률"     # jsPsych progress-bar label (default "Completion Progress")
+      previous: "이전"
+      option_1: "문장 1"
+      option_2: "문장 2"
+      select: "선택"
+      complete_heading: "✓ 완료"
+      thanks: "참여해 주셔서 감사합니다!"
+      recorded: "응답이 기록되었습니다."
+      close_window: "이 창을 닫으셔도 됩니다."
+      redirecting: "잠시 후 이동합니다..."
+      error_heading: "실험 오류"
+      error_label: "오류:"
+      contact_admin: "실험 관리자에게 문의해 주세요."
 
   # jsPsych configuration
   jspsych:
@@ -598,31 +795,33 @@ deployment:
     # JATOS integration (recommended for Prolific)
     use_jatos: true  # Enable JATOS integration (default: true)
 
-    # Prolific integration (optional)
-    # When deploying on Prolific via JATOS:
+    # Prolific integration (optional; passed to bead's ExperimentConfig by
+    # generate_deployment.py). When deploying on Prolific via JATOS:
     # 1. Set prolific_completion_code to the code from your Prolific study
-    # 2. The system will automatically generate the redirect URL
+    # 2. bead generates the completion redirect URL
     # 3. Prolific participant IDs (PROLIFIC_PID, STUDY_ID, SESSION_ID) will be captured
     prolific_completion_code: null  # Set to your Prolific completion code when deploying
     # Example: prolific_completion_code: "C1A2B3C4"
     # This will auto-generate: https://app.prolific.co/submissions/complete?cc=C1A2B3C4
 
-    # Trial settings
+    # Trial settings (UNUSED: the forced-choice plugin fixes its own trial
+    # type; no time limits are applied)
     trial:
       type: "html-button-response"
       stimulus_duration: null  # No time limit
       trial_duration: null
 
-    # Button labels for 2AFC
+    # Button labels for 2AFC (not read by generate_deployment.py; the
+    # plugin's labels come from experiment.ui_text option_1/option_2/select)
     choices:
-      - "Sentence A"
-      - "Sentence B"
+      - "문장 1"
+      - "문장 2"
 
     # Randomization
     randomize_order: true
     randomize_choices: true
 
-  # Participant requirements
+  # Participant requirements (UNUSED by scripts; recruitment reference)
   participants:
     # Number of participants per list
     n_per_list: 30
@@ -637,7 +836,7 @@ deployment:
     payment_usd: 2.50
     bonus_usd: 0.50  # For high-quality responses
 
-  # Server configuration for remote deployment
+  # Server configuration for remote deployment (UNUSED by scripts)
   server:
     host: null  # Will prompt if null
     port: 22

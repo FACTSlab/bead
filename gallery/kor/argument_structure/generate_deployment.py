@@ -7,11 +7,15 @@ and generates a jsPsych experiment that can be exported to JATOS.
 
 from __future__ import annotations
 
+import argparse
+import random
 import sys
+import traceback
 from pathlib import Path
 from uuid import UUID
 
 import yaml
+from protocol import acceptability_family, build_protocol
 from rich.console import Console
 from rich.progress import track
 from rich.table import Table
@@ -21,15 +25,17 @@ from bead.deployment.distribution import (
     ListDistributionStrategy,
 )
 from bead.deployment.jatos.exporter import JATOSExporter
-from bead.deployment.jspsych.config import ChoiceConfig, ExperimentConfig, InstructionsConfig
+from bead.deployment.jspsych.config import (
+    ChoiceConfig,
+    ExperimentConfig,
+    InstructionPage,
+    InstructionsConfig,
+)
 from bead.deployment.jspsych.generator import JsPsychExperimentGenerator
 from bead.items.item import Item
-from bead.items.item_template import (
-    ItemTemplate,
-    PresentationSpec,
-    TaskSpec,
-)
+from bead.items.item_template import ItemTemplate
 from bead.lists import ExperimentList
+from bead.protocol.items import family_to_item_template
 
 console = Console()
 
@@ -47,6 +53,80 @@ def _inject_instructions_plugin(html_path: Path) -> None:
             f'{_INSTRUCTIONS_PLUGIN_TAG}\n    <script src="https://unpkg.com/@jspsych/plugin-preload',
         )
         html_path.write_text(html, encoding="utf-8")
+
+
+# (file, English text bead hard-codes, ui_text key or "{lang}", required).
+# Optional entries only exist in some builds (the redirect line needs an
+# on_finish_url).
+_LOCALIZE: tuple[tuple[str, str, str, bool], ...] = (
+    ("index.html", '<html lang="en">', "{lang}", True),
+    # Progress-bar label: bead never sets message_progress_bar, so jsPsych
+    # shows its default "Completion Progress"; insert it next to the bar flag.
+    ("js/experiment.js", "show_progress_bar: true,", "progress_bar", False),
+    ("js/experiment.js", 'button_label_previous: "Previous"', "previous", True),
+    ("js/experiment.js", "<h2>✓ Complete</h2>", "complete_heading", True),
+    ("js/experiment.js", "<p>Thank you for participating!</p>", "thanks", True),
+    ("js/experiment.js", "<p>Your responses have been recorded.</p>", "recorded", True),
+    ("js/experiment.js", "<p><em>You may close this window.</em></p>", "close_window",
+     False),
+    ("js/experiment.js", "<p><em>You will be redirected shortly...</em></p>",
+     "redirecting", False),
+    ("js/experiment.js", "<h2>Experiment Error</h2>", "error_heading", True),
+    ("js/experiment.js", "<p><strong>Error:</strong>", "error_label", True),
+    ("js/experiment.js", "<p>Please contact the experiment administrator.</p>",
+     "contact_admin", True),
+    ("js/gallery-bundle.js", 'bead-alternative-label">Option 1</div>', "option_1",
+     True),
+    ("js/gallery-bundle.js", 'bead-alternative-label">Option 2</div>', "option_2",
+     True),
+    ("js/gallery-bundle.js", "\n          Select\n        </button>", "select", True),
+)
+
+
+def _localized(english: str, key: str, ui_text: dict[str, str], lang: str) -> str:
+    """Swap the English text inside ``english`` for its ui_text translation."""
+    if key == "{lang}":
+        return f'<html lang="{lang}">'
+    if key == "progress_bar":
+        return f'{english}\n            message_progress_bar: "{ui_text[key]}",'
+    inner = {
+        "previous": "Previous", "complete_heading": "✓ Complete",
+        "thanks": "Thank you for participating!",
+        "recorded": "Your responses have been recorded.",
+        "close_window": "You may close this window.",
+        "redirecting": "You will be redirected shortly...",
+        "error_heading": "Experiment Error", "error_label": "Error:",
+        "contact_admin": "Please contact the experiment administrator.",
+        "option_1": "Option 1", "option_2": "Option 2", "select": "Select",
+    }[key]
+    return english.replace(inner, ui_text[key])
+
+
+def localize_experiment(
+    list_dir: Path, ui_text: dict[str, str], lang: str
+) -> list[str]:
+    """Replace the English UI text bead hard-codes in a generated experiment.
+
+    bead's jsPsych templates and forced-choice plugin fix these strings (the
+    trial ``button_label`` is ignored by the plugin), and bead is read-only
+    here, so they are rewritten in the generated files -- same approach as
+    _inject_instructions_plugin. Returns the required strings that were not
+    found, so a bead template change surfaces as a warning, not silent
+    English.
+    """
+    missing: list[str] = []
+    contents: dict[str, str] = {}
+    for rel, english, key, required in _LOCALIZE:
+        path = list_dir / rel
+        text = contents.setdefault(rel, path.read_text(encoding="utf-8"))
+        if english not in text:
+            if required:
+                missing.append(f"{rel}: {english.strip()!r}")
+            continue
+        contents[rel] = text.replace(english, _localized(english, key, ui_text, lang))
+    for rel, text in contents.items():
+        (list_dir / rel).write_text(text, encoding="utf-8")
+    return missing
 
 
 def load_config(config_path: Path) -> dict:
@@ -80,29 +160,35 @@ def load_items_by_uuid(pairs_path: Path) -> dict[UUID, Item]:
     return items_dict
 
 
-def create_minimal_item_template() -> ItemTemplate:
-    """Create a minimal ItemTemplate for 2AFC forced choice items.
-
-    Since our 2AFC items are already fully rendered, we just need a minimal
-    template to satisfy the deployment generator's requirements.
-    """
-    return ItemTemplate(
-        name="2afc_forced_choice",
-        description="Two-alternative forced choice item",
-        judgment_type="acceptability",
-        task_type="forced_choice",
-        task_spec=TaskSpec(
-            prompt="Which sentence sounds more natural?",
-            options=["Option A", "Option B"],
-        ),
-        presentation_spec=PresentationSpec(mode="static"),
+def build_instructions(experiment: dict) -> InstructionsConfig:
+    """Instruction pages and button labels from config (Korean by default)."""
+    pages = experiment.get("instructions") or [
+        "You will see pairs of sentences. Please select the sentence that "
+        "sounds more natural to you."
+    ]
+    if isinstance(pages, str):
+        pages = [pages]
+    return InstructionsConfig(
+        pages=tuple(InstructionPage(content=page) for page in pages),
+        button_label_next=experiment.get("button_label_next", "Next"),
+        button_label_finish=experiment.get("button_label_finish", "Begin Experiment"),
     )
+
+
+def build_item_template(config_path: Path) -> ItemTemplate:
+    """Build the 2AFC ItemTemplate from the protocol declared in config.yaml.
+
+    The prompt shown above each pair (어느 문장이 더 자연스러운가요?) comes
+    from ``protocol.families[].anchor.canonical_prompt`` via bead's
+    :func:`family_to_item_template` bridge, as in the English gallery, so it
+    has one source of truth shared with the active-learning scripts.
+    """
+    family = acceptability_family(build_protocol(config_path))
+    return family_to_item_template(family, judgment_type="acceptability")
 
 
 def main() -> None:
     """Generate jsPsych/JATOS deployment."""
-    import argparse
-
     parser = argparse.ArgumentParser(
         description="Generate jsPsych/JATOS deployment from experiment lists"
     )
@@ -154,13 +240,12 @@ def main() -> None:
     all_lists = load_experiment_lists(lists_path)
 
     # Randomly select subset of lists
-    import random
-
-    random.seed(42)
+    random.seed(config.get("deployment", {}).get("random_seed", 42))
     n_lists = min(args.n_lists, len(all_lists))
     selected_lists = random.sample(all_lists, n_lists)
     console.print(
-        f"[green]✓[/green] Randomly selected {n_lists} lists from {len(all_lists)} available\n"
+        f"[green]✓[/green] Randomly selected {n_lists} lists from "
+        f"{len(all_lists)} available\n"
     )
 
     # Load all 2AFC pairs
@@ -168,12 +253,15 @@ def main() -> None:
     pairs_path = base_dir / config["paths"]["2afc_pairs"]
     items_dict = load_items_by_uuid(pairs_path)
 
-    # Create minimal template
+    # Item template (and prompt) from the protocol
     console.print()
     console.rule("[4/6] Creating Item Template")
-    template = create_minimal_item_template()
+    template = build_item_template(config_path)
     templates_dict = {template.id: template}
-    console.print("[green]✓[/green] Created minimal ItemTemplate for 2AFC items\n")
+    console.print(
+        "[green]✓[/green] Built 2AFC ItemTemplate from the protocol "
+        f"(prompt: {template.task_spec.prompt})\n"
+    )
 
     # Update all items to reference this template (immutable update)
     items_dict = {
@@ -197,18 +285,18 @@ def main() -> None:
 
     base_config_dict = {
         "experiment_type": "forced_choice",
-        "title": experiment_config_dict.get("title", "Sentence Acceptability Judgments"),
+        "title": experiment_config_dict.get(
+            "title", "Sentence Acceptability Judgments"
+        ),
         "description": experiment_config_dict.get(
             "description", "Rate which sentence sounds more natural"
         ),
-        "instructions": InstructionsConfig.from_text(
-            experiment_config_dict.get(
-                "instructions",
-                "You will see pairs of sentences. Please select the sentence that sounds more natural to you.",
-            )
-        ),
+        "instructions": build_instructions(experiment_config_dict),
         "randomize_trial_order": jspsych_config.get("randomize_order", True),
         "show_progress_bar": True,
+        # Prolific redirect on completion (bead builds the completion URL);
+        # null in config = no redirect.
+        "prolific_completion_code": jspsych_config.get("prolific_completion_code"),
         "distribution_strategy": distribution_strategy,
     }
 
@@ -224,7 +312,10 @@ def main() -> None:
     ]
 
     for version_name, use_jatos in versions:
-        console.print(f"\n[bold]Generating {version_name} version (use_jatos={use_jatos})[/bold]")
+        console.print(
+            f"\n[bold]Generating {version_name} version "
+            f"(use_jatos={use_jatos})[/bold]"
+        )
 
         # Create version-specific config
         experiment_config = ExperimentConfig(
@@ -256,14 +347,26 @@ def main() -> None:
                     templates=templates_dict,
                 )
                 _inject_instructions_plugin(list_output_dir / "index.html")
+                missing = localize_experiment(
+                    list_output_dir,
+                    experiment_config_dict.get("ui_text", {}),
+                    experiment_config_dict.get("language", "ko"),
+                )
+                if missing and i == 0:
+                    console.print(
+                        "[yellow]⚠[/yellow] English UI text not found (bead "
+                        f"template changed?): {missing}"
+                    )
             except Exception as e:
-                console.print(f"[red]✗[/red] Error generating {version_name} list {i + 1}: {e}")
-                import traceback
-
+                console.print(
+                    f"[red]✗[/red] Error generating {version_name} list {i + 1}: {e}"
+                )
                 traceback.print_exc()
                 sys.exit(1)
 
-        console.print(f"[green]✓[/green] Generated {n_lists} {version_name} experiments")
+        console.print(
+            f"[green]✓[/green] Generated {n_lists} {version_name} experiments"
+        )
 
     console.print()
 
@@ -296,8 +399,6 @@ def main() -> None:
                 )
             except Exception as e:
                 console.print(f"[red]✗[/red] Error exporting list {i + 1}: {e}")
-                import traceback
-
                 traceback.print_exc()
 
         console.print(f"[green]✓[/green] Exported {n_lists} JATOS packages\n")
@@ -309,7 +410,7 @@ def main() -> None:
     console.rule("[bold]Deployment Summary[/bold]")
     table = Table(show_header=False, box=None, padding=(0, 2))
     table.add_row("Lists generated:", f"[cyan]{n_lists}[/cyan]")
-    table.add_row("Versions:", f"[cyan]local (standalone) + jatos (deployment)[/cyan]")
+    table.add_row("Versions:", "[cyan]local (standalone) + jatos (deployment)[/cyan]")
     table.add_row("Output directory:", f"[cyan]{base_dir / args.output_dir}[/cyan]")
     table.add_row(
         "Total items deployed:",
@@ -322,12 +423,14 @@ def main() -> None:
 
     if not args.no_jatos:
         table.add_row("", "")
-        table.add_row("JATOS packages:", f"[cyan]{base_dir / args.output_dir / 'jatos'}/*.jzip[/cyan]")
+        jatos_glob = base_dir / args.output_dir / "jatos"
+        table.add_row("JATOS packages:", f"[cyan]{jatos_glob}/*.jzip[/cyan]")
 
     console.print(table)
 
     console.print(
-        "\n[dim]Local version: Open deployment/local/list_XX/index.html in browser[/dim]"
+        "\n[dim]Local version: Open deployment/local/list_XX/index.html "
+        "in browser[/dim]"
     )
     if not args.no_jatos:
         console.print(

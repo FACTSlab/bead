@@ -14,6 +14,7 @@ Korean-specific rendering rules are applied:
 
 import argparse
 import logging
+import re
 from itertools import islice
 from pathlib import Path
 
@@ -72,10 +73,13 @@ def render_template_kor(
     # Count total occurrences of each noun
     noun_total_counts = count_noun_occurrences(slot_fillers, template_slots)
 
-    # Identify noun slots in template order
+    # Identify noun slots in surface order (where they appear in the sentence),
+    # not slot-definition order -- they differ in some templates (e.g. the
+    # complex-postposition frames define noun_pobj before noun_dobj), which
+    # put "다른" on the first mention instead of the second.
     noun_slots_in_order = [
-        name for name in template_slots.keys()
-        if name.startswith('noun_')
+        name for name in re.findall(r"\{(\w+)\}", template_string)
+        if name.startswith('noun_') and name in template_slots
     ]
 
     # Track current occurrence of each noun

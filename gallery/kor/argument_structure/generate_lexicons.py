@@ -24,6 +24,18 @@ from bead.resources.lexical_item import LexicalItem
 from bead.resources.lexicon import Lexicon
 
 
+def inst_final_consonant(word: str, final_consonant: str) -> str:
+    """Return the final-consonant value that selects the 으로/로 allomorph.
+
+    Same as ``final_consonant`` except for ㄹ-final nouns, which take 로 like
+    vowel-final nouns (물질로, not *물질으로). NOM/ACC/COM allomorphy is
+    unaffected (물질이/물질을/물질과), so this is a separate feature rather
+    than a change to ``final_consonant``.
+    """
+    jongseong = (ord(word[-1]) - 0xAC00) % 28
+    return "no" if jongseong == 8 else final_consonant  # 8 = ㄹ
+
+
 def main(verb_limit: int | None = None, save_csv: bool = True) -> None:
     """Generate all lexicon JSONL files for the Korean argument structure dataset.
 
@@ -200,12 +212,15 @@ def main(verb_limit: int | None = None, save_csv: bool = True) -> None:
                 "LOC.SRC": "PART.LOC.SRC", "LOC.GOAL": "PART.LOC.GOAL",
             }
             if case in pos_map:
+                features = {
+                    "pos": pos_map[case], "case": case, "final_consonant": fc,
+                }
+                if case == "INST":
+                    features["inst_final_consonant"] = fc
                 item = LexicalItem(
                     lemma=row["marker"],
                     language_code="kor",
-                    features={
-                        "pos": pos_map[case], "case": case, "final_consonant": fc,
-                    },
+                    features=features,
                 )
                 lexicon = lexicon.with_item(item)
             remaining_map = {
@@ -230,20 +245,45 @@ def main(verb_limit: int | None = None, save_csv: bool = True) -> None:
         columns=['word', 'semantic_class', 'number', 'countability', 'final_consonant']
     )
 
-    # Five singular bleached nouns — one per core semantic class.
+    # Singular bleached nouns, one-to-many mapped from the English gallery's
+    # 19 base lemmas (gallery/eng/argument_structure/resources/bleached_nouns.csv)
+    # across the same 7 semantic classes, for parity with English. English:
+    # person/group/organization (animate),
+    # thing/stuff (inanimate_object), place/area (location), time (temporal),
+    # information/idea/reason/matter/situation/way/level (abstract),
+    # event/activity (event), amount/part (quantity).
     # Plurals excluded: Korean 들 suffix produces multi-subword tokens under
-    # klue/bert-base.
-    # Five entries keep exhaustive cross-products manageable for test runs.
-    word = ['사람', '단체', '물건', '장소', '사건']
-    semantic_class = ['animate', 'animate', 'inanimate_object', 'location', 'event']
+    # klue/bert-base, and pluralization is pragmatic/optional in Korean.
+    word = [
+        '사람', '집단', '단체',        # animate: person, group, organization
+        '물건', '물질',                # inanimate_object: thing, stuff
+        '장소', '지역',                # location: place, area
+        '시간',                        # temporal: time
+        '정보', '생각', '이유', '문제', '상황', '방법', '수준',
+        # abstract: information, idea, reason, matter, situation, way, level
+        '사건', '활동',                # event: event, activity
+        '양', '부분',                  # quantity: amount, part
+    ]
+    semantic_class = [
+        'animate', 'animate', 'animate',
+        'inanimate_object', 'inanimate_object',
+        'location', 'location',
+        'temporal',
+        'abstract', 'abstract', 'abstract', 'abstract',
+        'abstract', 'abstract', 'abstract',
+        'event', 'event',
+        'quantity', 'quantity',
+    ]
     number = ['singular'] * len(word)
     countability = ['countable'] * len(word)
     final_consonant = [
-        'yes',  
-        'no',   
-        'yes',  
-        'no',   
-        'yes',  
+        'yes', 'yes', 'no',
+        'yes', 'yes',
+        'no', 'yes',
+        'yes',
+        'no', 'yes', 'no', 'no', 'yes', 'yes', 'yes',
+        'yes', 'yes',
+        'yes', 'yes',
     ]
 
     bleached_nouns['word'] = word
@@ -268,6 +308,9 @@ def main(verb_limit: int | None = None, save_csv: bool = True) -> None:
                     "number": row["number"],
                     "countability": row["countability"],
                     "final_consonant": row["final_consonant"],
+                    "inst_final_consonant": inst_final_consonant(
+                        row["word"], row["final_consonant"]
+                    ),
                 },
             )
             lexicon = lexicon.with_item(item)
@@ -284,8 +327,15 @@ def main(verb_limit: int | None = None, save_csv: bool = True) -> None:
         'infinitival_clause', 'tensed_clause',
     ])
 
-    # 'be' functions differently in Korean
-    word = ['하다', '가지다', '가다', '갖다', '만들다', '일어나다', '오다']
+    # 'be' functions differently in Korean (copula 이다 attaches directly to NP
+    # predicates rather than behaving like a regular light verb; 있다 is already
+    # covered separately as the progressive auxiliary in auxiliary_verbs.jsonl).
+    # English's 8 bleached verbs are do/be/have/go/get/make/happen/come; 갖다
+    # (a UniMorph-attested contraction of 가지다, both glossing "have") was
+    # replaced with 얻다 ("get") on 2026-09-16 to close that coverage gap
+    # against English rather than leave "have" doubly represented and "get"
+    # missing.
+    word = ['하다', '가지다', '가다', '얻다', '만들다', '일어나다', '오다']
     semantic_class = [
         'activity', 'state', 'change', 'change', 'causation', 'event', 'change',
     ]
@@ -298,17 +348,17 @@ def main(verb_limit: int | None = None, save_csv: bool = True) -> None:
     ]
     tenseless_vp = [
         '{{ object }} 하다', '{{ object }} 가지다', '가다',
-        '{{ object }} 갖다', '{{ object }} 만들다', '일어나다', '오다',
+        '{{ object }} 얻다', '{{ object }} 만들다', '일어나다', '오다',
     ]
     gerund = [
         '{{ object }} 하고', '{{ object }} 가지고', '가고',
-        '{{ object }} 갖고', '{{ object }} 만들고', '일어나고', '오고',
+        '{{ object }} 얻고', '{{ object }} 만들고', '일어나고', '오고',
     ]
     tenseless_clause = [
         '{{ subject }} {{ object }} 하다',
         '{{ subject }} {{ object }} 가지다',
         '{{ subject }} 가다',
-        '{{ subject }} {{ object }} 갖다',
+        '{{ subject }} {{ object }} 얻다',
         '{{ subject }} {{ object }} 만들다',
         '{{ subject }} 일어나다',
         '{{ subject }} 오다',
@@ -317,7 +367,7 @@ def main(verb_limit: int | None = None, save_csv: bool = True) -> None:
         '{{ subject }} {{ object }} 했다',
         '{{ subject }} {{ object }} 가졌다',
         '{{ subject }} 갔다',
-        '{{ subject }} {{ object }} 갖았다',
+        '{{ subject }} {{ object }} 얻었다',
         '{{ subject }} {{ object }} 만들었다',
         '{{ subject }} 일어났다',
         '{{ subject }} 왔다',
@@ -366,7 +416,7 @@ def main(verb_limit: int | None = None, save_csv: bool = True) -> None:
         ("하다",        "하는",       "한다",       "activity"),
         ("가지다",      "가지는",     "가진다",     "state"),
         ("가다",        "가는",       "간다",       "change"),
-        ("갖다",        "갖는",       "갖는다",     "change"),
+        ("얻다",        "얻는",       "얻는다",     "change"),
         ("만들다",      "만드는",     "만든다",     "causation"),  # ㄹ drops before ㄴ
         ("일어나다",    "일어나는",   "일어난다",   "event"),
         ("오다",        "오는",       "온다",       "change"),
@@ -541,6 +591,9 @@ def main(verb_limit: int | None = None, save_csv: bool = True) -> None:
                     "pos": "NPOST",
                     "spatial_class": row["spatial_class"],
                     "final_consonant": row["final_consonant"],
+                    "inst_final_consonant": inst_final_consonant(
+                        row["word"], row["final_consonant"]
+                    ),
                     "eng_gloss": row["eng_gloss"],
                     "compatible_cases": row["compatible_cases"],
                 }

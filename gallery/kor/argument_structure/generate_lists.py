@@ -8,14 +8,17 @@ according to the configuration in config.yaml.
 from __future__ import annotations
 
 import argparse
+import random
 import sys
+import traceback
 from pathlib import Path
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import yaml
 from rich.console import Console
 from rich.table import Table
 
+from bead.dsl.evaluator import DSLEvaluator
 from bead.items.item import Item
 from bead.lists import (
     BalanceConstraint,
@@ -30,6 +33,7 @@ from bead.lists.constraints import (
     BatchMinOccurrenceConstraint,
     GroupedQuantileConstraint,
 )
+from bead.lists.experiment_list import ExperimentList
 from bead.lists.partitioner import ListPartitioner
 
 console = Console()
@@ -67,7 +71,24 @@ def load_2afc_pairs(pairs_path: Path) -> tuple[list[Item], dict[UUID, dict]]:
     return items, metadata_dict
 
 
-def build_constraints(config: dict) -> tuple[list, list]:
+def pool_values(expression: str, metadata_dict: dict[UUID, dict]) -> list:
+    """Every distinct value of ``expression`` over the item pool, sorted.
+
+    Used for coverage ``target_values: "from_pool"``: the targets are whatever
+    the pair pool actually contains (e.g. every template id), so the
+    constraint is satisfiable by construction and survives regeneration.
+    """
+    evaluator = DSLEvaluator()
+    values = {
+        evaluator.evaluate(expression, {"item": item_metadata})
+        for item_metadata in metadata_dict.values()
+    }
+    return sorted(values, key=str)
+
+
+def build_constraints(
+    config: dict, metadata_dict: dict[UUID, dict]
+) -> tuple[list, list]:
     """Build list and batch constraints from config.
 
     Returns
@@ -121,11 +142,20 @@ def build_constraints(config: dict) -> tuple[list, list]:
         constraint_type = constraint_spec["type"]
 
         if constraint_type == "coverage":
+            target_values = constraint_spec["target_values"]
+            if target_values == "from_pool":
+                target_values = pool_values(
+                    constraint_spec["property_expression"], metadata_dict
+                )
+                console.print(
+                    f"  coverage targets from pool: {len(target_values)} values of "
+                    f"{constraint_spec['property_expression']}"
+                )
             batch_constraints.append(
                 BatchCoverageConstraint(
                     constraint_type="coverage",
                     property_expression=constraint_spec["property_expression"],
-                    target_values=constraint_spec["target_values"],
+                    target_values=tuple(target_values),
                     min_coverage=constraint_spec.get("min_coverage", 1.0),
                 )
             )
@@ -156,6 +186,168 @@ def build_constraints(config: dict) -> tuple[list, list]:
             )
 
     return list_constraints, batch_constraints
+
+
+def _distinct(
+    items: list[UUID], expression: str, metadata_dict: dict[UUID, dict],
+    evaluator: DSLEvaluator,
+) -> set[str]:
+    """Distinct values of ``expression`` over ``items``."""
+    return {
+        str(evaluator.evaluate(expression, {"item": metadata_dict[i]}))
+        for i in items
+    }
+
+
+def _cover_first(
+    shuffled: list[UUID], expressions: tuple[str, ...],
+    metadata_dict: dict[UUID, dict], evaluator: DSLEvaluator,
+) -> list[UUID]:
+    """Reorder ``shuffled`` so one item per value of each expression comes first.
+
+    The first occurrence (in the already-random order) of every value is moved
+    to the front; the rest keep their random order. Taking the first N of the
+    result then covers every value whenever N is at least the number of
+    values.
+    """
+    seen: set[tuple[str, str]] = set()
+    front: list[UUID] = []
+    rest: list[UUID] = []
+    for item_id in shuffled:
+        new = False
+        for expression in expressions:
+            key = (
+                expression,
+                str(evaluator.evaluate(expression, {"item": metadata_dict[item_id]})),
+            )
+            if key not in seen:
+                seen.add(key)
+                new = True
+        (front if new else rest).append(item_id)
+    return front + rest
+
+
+def split_partition(
+    partitioner: ListPartitioner,
+    item_uuids: list[UUID],
+    metadata_dict: dict[UUID, dict],
+    split_by: dict,
+    n_lists: int,
+    list_constraints: list,
+    seed: int,
+    cover_expressions: tuple[str, ...] = (),
+) -> list[ExperimentList]:
+    """Partition each stratum separately, then merge list i of every stratum.
+
+    ``split_by`` gives a property expression and the exact number of items
+    per list for each of its values (e.g. 25 same_verb + 25 different_verb).
+    bead's greedy partitioner treats a list-level balance constraint as
+    pass/fail, so enforcing 25/25 that way made list sizes drift (47-54)
+    without balancing much (same_verb 18-30 per list). Partitioning each
+    stratum into n_lists x per_list and concatenating gives every list
+    exactly the configured counts and size. List constraints still apply
+    within each stratum (a balance constraint on the split property itself
+    is dropped -- it is satisfied by construction).
+
+    Each stratum's pool is a seeded random sample, except that it first takes
+    one random item for every value of each ``cover_expressions`` property
+    (the batch coverage constraints, e.g. frame_id), then fills up at random.
+    Batch constraints are only reported on this path, not enforced by swaps,
+    and many frames have just 1-3 pairs, so a purely random pool could miss
+    one (it did: 137/138 frames). Seeding the pool guarantees coverage of
+    every value present in the stratum.
+    """
+    evaluator = DSLEvaluator()
+    expression = split_by["property_expression"]
+    per_list: dict[str, int] = split_by["per_list"]
+    by_value: dict[str, list[UUID]] = {value: [] for value in per_list}
+    for item_id in item_uuids:
+        value = str(evaluator.evaluate(expression, {"item": metadata_dict[item_id]}))
+        if value in by_value:
+            by_value[value].append(item_id)
+
+    constraints = [
+        c for c in list_constraints
+        if not (
+            isinstance(c, BalanceConstraint)
+            and c.property_expression == expression
+        )
+    ]
+    rng = random.Random(seed)
+    per_stratum: list[list[ExperimentList]] = []
+    for value, count in per_list.items():
+        pool = by_value[value]
+        needed = n_lists * count
+        if len(pool) < needed:
+            raise ValueError(
+                f"split_by {expression}={value!r}: need {needed} items "
+                f"({n_lists} lists x {count}), pool has {len(pool)}"
+            )
+        rng.shuffle(pool)
+        pool = _cover_first(pool, cover_expressions, metadata_dict, evaluator)
+        if len(pool) > needed and any(
+            len(_distinct(pool, e, metadata_dict, evaluator)) > needed
+            for e in cover_expressions
+        ):
+            console.print(
+                f"[yellow]⚠[/yellow] {value}: more coverage values than the "
+                f"{needed} items drawn; coverage can't be complete"
+            )
+        # "balanced" is bead's greedy strategy; the configured
+        # lists.strategy name isn't a bead strategy and was never applied.
+        lists = partitioner.partition(
+            items=pool[:needed], n_lists=n_lists, constraints=constraints,
+            strategy="balanced", metadata=metadata_dict,
+        )
+        per_stratum.append(lists)
+        console.print(
+            f"  • {value}: {needed} items -> {n_lists} lists x {count}"
+        )
+
+    merged = []
+    for i in range(n_lists):
+        refs = tuple(ref for lists in per_stratum for ref in lists[i].item_refs)
+        merged_list = per_stratum[0][i].with_(
+            item_refs=refs,
+            list_constraints=tuple(list_constraints),
+            list_metadata={
+                **per_stratum[0][i].list_metadata,
+                "split_by": expression,
+                "split_counts": dict(per_list),
+            },
+        )
+        # No public API for these; the same scorer bead's own partitioner uses.
+        merged.append(merged_list.with_(
+            balance_metrics=partitioner._compute_balance_metrics(  # noqa: SLF001
+                merged_list, list_constraints, metadata_dict
+            )
+        ))
+    return merged
+
+
+def report_batch_constraints(
+    partitioner: ListPartitioner,
+    lists: list[ExperimentList],
+    batch_constraints: list,
+    metadata_dict: dict[UUID, dict],
+    tolerance: float = 0.05,
+) -> None:
+    """Score each batch constraint on the final lists and flag any unmet.
+
+    The split path builds lists outside partition_with_batch_constraints, so
+    batch constraints are checked here instead of driving swaps (on this
+    pool they were already met without any refinement).
+    """
+    for constraint in batch_constraints:
+        score = partitioner._compute_batch_constraint_score(  # noqa: SLF001
+            lists, constraint, metadata_dict
+        )
+        ok = score >= 1.0 - tolerance
+        mark = "[green]✓[/green]" if ok else "[yellow]⚠[/yellow]"
+        console.print(
+            f"  {mark} batch {constraint.constraint_type} "
+            f"({constraint.property_expression}): score {score:.3f}"
+        )
 
 
 def main() -> None:
@@ -195,7 +387,7 @@ def main() -> None:
     # Build constraints
     console.print()
     console.rule("[3/5] Building Constraints")
-    list_constraints, batch_constraints = build_constraints(config)
+    list_constraints, batch_constraints = build_constraints(config, metadata_dict)
     console.print(f"[green]✓[/green] Built {len(list_constraints)} list constraints")
     console.print(
         f"[green]✓[/green] Built {len(batch_constraints)} batch constraints\n"
@@ -203,17 +395,40 @@ def main() -> None:
 
     # Partition items into lists
     console.rule("[4/5] Partitioning Items")
-    partitioner = ListPartitioner(random_seed=42)
+    seed = list_config.get("random_seed", 42)
+    partitioner = ListPartitioner(random_seed=seed)
+    # Pool = a seeded random sample of the needed size, not the first N in
+    # file order: the pairs file is ordered by cell, so a prefix cut kept
+    # only 21% of NP_V_S and 42% of NP_V_PP_S pairs.
     item_uuids = [item.id for item in items]
+    random.Random(seed).shuffle(item_uuids)
+    total_items_needed = n_lists * items_per_list
+    selected_uuids = item_uuids[:total_items_needed]
 
+    split_by = list_config.get("split_by")
     try:
+        if split_by:
+            per_list_total = sum(split_by["per_list"].values())
+            if per_list_total != items_per_list:
+                raise ValueError(
+                    f"split_by.per_list sums to {per_list_total}, "
+                    f"items_per_list is {items_per_list}"
+                )
+            with console.status("[bold]Partitioning each stratum...[/bold]"):
+                experiment_lists = split_partition(
+                    partitioner, [item.id for item in items], metadata_dict,
+                    split_by, n_lists, list_constraints, seed,
+                    cover_expressions=tuple(
+                        c.property_expression for c in batch_constraints
+                        if isinstance(c, BatchCoverageConstraint)
+                    ),
+                )
+            report_batch_constraints(
+                partitioner, experiment_lists, batch_constraints, metadata_dict
+            )
         # Use the appropriate partitioning method based on batch constraints
-        if batch_constraints:
+        elif batch_constraints:
             with console.status("[bold]Using batch-constrained partitioning...[/bold]"):
-                # Select total items needed
-                total_items_needed = n_lists * items_per_list
-                selected_uuids = item_uuids[:total_items_needed]
-
                 experiment_lists = partitioner.partition_with_batch_constraints(
                     items=selected_uuids,
                     n_lists=n_lists,
@@ -223,9 +438,6 @@ def main() -> None:
                 )
         else:
             with console.status("[bold]Using standard partitioning...[/bold]"):
-                # For standard partitioning, we need to select subset first
-                total_items_needed = n_lists * items_per_list
-                selected_uuids = item_uuids[:total_items_needed]
 
                 experiment_lists = partitioner.partition(
                     items=selected_uuids,
@@ -243,8 +455,6 @@ def main() -> None:
 
     except Exception as e:
         console.print(f"[red]✗[/red] Error during partitioning: {e}")
-        import traceback
-
         traceback.print_exc()
         sys.exit(1)
 
@@ -255,7 +465,6 @@ def main() -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     # Create list collection
-    from uuid import uuid4
 
     list_collection = ListCollection(
         name="argument_structure_lists",
@@ -279,7 +488,8 @@ def main() -> None:
             f.write(exp_list.model_dump_json() + "\n")
 
     console.print(
-        f"[green]✓[/green] Saved {len(experiment_lists)} lists to [cyan]{output_path}[/cyan]\n"
+        f"[green]✓[/green] Saved {len(experiment_lists)} lists to "
+        f"[cyan]{output_path}[/cyan]\n"
     )
 
     # Print summary table
