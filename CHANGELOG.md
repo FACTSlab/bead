@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `bead.serving` publishes independent runtime protocols for model identity,
+  task compatibility, probabilistic prediction with `ResponseEncoding` column
+  semantics, native-artifact persistence, and three-way NLI. Externally trained,
+  read-only predictors implement these capabilities structurally and do not inherit
+  the trainable mixed-effects hierarchy or the nominal model-adapter ABC.
+- `PredictorRegistry` registers artifact-loading factories without an `issubclass`
+  requirement. Its generic capability type lets each consumer request only the
+  serving operations it uses.
+- `run_predictor_conformance` gives third-party packages a published interoperability
+  suite over real `Item`, `ItemTemplate`, and `ResponseEncoding` values. It checks
+  task compatibility, probability shape and normalization, optional participant
+  identifiers, save-load equality, and three-way NLI probabilities.
+
 ## [0.10.0] - 2026-09-16
 
 ### Changed
