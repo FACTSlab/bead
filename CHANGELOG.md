@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-10-25
+
+### Added
+
+- `bead.serving` publishes independent runtime protocols for model identity,
+  task compatibility, probabilistic prediction with `ResponseEncoding` column
+  semantics, native-artifact persistence, and three-way NLI. Externally trained,
+  read-only predictors implement these capabilities structurally and do not inherit
+  the trainable mixed-effects hierarchy or the nominal model-adapter ABC.
+- `PredictorRegistry` registers artifact-loading factories without an `issubclass`
+  requirement. Its generic capability type lets each consumer request only the
+  serving operations it uses.
+- `run_predictor_conformance` gives third-party packages a published interoperability
+  suite over real `Item`, `ItemTemplate`, and `ResponseEncoding` values. It checks
+  task compatibility, probability shape and normalization, optional participant
+  identifiers, save-load equality, and three-way NLI probabilities.
+
 ## [0.10.0] - 2026-09-16
 
 ### Changed
@@ -717,7 +734,8 @@ guards as type-checkers.
 - CI/CD: GitHub Actions for testing, docs, PyPI publishing
 - Read the Docs integration
 
-[Unreleased]: https://github.com/FACTSlab/bead/compare/v0.10.0...HEAD
+[Unreleased]: https://github.com/FACTSlab/bead/compare/v0.11.0...HEAD
+[0.11.0]: https://github.com/FACTSlab/bead/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/FACTSlab/bead/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/FACTSlab/bead/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/FACTSlab/bead/compare/v0.7.0...v0.8.0
