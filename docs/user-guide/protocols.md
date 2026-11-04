@@ -401,6 +401,29 @@ for realization, item in pairs:
     ...  # downstream item processing
 ```
 
+The template's elements and the item's rendered elements are named
+`"text"` (the context sentence) and `"prompt"` (the realized
+question) unless the caller declares other names. Pass the same
+`text_element` and `prompt_element` to `family_to_item_template` and
+`realization_to_item` (or once to `realize_protocol_to_items`);
+`realization_to_item` refuses a name its template does not declare,
+so the item always renders exactly the template's elements:
+
+```python
+template = family_to_item_template(
+    family_change,
+    judgment_type="acceptability",
+    text_element="sentence",
+    prompt_element="question",
+)
+item = realization_to_item(
+    realization,
+    item_template=template,
+    text_element="sentence",
+    prompt_element="question",
+)
+```
+
 `scale_type_to_task_type` is the canonical translation used here and
 in the active-learning registry. There is no other mapping: every
 protocol family produces exactly one `ItemTemplate`.
