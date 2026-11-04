@@ -266,3 +266,63 @@ def test_stratified_strategy_multiple_slots() -> None:
 
     assert len(combinations) == 10
     assert all("a" in c and "b" in c for c in combinations)
+
+
+def test_stratified_strategy_groups_by_feature_key() -> None:
+    """Test stratified strategy resolves a dotted path through feature keys."""
+    strategy = StratifiedStrategy(
+        n_samples=200, grouping_property="features.frame", seed=42
+    )
+    common = [
+        LexicalItem(lemma=f"c{i}", language_code="en", features={"frame": "NP"})
+        for i in range(9)
+    ]
+    rare = LexicalItem(lemma="r", language_code="en", features={"frame": "S"})
+
+    combinations = strategy.generate_combinations({"slot": [*common, rare]})
+
+    # Two strata are sampled evenly, so the single S-frame item is drawn about
+    # half the time; a single unresolved stratum would draw it about 1 in 10.
+    rare_draws = sum(1 for c in combinations if c["slot"].lemma == "r")
+    assert 80 <= rare_draws <= 120
+
+
+def test_stratified_strategy_groups_by_nested_feature_key() -> None:
+    """Test stratified strategy resolves nested feature dictionaries."""
+    strategy = StratifiedStrategy(
+        n_samples=200, grouping_property="features.agreement.number", seed=42
+    )
+    singular = [
+        LexicalItem(
+            lemma=f"s{i}",
+            language_code="en",
+            features={"agreement": {"number": "sg"}},
+        )
+        for i in range(9)
+    ]
+    plural = LexicalItem(
+        lemma="p", language_code="en", features={"agreement": {"number": "pl"}}
+    )
+
+    combinations = strategy.generate_combinations({"slot": [*singular, plural]})
+
+    plural_draws = sum(1 for c in combinations if c["slot"].lemma == "p")
+    assert 80 <= plural_draws <= 120
+
+
+def test_stratified_strategy_missing_feature_key() -> None:
+    """Test that items without the feature key share one stratum."""
+    strategy = StratifiedStrategy(
+        n_samples=200, grouping_property="features.frame", seed=42
+    )
+    with_frame = LexicalItem(lemma="f", language_code="en", features={"frame": "S"})
+    without_frame = [
+        LexicalItem(lemma=f"n{i}", language_code="en", features={}) for i in range(9)
+    ]
+
+    combinations = strategy.generate_combinations(
+        {"slot": [with_frame, *without_frame]}
+    )
+
+    framed_draws = sum(1 for c in combinations if c["slot"].lemma == "f")
+    assert 80 <= framed_draws <= 120
