@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-11-03
+
+### Added
+
+- The task item factories in `bead.items` (`ordinal_scale`, `binary`, `categorical`,
+  `free_text`, `magnitude`, `span_labeling`, `cloze`) take keyword-only `text_element`
+  and `prompt_element` naming the rendered elements they write, plus `unit_element`
+  in `magnitude` and `instructions_element` in `cloze`. Every batch helper in those
+  modules threads the names through, and the defaults keep `"text"`, `"prompt"`,
+  `"unit"` and `"instructions"`. Span items key `tokenized_elements` and
+  `token_space_after` by `text_element`, and `add_spans_to_item` reads the prompt
+  from `prompt_element`. Two roles declared with the same name are refused with a
+  `ValueError`.
+- `family_to_item_template`, `realization_to_item`, `protocol_to_item_templates`
+  and `realize_protocol_to_items` take `text_element` and `prompt_element`.
+  `realization_to_item` refuses a name its template does not declare, so the item's
+  rendered elements always agree with the template's elements under `validate_item`,
+  and the spans it derives reference the declared text element.
+
+### Changed
+
+- `create_cross_product_items`, `create_filtered_cross_product_items` and
+  `create_stratified_cross_product_items` require `cross_product_slot`; the `"verb"`
+  default is removed. The `<slot>_lemma` and `<slot>_form` rendered elements are
+  named after the slot the caller declares.
+
+### Fixed
+
+- `StratifiedStrategy` resolves each segment of `grouping_property` as a mapping key
+  as well as an attribute, so `"features.<key>"` groups lexical items by that feature
+  value; previously every item fell into the `"unknown"` group.
+
 ## [0.11.0] - 2026-10-25
 
 ### Added
@@ -734,7 +766,8 @@ guards as type-checkers.
 - CI/CD: GitHub Actions for testing, docs, PyPI publishing
 - Read the Docs integration
 
-[Unreleased]: https://github.com/FACTSlab/bead/compare/v0.11.0...HEAD
+[Unreleased]: https://github.com/FACTSlab/bead/compare/v0.12.0...HEAD
+[0.12.0]: https://github.com/FACTSlab/bead/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/FACTSlab/bead/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/FACTSlab/bead/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/FACTSlab/bead/compare/v0.8.0...v0.9.0
