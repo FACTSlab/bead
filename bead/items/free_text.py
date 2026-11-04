@@ -31,6 +31,9 @@ def create_free_text_item(
     multiline: bool = False,
     item_template_id: UUID | None = None,
     metadata: dict[str, MetadataValue] | None = None,
+    *,
+    text_element: str = "text",
+    prompt_element: str = "prompt",
 ) -> Item:
     """Create a free text (open-ended) item.
 
@@ -52,16 +55,24 @@ def create_free_text_item(
         Template ID for the item. If None, generates new UUID.
     metadata : dict[str, MetadataValue] | None
         Additional metadata for item_metadata field.
+    text_element : str
+        Name of the rendered element that holds the stimulus text
+        (default: "text").
+    prompt_element : str
+        Name of the rendered element that holds the prompt
+        (default: "prompt").
 
     Returns
     -------
     Item
-        Free text item with text and prompt in rendered_elements.
+        Free text item with the stimulus and the prompt stored in
+        rendered_elements under the declared element names.
 
     Raises
     ------
     ValueError
-        If text or prompt is empty, or if min_length > max_length.
+        If text or prompt is empty, if min_length > max_length, or if
+        text_element and prompt_element are the same.
 
     Examples
     --------
@@ -86,12 +97,25 @@ def create_free_text_item(
     ... )
     >>> item.item_metadata["multiline"]
     True
+
+    >>> # Declared element names
+    >>> item = create_free_text_item(
+    ...     text="The dog chased the cat.",
+    ...     prompt="Who chased whom?",
+    ...     text_element="passage",
+    ...     prompt_element="question",
+    ... )
+    >>> item.rendered_elements["question"]
+    'Who chased whom?'
     """
     if not text or not text.strip():
         raise ValueError("text cannot be empty")
 
     if not prompt or not prompt.strip():
         raise ValueError("prompt is required for free text items")
+
+    if text_element == prompt_element:
+        raise ValueError("text_element and prompt_element must name different elements")
 
     # Validate length constraints
     if min_length is not None and max_length is not None:
@@ -105,8 +129,8 @@ def create_free_text_item(
         item_template_id = uuid4()
 
     rendered_elements: dict[str, str] = {
-        "text": text,
-        "prompt": prompt,
+        text_element: text,
+        prompt_element: prompt,
     }
 
     # Build item metadata
@@ -143,6 +167,8 @@ def create_free_text_items_from_texts(
     *,
     item_template_id: UUID | None = None,
     metadata_fn: Callable[[str], dict[str, MetadataValue]] | None = None,
+    text_element: str = "text",
+    prompt_element: str = "prompt",
 ) -> list[Item]:
     """Create free text items from a list of texts with the same prompt.
 
@@ -164,6 +190,12 @@ def create_free_text_items_from_texts(
         Template ID for all created items. If None, generates one per item.
     metadata_fn : Callable[[str], dict[str, MetadataValue]] | None
         Function to generate metadata from each text.
+    text_element : str
+        Name of the rendered element that holds the stimulus text
+        (default: "text").
+    prompt_element : str
+        Name of the rendered element that holds the prompt
+        (default: "prompt").
 
     Returns
     -------
@@ -201,6 +233,8 @@ def create_free_text_items_from_texts(
             multiline=multiline,
             item_template_id=item_template_id,
             metadata=item_metadata,
+            text_element=text_element,
+            prompt_element=prompt_element,
         )
         free_text_items.append(item)
 
@@ -217,6 +251,8 @@ def create_free_text_items_with_context(
     *,
     item_template_id: UUID | None = None,
     metadata_fn: (Callable[[str, str], dict[str, MetadataValue]] | None) = None,
+    text_element: str = "text",
+    prompt_element: str = "prompt",
 ) -> list[Item]:
     """Create free text items with context + prompt pairs.
 
@@ -241,6 +277,12 @@ def create_free_text_items_with_context(
         Template ID for all created items. If None, generates one per item.
     metadata_fn : Callable[[str, str], dict[str, MetadataValue]] | None
         Function to generate metadata from (context, prompt).
+    text_element : str
+        Name of the rendered element that holds the stimulus text
+        (default: "text").
+    prompt_element : str
+        Name of the rendered element that holds the prompt
+        (default: "prompt").
 
     Returns
     -------
@@ -292,6 +334,8 @@ def create_free_text_items_with_context(
             multiline=multiline,
             item_template_id=item_template_id,
             metadata=item_metadata,
+            text_element=text_element,
+            prompt_element=prompt_element,
         )
         free_text_items.append(item)
 
@@ -310,6 +354,8 @@ def create_free_text_items_from_groups(
     extract_text: Callable[[Item], str] | None = None,
     include_group_metadata: bool = True,
     item_template_id: UUID | None = None,
+    text_element: str = "text",
+    prompt_element: str = "prompt",
 ) -> list[Item]:
     """Create free text items from grouped source items.
 
@@ -338,6 +384,12 @@ def create_free_text_items_from_groups(
         Whether to include group key in item metadata.
     item_template_id : UUID | None
         Template ID for all created items. If None, generates one per item.
+    text_element : str
+        Name of the rendered element that holds the stimulus text
+        (default: "text").
+    prompt_element : str
+        Name of the rendered element that holds the prompt
+        (default: "prompt").
 
     Returns
     -------
@@ -395,6 +447,8 @@ def create_free_text_items_from_groups(
                 multiline=multiline,
                 item_template_id=item_template_id,
                 metadata=item_metadata,
+                text_element=text_element,
+                prompt_element=prompt_element,
             )
             free_text_items.append(free_text_item)
 
@@ -411,6 +465,8 @@ def create_free_text_items_cross_product(
     *,
     item_template_id: UUID | None = None,
     metadata_fn: (Callable[[str, str], dict[str, MetadataValue]] | None) = None,
+    text_element: str = "text",
+    prompt_element: str = "prompt",
 ) -> list[Item]:
     """Create free text items from cross-product of texts and prompts.
 
@@ -434,6 +490,12 @@ def create_free_text_items_cross_product(
         Template ID for all created items.
     metadata_fn : Callable[[str, str], dict[str, MetadataValue]] | None
         Function to generate metadata from (text, prompt).
+    text_element : str
+        Name of the rendered element that holds the stimulus text
+        (default: "text").
+    prompt_element : str
+        Name of the rendered element that holds the prompt
+        (default: "prompt").
 
     Returns
     -------
@@ -466,6 +528,8 @@ def create_free_text_items_cross_product(
             multiline=multiline,
             item_template_id=item_template_id,
             metadata=item_metadata,
+            text_element=text_element,
+            prompt_element=prompt_element,
         )
         free_text_items.append(item)
 
@@ -483,6 +547,8 @@ def create_filtered_free_text_items(
     item_filter: Callable[[Item], bool] | None = None,
     extract_text: Callable[[Item], str] | None = None,
     item_template_id: UUID | None = None,
+    text_element: str = "text",
+    prompt_element: str = "prompt",
 ) -> list[Item]:
     """Create free text items with filtering.
 
@@ -506,6 +572,12 @@ def create_filtered_free_text_items(
         Text extraction function.
     item_template_id : UUID | None
         Template ID for created items.
+    text_element : str
+        Name of the rendered element that holds the stimulus text
+        (default: "text").
+    prompt_element : str
+        Name of the rendered element that holds the prompt
+        (default: "prompt").
 
     Returns
     -------
@@ -549,6 +621,8 @@ def create_filtered_free_text_items(
             multiline=multiline,
             item_template_id=item_template_id,
             metadata=item_metadata,
+            text_element=text_element,
+            prompt_element=prompt_element,
         )
         free_text_items.append(free_text_item)
 
@@ -560,6 +634,9 @@ def create_paraphrase_item(
     instruction: str = "Rewrite in your own words:",
     item_template_id: UUID | None = None,
     metadata: dict[str, MetadataValue] | None = None,
+    *,
+    text_element: str = "text",
+    prompt_element: str = "prompt",
 ) -> Item:
     """Create a paraphrase generation item.
 
@@ -575,6 +652,12 @@ def create_paraphrase_item(
         Template ID for the item. If None, generates new UUID.
     metadata : dict[str, MetadataValue] | None
         Additional metadata for item_metadata field.
+    text_element : str
+        Name of the rendered element that holds the stimulus text
+        (default: "text").
+    prompt_element : str
+        Name of the rendered element that holds the prompt
+        (default: "prompt").
 
     Returns
     -------
@@ -598,6 +681,8 @@ def create_paraphrase_item(
         max_length=500,
         item_template_id=item_template_id,
         metadata=metadata,
+        text_element=text_element,
+        prompt_element=prompt_element,
     )
 
 
@@ -606,6 +691,9 @@ def create_wh_question_item(
     question_word: str = "Who",
     item_template_id: UUID | None = None,
     metadata: dict[str, MetadataValue] | None = None,
+    *,
+    text_element: str = "text",
+    prompt_element: str = "prompt",
 ) -> Item:
     """Create a WH-question answering item.
 
@@ -621,6 +709,12 @@ def create_wh_question_item(
         Template ID for the item. If None, generates new UUID.
     metadata : dict[str, MetadataValue] | None
         Additional metadata for item_metadata field.
+    text_element : str
+        Name of the rendered element that holds the stimulus text
+        (default: "text").
+    prompt_element : str
+        Name of the rendered element that holds the prompt
+        (default: "prompt").
 
     Returns
     -------
@@ -645,6 +739,8 @@ def create_wh_question_item(
         max_length=100,
         item_template_id=item_template_id,
         metadata=metadata,
+        text_element=text_element,
+        prompt_element=prompt_element,
     )
 
 

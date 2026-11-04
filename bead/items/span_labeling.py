@@ -116,6 +116,9 @@ def create_span_item(
     span_spec: SpanSpec | None = None,
     item_template_id: UUID | None = None,
     metadata: dict[str, MetadataValue] | None = None,
+    *,
+    text_element: str = "text",
+    prompt_element: str = "prompt",
 ) -> Item:
     """Create a standalone span labeling item.
 
@@ -141,6 +144,11 @@ def create_span_item(
         Template ID. If None, generates a new UUID.
     metadata : dict[str, MetadataValue] | None
         Additional item metadata.
+    text_element : str
+        Name of the rendered element that holds the stimulus text, also used
+        for its tokens and spacing flags (default: "text").
+    prompt_element : str
+        Name of the rendered element that holds the prompt (default: "prompt").
 
     Returns
     -------
@@ -150,10 +158,32 @@ def create_span_item(
     Raises
     ------
     ValueError
-        If text is empty or span indices are out of bounds.
+        If text is empty, if span indices are out of bounds, or if
+        text_element and prompt_element are the same name.
+
+    Examples
+    --------
+    >>> from bead.items.spans import SpanLabel, SpanSegment
+    >>> span = Span(
+    ...     span_id="span_0",
+    ...     segments=(SpanSegment(element_name="sentence", indices=(0,)),),
+    ...     label=SpanLabel(label="Person"),
+    ... )
+    >>> item = create_span_item(
+    ...     "Ann left.",
+    ...     [span],
+    ...     "Label the person.",
+    ...     tokens=["Ann", "left."],
+    ...     text_element="sentence",
+    ... )
+    >>> item.tokenized_elements["sentence"]
+    ('Ann', 'left.')
     """
     if not text or not text.strip():
         raise ValueError("text cannot be empty")
+
+    if text_element == prompt_element:
+        raise ValueError("text_element and prompt_element must name different elements")
 
     if item_template_id is None:
         item_template_id = uuid4()
@@ -173,15 +203,15 @@ def create_span_item(
     tokenized_elements: dict[str, tuple[str, ...]]
     token_space_after: dict[str, tuple[bool, ...]]
     if tokens is not None:
-        tokenized_elements = {"text": tuple(tokens)}
-        token_space_after = {"text": tuple(_infer_space_after(tokens, text))}
+        tokenized_elements = {text_element: tuple(tokens)}
+        token_space_after = {text_element: tuple(_infer_space_after(tokens, text))}
     else:
         if tokenizer_config is None:
             tokenizer_config = TokenizerConfig()
         tokenize = create_tokenizer(tokenizer_config)
         result = tokenize(text)
-        tokenized_elements = {"text": result.token_texts}
-        token_space_after = {"text": result.space_after_flags}
+        tokenized_elements = {text_element: result.token_texts}
+        token_space_after = {text_element: result.space_after_flags}
 
     _validate_span_indices(spans, tokenized_elements)
 
@@ -191,7 +221,7 @@ def create_span_item(
 
     return Item(
         item_template_id=item_template_id,
-        rendered_elements={"text": text, "prompt": prompt},
+        rendered_elements={text_element: text, prompt_element: prompt},
         spans=tuple(spans),
         tokenized_elements=tokenized_elements,
         token_space_after=token_space_after,
@@ -208,6 +238,9 @@ def create_interactive_span_item(
     label_source: LabelSourceType = "fixed",
     item_template_id: UUID | None = None,
     metadata: dict[str, MetadataValue] | None = None,
+    *,
+    text_element: str = "text",
+    prompt_element: str = "prompt",
 ) -> Item:
     """Create an item for interactive span selection by participants.
 
@@ -229,14 +262,28 @@ def create_interactive_span_item(
         Template ID. If None, generates a new UUID.
     metadata : dict[str, MetadataValue] | None
         Additional item metadata.
+    text_element : str
+        Name of the rendered element that holds the stimulus text, also used
+        for its tokens and spacing flags (default: "text").
+    prompt_element : str
+        Name of the rendered element that holds the prompt (default: "prompt").
 
     Returns
     -------
     Item
         Interactive span labeling item (no pre-defined spans).
+
+    Raises
+    ------
+    ValueError
+        If text is empty or if text_element and prompt_element are the same
+        name.
     """
     if not text or not text.strip():
         raise ValueError("text cannot be empty")
+
+    if text_element == prompt_element:
+        raise ValueError("text_element and prompt_element must name different elements")
 
     if item_template_id is None:
         item_template_id = uuid4()
@@ -253,15 +300,15 @@ def create_interactive_span_item(
     tokenized_elements: dict[str, tuple[str, ...]]
     token_space_after: dict[str, tuple[bool, ...]]
     if tokens is not None:
-        tokenized_elements = {"text": tuple(tokens)}
-        token_space_after = {"text": tuple(_infer_space_after(tokens, text))}
+        tokenized_elements = {text_element: tuple(tokens)}
+        token_space_after = {text_element: tuple(_infer_space_after(tokens, text))}
     else:
         if tokenizer_config is None:
             tokenizer_config = TokenizerConfig()
         tokenize = create_tokenizer(tokenizer_config)
         result = tokenize(text)
-        tokenized_elements = {"text": result.token_texts}
-        token_space_after = {"text": result.space_after_flags}
+        tokenized_elements = {text_element: result.token_texts}
+        token_space_after = {text_element: result.space_after_flags}
 
     item_metadata: dict[str, MetadataValue] = {"_span_spec": span_spec_data}
     if metadata:
@@ -269,7 +316,7 @@ def create_interactive_span_item(
 
     return Item(
         item_template_id=item_template_id,
-        rendered_elements={"text": text, "prompt": prompt},
+        rendered_elements={text_element: text, prompt_element: prompt},
         spans=(),
         tokenized_elements=tokenized_elements,
         token_space_after=token_space_after,
@@ -282,6 +329,8 @@ def add_spans_to_item(
     spans: list[Span],
     tokenizer_config: TokenizerConfig | None = None,
     span_spec: SpanSpec | None = None,
+    *,
+    prompt_element: str = "prompt",
 ) -> Item:
     """Add span annotations to any existing item.
 
@@ -299,6 +348,9 @@ def add_spans_to_item(
         Tokenizer configuration (used only if item lacks tokenization).
     span_spec : SpanSpec | None
         Span specification.
+    prompt_element : str
+        Name of the rendered element whose ``[[label]]`` references are checked
+        against the span labels (default: "prompt").
 
     Returns
     -------
@@ -318,7 +370,7 @@ def add_spans_to_item(
     _validate_span_indices(spans, item.tokenized_elements)
 
     # warn if prompt contains [[label]] references to nonexistent span labels
-    prompt_text = item.rendered_elements.get("prompt", "")
+    prompt_text = item.rendered_elements.get(prompt_element, "")
     if prompt_text:
         all_spans = list(item.spans) + spans
         span_labels = {s.label.label for s in all_spans if s.label is not None}
@@ -353,6 +405,9 @@ def create_span_items_from_texts(
     tokenizer_config: TokenizerConfig | None = None,
     labels: list[str] | None = None,
     item_template_id: UUID | None = None,
+    *,
+    text_element: str = "text",
+    prompt_element: str = "prompt",
 ) -> list[Item]:
     """Batch create span items with automatic tokenization.
 
@@ -370,6 +425,11 @@ def create_span_items_from_texts(
         Fixed label set.
     item_template_id : UUID | None
         Shared template ID. If None, generates one per item.
+    text_element : str
+        Name of the rendered element that holds each stimulus text
+        (default: "text").
+    prompt_element : str
+        Name of the rendered element that holds the prompt (default: "prompt").
 
     Returns
     -------
@@ -392,6 +452,8 @@ def create_span_items_from_texts(
             tokens=tokens,
             labels=labels,
             item_template_id=item_template_id,
+            text_element=text_element,
+            prompt_element=prompt_element,
         )
         items.append(item)
 

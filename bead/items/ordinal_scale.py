@@ -31,6 +31,9 @@ def create_ordinal_scale_item(
     scale_labels: dict[int, str] | tuple[ScalePointLabel, ...] | None = None,
     item_template_id: UUID | None = None,
     metadata: dict[str, MetadataValue] | None = None,
+    *,
+    text_element: str = "text",
+    prompt_element: str = "prompt",
 ) -> Item:
     """Create an ordinal scale rating item.
 
@@ -51,17 +54,24 @@ def create_ordinal_scale_item(
         Template ID for the item. If None, generates new UUID.
     metadata : dict[str, MetadataValue] | None
         Additional metadata for item_metadata field.
+    text_element : str
+        Name of the rendered element that holds the stimulus text
+        (default: "text").
+    prompt_element : str
+        Name of the rendered element that holds the prompt (default: "prompt").
 
     Returns
     -------
     Item
-        Ordinal scale item with text and prompt in rendered_elements.
+        Ordinal scale item with the stimulus and prompt stored under the
+        declared element names.
 
     Raises
     ------
     ValueError
-        If text is empty, if scale_bounds are invalid, or if scale_labels
-        contain values outside scale bounds.
+        If text is empty, if scale_bounds are invalid, if scale_labels
+        contain values outside scale bounds, or if text_element and
+        prompt_element name the same element.
 
     Examples
     --------
@@ -89,6 +99,13 @@ def create_ordinal_scale_item(
     ... )
     >>> item.item_metadata["scale_labels"][1]
     'Strongly Disagree'
+
+    >>> # Declared element names
+    >>> item = create_ordinal_scale_item(
+    ...     "The cat sat.", text_element="sentence", prompt_element="question"
+    ... )
+    >>> sorted(item.rendered_elements)
+    ['question', 'sentence']
     """
     if not text or not text.strip():
         raise ValueError("text cannot be empty")
@@ -117,9 +134,12 @@ def create_ordinal_scale_item(
     if prompt is None:
         prompt = "Rate this item:"
 
+    if text_element == prompt_element:
+        raise ValueError("text_element and prompt_element must name different elements")
+
     rendered_elements: dict[str, str] = {
-        "text": text,
-        "prompt": prompt,
+        text_element: text,
+        prompt_element: prompt,
     }
 
     # Build item metadata
@@ -149,6 +169,8 @@ def create_ordinal_scale_items_from_texts(
     *,
     item_template_id: UUID | None = None,
     metadata_fn: Callable[[str], dict[str, MetadataValue]] | None = None,
+    text_element: str = "text",
+    prompt_element: str = "prompt",
 ) -> list[Item]:
     """Create ordinal scale items from a list of texts.
 
@@ -166,6 +188,11 @@ def create_ordinal_scale_items_from_texts(
         Template ID for all created items. If None, generates one per item.
     metadata_fn : Callable[[str], dict[str, MetadataValue]] | None
         Function to generate metadata from each text.
+    text_element : str
+        Name of the rendered element that holds the stimulus text
+        (default: "text").
+    prompt_element : str
+        Name of the rendered element that holds the prompt (default: "prompt").
 
     Returns
     -------
@@ -200,6 +227,8 @@ def create_ordinal_scale_items_from_texts(
             scale_labels=scale_labels,
             item_template_id=item_template_id,
             metadata=item_metadata,
+            text_element=text_element,
+            prompt_element=prompt_element,
         )
         ordinal_items.append(item)
 
@@ -216,6 +245,8 @@ def create_ordinal_scale_items_from_groups(
     extract_text: Callable[[Item], str] | None = None,
     include_group_metadata: bool = True,
     item_template_id: UUID | None = None,
+    text_element: str = "text",
+    prompt_element: str = "prompt",
 ) -> list[Item]:
     """Create ordinal scale items from grouped source items.
 
@@ -240,6 +271,11 @@ def create_ordinal_scale_items_from_groups(
         Whether to include group key in item metadata.
     item_template_id : UUID | None
         Template ID for all created items. If None, generates one per item.
+    text_element : str
+        Name of the rendered element that holds the stimulus text
+        (default: "text").
+    prompt_element : str
+        Name of the rendered element that holds the prompt (default: "prompt").
 
     Returns
     -------
@@ -295,6 +331,8 @@ def create_ordinal_scale_items_from_groups(
                 scale_labels=scale_labels,
                 item_template_id=item_template_id,
                 metadata=item_metadata,
+                text_element=text_element,
+                prompt_element=prompt_element,
             )
             ordinal_items.append(ordinal_item)
 
@@ -309,6 +347,8 @@ def create_ordinal_scale_items_cross_product(
     *,
     item_template_id: UUID | None = None,
     metadata_fn: (Callable[[str, str], dict[str, MetadataValue]] | None) = None,
+    text_element: str = "text",
+    prompt_element: str = "prompt",
 ) -> list[Item]:
     """Create ordinal scale items from cross-product of texts and prompts.
 
@@ -328,6 +368,11 @@ def create_ordinal_scale_items_cross_product(
         Template ID for all created items.
     metadata_fn : Callable[[str, str], dict[str, MetadataValue]] | None
         Function to generate metadata from (text, prompt).
+    text_element : str
+        Name of the rendered element that holds the stimulus text
+        (default: "text").
+    prompt_element : str
+        Name of the rendered element that holds the prompt (default: "prompt").
 
     Returns
     -------
@@ -358,6 +403,8 @@ def create_ordinal_scale_items_cross_product(
             scale_labels=scale_labels,
             item_template_id=item_template_id,
             metadata=item_metadata,
+            text_element=text_element,
+            prompt_element=prompt_element,
         )
         ordinal_items.append(item)
 
@@ -373,6 +420,8 @@ def create_filtered_ordinal_scale_items(
     item_filter: Callable[[Item], bool] | None = None,
     extract_text: Callable[[Item], str] | None = None,
     item_template_id: UUID | None = None,
+    text_element: str = "text",
+    prompt_element: str = "prompt",
 ) -> list[Item]:
     """Create ordinal scale items with filtering.
 
@@ -392,6 +441,11 @@ def create_filtered_ordinal_scale_items(
         Text extraction function.
     item_template_id : UUID | None
         Template ID for created items.
+    text_element : str
+        Name of the rendered element that holds the stimulus text
+        (default: "text").
+    prompt_element : str
+        Name of the rendered element that holds the prompt (default: "prompt").
 
     Returns
     -------
@@ -433,6 +487,8 @@ def create_filtered_ordinal_scale_items(
             scale_labels=scale_labels,
             item_template_id=item_template_id,
             metadata=item_metadata,
+            text_element=text_element,
+            prompt_element=prompt_element,
         )
         ordinal_items.append(ordinal_item)
 
@@ -444,6 +500,9 @@ def create_likert_5_item(
     prompt: str | None = None,
     item_template_id: UUID | None = None,
     metadata: dict[str, MetadataValue] | None = None,
+    *,
+    text_element: str = "text",
+    prompt_element: str = "prompt",
 ) -> Item:
     """Create a 5-point Likert scale item.
 
@@ -460,6 +519,11 @@ def create_likert_5_item(
         Template ID for the item. If None, generates new UUID.
     metadata : dict[str, MetadataValue] | None
         Additional metadata for item_metadata field.
+    text_element : str
+        Name of the rendered element that holds the stimulus text
+        (default: "text").
+    prompt_element : str
+        Name of the rendered element that holds the prompt (default: "prompt").
 
     Returns
     -------
@@ -490,6 +554,8 @@ def create_likert_5_item(
         ),
         item_template_id=item_template_id,
         metadata=metadata,
+        text_element=text_element,
+        prompt_element=prompt_element,
     )
 
 
@@ -498,6 +564,9 @@ def create_likert_7_item(
     prompt: str | None = None,
     item_template_id: UUID | None = None,
     metadata: dict[str, MetadataValue] | None = None,
+    *,
+    text_element: str = "text",
+    prompt_element: str = "prompt",
 ) -> Item:
     """Create a 7-point Likert scale item.
 
@@ -514,6 +583,11 @@ def create_likert_7_item(
         Template ID for the item. If None, generates new UUID.
     metadata : dict[str, MetadataValue] | None
         Additional metadata for item_metadata field.
+    text_element : str
+        Name of the rendered element that holds the stimulus text
+        (default: "text").
+    prompt_element : str
+        Name of the rendered element that holds the prompt (default: "prompt").
 
     Returns
     -------
@@ -541,6 +615,8 @@ def create_likert_7_item(
         ),
         item_template_id=item_template_id,
         metadata=metadata,
+        text_element=text_element,
+        prompt_element=prompt_element,
     )
 
 

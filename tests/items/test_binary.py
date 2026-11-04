@@ -265,3 +265,54 @@ class TestCreateFilteredBinaryItems:
         binary_items = create_filtered_binary_items(items, prompt="Question?")
 
         assert len(binary_items) == 3
+
+
+class TestDeclaredElementNames:
+    """Test caller-declared element names across the binary factories."""
+
+    def test_defaults_are_text_and_prompt(self) -> None:
+        """Test the default element names."""
+        item = create_binary_item("She walks.", prompt="Grammatical?")
+
+        assert set(item.rendered_elements) == {"text", "prompt"}
+
+    def test_single_item_uses_declared_names(self) -> None:
+        """Test the stimulus and prompt land under the declared names."""
+        item = create_binary_item(
+            "She walks.",
+            prompt="Grammatical?",
+            text_element="sentence",
+            prompt_element="question",
+        )
+
+        assert item.rendered_elements == {
+            "sentence": "She walks.",
+            "question": "Grammatical?",
+        }
+
+    def test_colliding_names_raise(self) -> None:
+        """Test that one name for both roles is refused."""
+        with pytest.raises(ValueError, match="must name different elements"):
+            create_binary_item(
+                "She walks.", text_element="sentence", prompt_element="sentence"
+            )
+
+    def test_batch_helpers_thread_declared_names(self) -> None:
+        """Test every batch helper passes the declared names through."""
+        names = {"text_element": "sentence", "prompt_element": "question"}
+        source = [
+            Item(item_template_id=uuid4(), rendered_elements={"text": "She walks."})
+        ]
+        batches = [
+            create_binary_items_from_texts(["She walks."], "Q?", **names),
+            create_binary_items_with_context(["C."], ["T."], "Q?", **names),
+            create_binary_items_from_groups(
+                source, group_by=lambda i: "g", prompt="Q?", **names
+            ),
+            create_binary_items_cross_product(["She walks."], ["Q?"], **names),
+            create_filtered_binary_items(source, "Q?", **names),
+        ]
+
+        for batch in batches:
+            assert len(batch) == 1
+            assert set(batch[0].rendered_elements) == {"sentence", "question"}

@@ -43,6 +43,8 @@ def create_cloze_item(
     *,
     item_template_id: UUID | None = None,
     metadata: dict[str, MetadataValue] | None = None,
+    text_element: str = "text",
+    instructions_element: str = "instructions",
 ) -> Item:
     """Create a cloze item from a template with specific slots unfilled.
 
@@ -60,6 +62,11 @@ def create_cloze_item(
         Template ID for the item. If None, generates new UUID.
     metadata : dict[str, MetadataValue] | None
         Additional metadata for item_metadata field.
+    text_element : str
+        Name of the rendered element that holds the cloze text (default: "text").
+    instructions_element : str
+        Name of the rendered element that holds the instructions, written only
+        when instructions are given (default: "instructions").
 
     Returns
     -------
@@ -71,6 +78,8 @@ def create_cloze_item(
     ValueError
         If unfilled_slot_names not in template, if filled_slots not in template,
         if unfilled and filled overlap, if no unfilled slots, or if validation fails.
+        If instructions are given and text_element and instructions_element
+        are the same name.
 
     Examples
     --------
@@ -97,7 +106,22 @@ def create_cloze_item(
     'verb'
     >>> item.unfilled_slots[0].position
     2
+
+    >>> # Declared element name
+    >>> item = create_cloze_item(
+    ...     template,
+    ...     unfilled_slot_names=["verb"],
+    ...     filled_slots={"det": "The", "noun": "cat"},
+    ...     text_element="sentence",
+    ... )
+    >>> item.rendered_elements["sentence"]
+    'The cat ___.'
     """
+    if instructions and text_element == instructions_element:
+        raise ValueError(
+            "text_element and instructions_element must name different elements"
+        )
+
     if filled_slots is None:
         filled_slots = {}
 
@@ -126,9 +150,9 @@ def create_cloze_item(
         )
 
     # Build rendered_elements
-    rendered_elements: dict[str, str] = {"text": rendered_text}
+    rendered_elements: dict[str, str] = {text_element: rendered_text}
     if instructions:
-        rendered_elements["instructions"] = instructions
+        rendered_elements[instructions_element] = instructions
 
     # Build item_metadata
     # Convert filled_slots to MetadataValue format
@@ -161,6 +185,8 @@ def create_cloze_items_from_template(
     *,
     item_template_id: UUID | None = None,
     metadata_fn: Callable[[list[str]], dict[str, MetadataValue]] | None = None,
+    text_element: str = "text",
+    instructions_element: str = "instructions",
 ) -> list[Item]:
     """Create multiple cloze items from a template, varying unfilled slots.
 
@@ -183,6 +209,11 @@ def create_cloze_items_from_template(
         Template ID for all items.
     metadata_fn : Callable[[list[str]], dict[str, MetadataValue]] | None
         Generate metadata from unfilled slot names.
+    text_element : str
+        Name of the rendered element that holds the cloze text (default: "text").
+    instructions_element : str
+        Name of the rendered element that holds the instructions, written only
+        when instructions are given (default: "instructions").
 
     Returns
     -------
@@ -267,6 +298,8 @@ def create_cloze_items_from_template(
             instructions=instructions,
             item_template_id=item_template_id,
             metadata=item_metadata,
+            text_element=text_element,
+            instructions_element=instructions_element,
         )
         items.append(item)
 
@@ -281,6 +314,8 @@ def create_simple_cloze_item(
     *,
     item_template_id: UUID | None = None,
     metadata: dict[str, MetadataValue] | None = None,
+    text_element: str = "text",
+    instructions_element: str = "instructions",
 ) -> Item:
     """Create a cloze item from plain text (no template).
 
@@ -302,6 +337,11 @@ def create_simple_cloze_item(
         Template ID for the item.
     metadata : dict[str, MetadataValue] | None
         Additional metadata.
+    text_element : str
+        Name of the rendered element that holds the cloze text (default: "text").
+    instructions_element : str
+        Name of the rendered element that holds the instructions, written only
+        when instructions are given (default: "instructions").
 
     Returns
     -------
@@ -312,6 +352,8 @@ def create_simple_cloze_item(
     ------
     ValueError
         If blank_positions out of range or if blank_labels length mismatch.
+        If instructions are given and text_element and instructions_element
+        are the same name.
 
     Examples
     --------
@@ -329,6 +371,11 @@ def create_simple_cloze_item(
     """
     if not text or not text.strip():
         raise ValueError("text cannot be empty")
+
+    if instructions and text_element == instructions_element:
+        raise ValueError(
+            "text_element and instructions_element must name different elements"
+        )
 
     if not blank_positions:
         raise ValueError(
@@ -372,9 +419,9 @@ def create_simple_cloze_item(
     rendered_text = " ".join(blanked_tokens)
 
     # Build rendered_elements
-    rendered_elements: dict[str, str] = {"text": rendered_text}
+    rendered_elements: dict[str, str] = {text_element: rendered_text}
     if instructions:
-        rendered_elements["instructions"] = instructions
+        rendered_elements[instructions_element] = instructions
 
     # Build item_metadata
     item_metadata: dict[str, MetadataValue] = {
@@ -403,6 +450,7 @@ def create_cloze_items_from_groups(
     extract_text: Callable[[Item], str] | None = None,
     include_group_metadata: bool = True,
     item_template_id: UUID | None = None,
+    text_element: str = "text",
 ) -> list[Item]:
     """Create cloze items from grouped source items.
 
@@ -424,6 +472,8 @@ def create_cloze_items_from_groups(
         Whether to include group_key in metadata.
     item_template_id : UUID | None
         Template ID for created items.
+    text_element : str
+        Name of the rendered element that holds the cloze text (default: "text").
 
     Returns
     -------
@@ -475,6 +525,7 @@ def create_cloze_items_from_groups(
                 blank_positions=blank_positions,
                 item_template_id=item_template_id,
                 metadata=item_metadata,
+                text_element=text_element,
             )
             cloze_items.append(cloze_item)
 
@@ -488,6 +539,7 @@ def create_filtered_cloze_items(
     template_filter: Callable[[Any], bool] | None = None,
     slot_filter: Callable[[str, Any], bool] | None = None,
     item_template_id: UUID | None = None,
+    text_element: str = "text",
 ) -> list[Item]:
     """Create cloze items with multi-level filtering.
 
@@ -505,6 +557,8 @@ def create_filtered_cloze_items(
         Filter which slots can be unfilled (receives slot_name and Slot object).
     item_template_id : UUID | None
         Template ID for created items.
+    text_element : str
+        Name of the rendered element that holds the cloze text (default: "text").
 
     Returns
     -------
@@ -548,6 +602,7 @@ def create_filtered_cloze_items(
             n_unfilled=n_slots_to_unfill,
             strategy="all_combinations",
             item_template_id=item_template_id,
+            text_element=text_element,
         )
 
         # Further filter items if slot_filter was used

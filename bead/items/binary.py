@@ -30,6 +30,9 @@ def create_binary_item(
     binary_options: tuple[str, str] = ("yes", "no"),
     item_template_id: UUID | None = None,
     metadata: dict[str, MetadataValue] | None = None,
+    *,
+    text_element: str = "text",
+    prompt_element: str = "prompt",
 ) -> Item:
     """Create a binary judgment item for a single stimulus.
 
@@ -46,16 +49,23 @@ def create_binary_item(
         Template ID for the item. If None, generates new UUID.
     metadata : dict[str, MetadataValue] | None
         Additional metadata for item_metadata field.
+    text_element : str
+        Name of the rendered element that holds the stimulus text
+        (default: "text").
+    prompt_element : str
+        Name of the rendered element that holds the prompt (default: "prompt").
 
     Returns
     -------
     Item
-        Binary item with text and prompt in rendered_elements.
+        Binary item with the stimulus and prompt stored under the declared
+        element names.
 
     Raises
     ------
     ValueError
-        If text is empty or if binary_options doesn't have exactly 2 values.
+        If text is empty, if binary_options doesn't have exactly 2 values,
+        or if text_element and prompt_element name the same element.
 
     Examples
     --------
@@ -79,6 +89,13 @@ def create_binary_item(
     ... )
     >>> item.item_metadata["binary_options"]
     ['true', 'false']
+
+    >>> # Declared element names
+    >>> item = create_binary_item(
+    ...     "The sky is blue.", text_element="sentence", prompt_element="question"
+    ... )
+    >>> item.rendered_elements["sentence"]
+    'The sky is blue.'
     """
     if not text or not text.strip():
         raise ValueError("text cannot be empty")
@@ -89,9 +106,12 @@ def create_binary_item(
     if item_template_id is None:
         item_template_id = uuid4()
 
+    if text_element == prompt_element:
+        raise ValueError("text_element and prompt_element must name different elements")
+
     rendered_elements: dict[str, str] = {
-        "text": text,
-        "prompt": prompt,
+        text_element: text,
+        prompt_element: prompt,
     }
 
     # Build item metadata
@@ -115,6 +135,8 @@ def create_binary_items_from_texts(
     *,
     item_template_id: UUID | None = None,
     metadata_fn: Callable[[str], dict[str, MetadataValue]] | None = None,
+    text_element: str = "text",
+    prompt_element: str = "prompt",
 ) -> list[Item]:
     """Create binary items from a list of texts with the same prompt.
 
@@ -130,6 +152,11 @@ def create_binary_items_from_texts(
         Template ID for all created items. If None, generates one per item.
     metadata_fn : Callable[[str], dict[str, MetadataValue]] | None
         Function to generate metadata from each text.
+    text_element : str
+        Name of the rendered element that holds the stimulus text
+        (default: "text").
+    prompt_element : str
+        Name of the rendered element that holds the prompt (default: "prompt").
 
     Returns
     -------
@@ -167,6 +194,8 @@ def create_binary_items_from_texts(
             binary_options=binary_options,
             item_template_id=item_template_id,
             metadata=metadata,
+            text_element=text_element,
+            prompt_element=prompt_element,
         )
         binary_items.append(item)
 
@@ -183,6 +212,8 @@ def create_binary_items_with_context(
     target_label: str = "Statement",
     item_template_id: UUID | None = None,
     metadata_fn: (Callable[[str, str], dict[str, MetadataValue]] | None) = None,
+    text_element: str = "text",
+    prompt_element: str = "prompt",
 ) -> list[Item]:
     """Create binary items with context + target structure.
 
@@ -206,6 +237,11 @@ def create_binary_items_with_context(
         Template ID for all created items. If None, generates one per item.
     metadata_fn : Callable[[str, str], dict[str, MetadataValue]] | None
         Function to generate metadata from (context, target).
+    text_element : str
+        Name of the rendered element that holds the stimulus text
+        (default: "text").
+    prompt_element : str
+        Name of the rendered element that holds the prompt (default: "prompt").
 
     Returns
     -------
@@ -254,6 +290,8 @@ def create_binary_items_with_context(
             binary_options=binary_options,
             item_template_id=item_template_id,
             metadata=metadata,
+            text_element=text_element,
+            prompt_element=prompt_element,
         )
         binary_items.append(item)
 
@@ -269,6 +307,8 @@ def create_binary_items_from_groups(
     extract_text: Callable[[Item], str] | None = None,
     include_group_metadata: bool = True,
     item_template_id: UUID | None = None,
+    text_element: str = "text",
+    prompt_element: str = "prompt",
 ) -> list[Item]:
     """Create binary items from grouped source items.
 
@@ -291,6 +331,11 @@ def create_binary_items_from_groups(
         Whether to include group key in item metadata.
     item_template_id : UUID | None
         Template ID for all created items. If None, generates one per item.
+    text_element : str
+        Name of the rendered element that holds the stimulus text
+        (default: "text").
+    prompt_element : str
+        Name of the rendered element that holds the prompt (default: "prompt").
 
     Returns
     -------
@@ -349,6 +394,8 @@ def create_binary_items_from_groups(
                 binary_options=binary_options,
                 item_template_id=item_template_id,
                 metadata=metadata,
+                text_element=text_element,
+                prompt_element=prompt_element,
             )
             binary_items.append(binary_item)
 
@@ -362,6 +409,8 @@ def create_binary_items_cross_product(
     *,
     item_template_id: UUID | None = None,
     metadata_fn: (Callable[[str, str], dict[str, MetadataValue]] | None) = None,
+    text_element: str = "text",
+    prompt_element: str = "prompt",
 ) -> list[Item]:
     """Create binary items from cross-product of texts and prompts.
 
@@ -379,6 +428,11 @@ def create_binary_items_cross_product(
         Template ID for all created items.
     metadata_fn : Callable[[str, str], dict[str, MetadataValue]] | None
         Function to generate metadata from (text, prompt).
+    text_element : str
+        Name of the rendered element that holds the stimulus text
+        (default: "text").
+    prompt_element : str
+        Name of the rendered element that holds the prompt (default: "prompt").
 
     Returns
     -------
@@ -406,6 +460,8 @@ def create_binary_items_cross_product(
             binary_options=binary_options,
             item_template_id=item_template_id,
             metadata=metadata,
+            text_element=text_element,
+            prompt_element=prompt_element,
         )
         binary_items.append(item)
 
@@ -420,6 +476,8 @@ def create_filtered_binary_items(
     item_filter: Callable[[Item], bool] | None = None,
     extract_text: Callable[[Item], str] | None = None,
     item_template_id: UUID | None = None,
+    text_element: str = "text",
+    prompt_element: str = "prompt",
 ) -> list[Item]:
     """Create binary items with filtering.
 
@@ -437,6 +495,11 @@ def create_filtered_binary_items(
         Text extraction function.
     item_template_id : UUID | None
         Template ID for created items.
+    text_element : str
+        Name of the rendered element that holds the stimulus text
+        (default: "text").
+    prompt_element : str
+        Name of the rendered element that holds the prompt (default: "prompt").
 
     Returns
     -------
@@ -476,6 +539,8 @@ def create_filtered_binary_items(
             binary_options=binary_options,
             item_template_id=item_template_id,
             metadata=metadata,
+            text_element=text_element,
+            prompt_element=prompt_element,
         )
         binary_items.append(binary_item)
 

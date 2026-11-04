@@ -338,3 +338,135 @@ class TestCreateConfidenceItem:
 
         assert item.item_metadata["task"] == "nli"
         assert item.item_metadata["unit"] == "%"
+
+
+class TestDeclaredElementNames:
+    """Test that magnitude factories write under declared element names."""
+
+    def test_defaults_are_text_prompt_and_unit(self) -> None:
+        """Test the default element names."""
+        item = create_magnitude_item("How long?", unit="ms")
+
+        assert set(item.rendered_elements) == {"text", "prompt", "unit"}
+
+    def test_single_item_uses_declared_names(self) -> None:
+        """Test create_magnitude_item writes under the declared names."""
+        item = create_magnitude_item(
+            "How long?",
+            unit="ms",
+            prompt="Enter a time:",
+            text_element="sentence",
+            prompt_element="question",
+            unit_element="measure",
+        )
+
+        assert item.rendered_elements == {
+            "sentence": "How long?",
+            "question": "Enter a time:",
+            "measure": "ms",
+        }
+
+    def test_colliding_text_and_prompt_raise(self) -> None:
+        """Test that one name for text and prompt is refused."""
+        with pytest.raises(ValueError, match="text_element and prompt_element"):
+            create_magnitude_item(
+                "How long?", text_element="stimulus", prompt_element="stimulus"
+            )
+
+    def test_colliding_unit_raises(self) -> None:
+        """Test that the unit element may not reuse another element's name."""
+        with pytest.raises(ValueError, match="unit_element"):
+            create_magnitude_item("How long?", unit="ms", unit_element="prompt")
+
+    def test_unit_name_unchecked_without_unit(self) -> None:
+        """Test that the unit element name is not checked when no unit is written."""
+        item = create_magnitude_item("How long?", unit_element="prompt")
+
+        assert set(item.rendered_elements) == {"text", "prompt"}
+
+    def test_from_texts_threads_names(self) -> None:
+        """Test create_magnitude_items_from_texts threads the names."""
+        items = create_magnitude_items_from_texts(
+            ["A.", "B."],
+            unit="ms",
+            text_element="sentence",
+            prompt_element="question",
+            unit_element="measure",
+        )
+
+        assert all(
+            set(i.rendered_elements) == {"sentence", "question", "measure"}
+            for i in items
+        )
+
+    def test_from_groups_threads_names(self) -> None:
+        """Test create_magnitude_items_from_groups threads the names."""
+        source = [
+            Item(
+                item_template_id=uuid4(),
+                rendered_elements={"text": "A."},
+                item_metadata={"group": "g"},
+            )
+        ]
+        items = create_magnitude_items_from_groups(
+            source,
+            group_by=lambda i: i.item_metadata["group"],
+            unit="ms",
+            text_element="sentence",
+            prompt_element="question",
+            unit_element="measure",
+        )
+
+        assert set(items[0].rendered_elements) == {"sentence", "question", "measure"}
+
+    def test_cross_product_threads_names(self) -> None:
+        """Test create_magnitude_items_cross_product threads the names."""
+        items = create_magnitude_items_cross_product(
+            ["A."],
+            ["P1", "P2"],
+            unit="ms",
+            text_element="sentence",
+            prompt_element="question",
+            unit_element="measure",
+        )
+
+        assert all(
+            set(i.rendered_elements) == {"sentence", "question", "measure"}
+            for i in items
+        )
+
+    def test_filtered_threads_names(self) -> None:
+        """Test create_filtered_magnitude_items threads the names."""
+        source = [Item(item_template_id=uuid4(), rendered_elements={"text": "A."})]
+        items = create_filtered_magnitude_items(
+            source,
+            unit="ms",
+            text_element="sentence",
+            prompt_element="question",
+            unit_element="measure",
+        )
+
+        assert set(items[0].rendered_elements) == {"sentence", "question", "measure"}
+
+    def test_reading_time_threads_names(self) -> None:
+        """Test create_reading_time_item threads the names."""
+        item = create_reading_time_item(
+            "A.",
+            text_element="sentence",
+            prompt_element="question",
+            unit_element="measure",
+        )
+
+        assert item.rendered_elements["measure"] == "ms"
+        assert set(item.rendered_elements) == {"sentence", "question", "measure"}
+
+    def test_confidence_threads_names(self) -> None:
+        """Test create_confidence_item threads the names."""
+        item = create_confidence_item(
+            "A.",
+            text_element="sentence",
+            prompt_element="question",
+            unit_element="measure",
+        )
+
+        assert item.rendered_elements["measure"] == "%"

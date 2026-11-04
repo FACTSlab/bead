@@ -365,3 +365,55 @@ class TestCreateLikert7Item:
         item = create_likert_7_item("Statement")
 
         assert item.rendered_elements["prompt"] == "Rate your agreement:"
+
+
+class TestDeclaredElementNames:
+    """Test caller-declared element names across the ordinal scale factories."""
+
+    def test_defaults_are_text_and_prompt(self) -> None:
+        """Test the default element names."""
+        item = create_ordinal_scale_item("The cat sat.")
+
+        assert set(item.rendered_elements) == {"text", "prompt"}
+
+    def test_single_item_uses_declared_names(self) -> None:
+        """Test the stimulus and prompt land under the declared names."""
+        item = create_ordinal_scale_item(
+            "The cat sat.",
+            prompt="How natural?",
+            text_element="sentence",
+            prompt_element="question",
+        )
+
+        assert item.rendered_elements == {
+            "sentence": "The cat sat.",
+            "question": "How natural?",
+        }
+
+    def test_colliding_names_raise(self) -> None:
+        """Test that one name for both roles is refused."""
+        with pytest.raises(ValueError, match="must name different elements"):
+            create_ordinal_scale_item(
+                "The cat sat.", text_element="sentence", prompt_element="sentence"
+            )
+
+    def test_batch_helpers_thread_declared_names(self) -> None:
+        """Test every derived and batch helper passes the declared names through."""
+        names = {"text_element": "sentence", "prompt_element": "question"}
+        source = [
+            Item(item_template_id=uuid4(), rendered_elements={"text": "The cat sat."})
+        ]
+        batches = [
+            [create_likert_5_item("Statement", **names)],
+            [create_likert_7_item("Statement", **names)],
+            create_ordinal_scale_items_from_texts(["The cat sat."], **names),
+            create_ordinal_scale_items_from_groups(
+                source, group_by=lambda i: "g", **names
+            ),
+            create_ordinal_scale_items_cross_product(["T."], ["Q?"], **names),
+            create_filtered_ordinal_scale_items(source, **names),
+        ]
+
+        for batch in batches:
+            assert len(batch) == 1
+            assert set(batch[0].rendered_elements) == {"sentence", "question"}

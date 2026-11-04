@@ -27,6 +27,9 @@ def create_categorical_item(
     prompt: str | None = None,
     item_template_id: UUID | None = None,
     metadata: dict[str, MetadataValue] | None = None,
+    *,
+    text_element: str = "text",
+    prompt_element: str = "prompt",
 ) -> Item:
     """Create a categorical classification item.
 
@@ -43,16 +46,23 @@ def create_categorical_item(
         Template ID for the item. If None, generates new UUID.
     metadata : dict[str, MetadataValue] | None
         Additional metadata for item_metadata field.
+    text_element : str
+        Name of the rendered element that holds the stimulus text
+        (default: "text").
+    prompt_element : str
+        Name of the rendered element that holds the prompt (default: "prompt").
 
     Returns
     -------
     Item
-        Categorical item with text and prompt in rendered_elements.
+        Categorical item with the stimulus and prompt stored under the
+        declared element names.
 
     Raises
     ------
     ValueError
-        If text is empty or if fewer than 2 categories provided.
+        If text is empty, if fewer than 2 categories provided, or if
+        text_element and prompt_element name the same element.
 
     Examples
     --------
@@ -77,6 +87,15 @@ def create_categorical_item(
     ... )
     >>> len(item.item_metadata["categories"])
     5
+
+    >>> # Declared element names
+    >>> item = create_categorical_item(
+    ...     text="The cat sat.",
+    ...     categories=["past", "present"],
+    ...     text_element="sentence",
+    ... )
+    >>> item.rendered_elements["sentence"]
+    'The cat sat.'
     """
     if not text or not text.strip():
         raise ValueError("text cannot be empty")
@@ -90,9 +109,12 @@ def create_categorical_item(
     if prompt is None:
         prompt = "Select a category:"
 
+    if text_element == prompt_element:
+        raise ValueError("text_element and prompt_element must name different elements")
+
     rendered_elements: dict[str, str] = {
-        "text": text,
-        "prompt": prompt,
+        text_element: text,
+        prompt_element: prompt,
     }
 
     # Build item metadata
@@ -116,6 +138,9 @@ def create_nli_item(
     prompt: str | None = None,
     item_template_id: UUID | None = None,
     metadata: dict[str, MetadataValue] | None = None,
+    *,
+    text_element: str = "text",
+    prompt_element: str = "prompt",
 ) -> Item:
     """Create a Natural Language Inference (NLI) item.
 
@@ -136,6 +161,11 @@ def create_nli_item(
         Template ID for the item. If None, generates new UUID.
     metadata : dict[str, MetadataValue] | None
         Additional metadata for item_metadata field.
+    text_element : str
+        Name of the rendered element that holds the stimulus text
+        (default: "text").
+    prompt_element : str
+        Name of the rendered element that holds the prompt (default: "prompt").
 
     Returns
     -------
@@ -190,6 +220,8 @@ def create_nli_item(
         prompt=prompt,
         item_template_id=item_template_id,
         metadata=nli_metadata,
+        text_element=text_element,
+        prompt_element=prompt_element,
     )
 
 
@@ -200,6 +232,8 @@ def create_categorical_items_from_texts(
     *,
     item_template_id: UUID | None = None,
     metadata_fn: Callable[[str], dict[str, MetadataValue]] | None = None,
+    text_element: str = "text",
+    prompt_element: str = "prompt",
 ) -> list[Item]:
     """Create categorical items from a list of texts with the same categories.
 
@@ -215,6 +249,11 @@ def create_categorical_items_from_texts(
         Template ID for all created items. If None, generates one per item.
     metadata_fn : Callable[[str], dict[str, MetadataValue]] | None
         Function to generate metadata from each text.
+    text_element : str
+        Name of the rendered element that holds the stimulus text
+        (default: "text").
+    prompt_element : str
+        Name of the rendered element that holds the prompt (default: "prompt").
 
     Returns
     -------
@@ -248,6 +287,8 @@ def create_categorical_items_from_texts(
             prompt=prompt,
             item_template_id=item_template_id,
             metadata=metadata,
+            text_element=text_element,
+            prompt_element=prompt_element,
         )
         categorical_items.append(item)
 
@@ -263,6 +304,8 @@ def create_categorical_items_from_pairs(
     pair_label2: str = "Text 2",
     item_template_id: UUID | None = None,
     metadata_fn: (Callable[[str, str], dict[str, MetadataValue]] | None) = None,
+    text_element: str = "text",
+    prompt_element: str = "prompt",
 ) -> list[Item]:
     """Create categorical items from pairs of texts.
 
@@ -284,6 +327,11 @@ def create_categorical_items_from_pairs(
         Template ID for all created items. If None, generates one per item.
     metadata_fn : Callable[[str, str], dict[str, MetadataValue]] | None
         Function to generate metadata from (text1, text2).
+    text_element : str
+        Name of the rendered element that holds the stimulus text
+        (default: "text").
+    prompt_element : str
+        Name of the rendered element that holds the prompt (default: "prompt").
 
     Returns
     -------
@@ -327,6 +375,8 @@ def create_categorical_items_from_pairs(
             prompt=prompt,
             item_template_id=item_template_id,
             metadata=metadata,
+            text_element=text_element,
+            prompt_element=prompt_element,
         )
         categorical_items.append(item)
 
@@ -342,6 +392,8 @@ def create_categorical_items_from_groups(
     extract_text: Callable[[Item], str] | None = None,
     include_group_metadata: bool = True,
     item_template_id: UUID | None = None,
+    text_element: str = "text",
+    prompt_element: str = "prompt",
 ) -> list[Item]:
     """Create categorical items from grouped source items.
 
@@ -364,6 +416,11 @@ def create_categorical_items_from_groups(
         Whether to include group key in item metadata.
     item_template_id : UUID | None
         Template ID for all created items. If None, generates one per item.
+    text_element : str
+        Name of the rendered element that holds the stimulus text
+        (default: "text").
+    prompt_element : str
+        Name of the rendered element that holds the prompt (default: "prompt").
 
     Returns
     -------
@@ -423,6 +480,8 @@ def create_categorical_items_from_groups(
                 prompt=prompt,
                 item_template_id=item_template_id,
                 metadata=metadata,
+                text_element=text_element,
+                prompt_element=prompt_element,
             )
             categorical_items.append(categorical_item)
 
@@ -436,6 +495,8 @@ def create_categorical_items_cross_product(
     *,
     item_template_id: UUID | None = None,
     metadata_fn: (Callable[[str, str], dict[str, MetadataValue]] | None) = None,
+    text_element: str = "text",
+    prompt_element: str = "prompt",
 ) -> list[Item]:
     """Create categorical items from cross-product of texts and prompts.
 
@@ -453,6 +514,11 @@ def create_categorical_items_cross_product(
         Template ID for all created items.
     metadata_fn : Callable[[str, str], dict[str, MetadataValue]] | None
         Function to generate metadata from (text, prompt).
+    text_element : str
+        Name of the rendered element that holds the stimulus text
+        (default: "text").
+    prompt_element : str
+        Name of the rendered element that holds the prompt (default: "prompt").
 
     Returns
     -------
@@ -483,6 +549,8 @@ def create_categorical_items_cross_product(
             prompt=prompt,
             item_template_id=item_template_id,
             metadata=metadata,
+            text_element=text_element,
+            prompt_element=prompt_element,
         )
         categorical_items.append(item)
 
@@ -497,6 +565,8 @@ def create_filtered_categorical_items(
     item_filter: Callable[[Item], bool] | None = None,
     extract_text: Callable[[Item], str] | None = None,
     item_template_id: UUID | None = None,
+    text_element: str = "text",
+    prompt_element: str = "prompt",
 ) -> list[Item]:
     """Create categorical items with filtering.
 
@@ -514,6 +584,11 @@ def create_filtered_categorical_items(
         Text extraction function.
     item_template_id : UUID | None
         Template ID for created items.
+    text_element : str
+        Name of the rendered element that holds the stimulus text
+        (default: "text").
+    prompt_element : str
+        Name of the rendered element that holds the prompt (default: "prompt").
 
     Returns
     -------
@@ -554,6 +629,8 @@ def create_filtered_categorical_items(
             prompt=prompt,
             item_template_id=item_template_id,
             metadata=metadata,
+            text_element=text_element,
+            prompt_element=prompt_element,
         )
         categorical_items.append(categorical_item)
 

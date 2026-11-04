@@ -341,3 +341,135 @@ class TestCreateSpanItemsFromTexts:
         assert all(len(item.spans) == 1 for item in items)
         assert items[0].rendered_elements["text"] == "Hello world."
         assert items[1].rendered_elements["text"] == "Goodbye world."
+
+
+class TestDeclaredElementNames:
+    """Test that span factories write the element names the caller declares."""
+
+    def _sentence_span(self) -> Span:
+        return Span(
+            span_id="span_0",
+            segments=[SpanSegment(element_name="sentence", indices=[0])],
+            label=SpanLabel(label="First"),
+        )
+
+    def test_create_span_item_declared_names(self) -> None:
+        """Declared names key the rendered, tokenized, and spacing elements."""
+        item = create_span_item(
+            text="Hello world.",
+            spans=[self._sentence_span()],
+            prompt="Label it.",
+            tokens=["Hello", "world."],
+            text_element="sentence",
+            prompt_element="question",
+        )
+
+        assert item.rendered_elements == {
+            "sentence": "Hello world.",
+            "question": "Label it.",
+        }
+        assert item.tokenized_elements == {"sentence": ("Hello", "world.")}
+        assert set(item.token_space_after) == {"sentence"}
+
+    def test_create_span_item_tokenizer_uses_declared_name(self) -> None:
+        """Tokenizer output is keyed by the declared text element."""
+        item = create_span_item(
+            text="Hello world.",
+            spans=[self._sentence_span()],
+            prompt="Label it.",
+            tokenizer_config=TokenizerConfig(backend="whitespace"),
+            text_element="sentence",
+        )
+
+        assert set(item.tokenized_elements) == {"sentence"}
+        assert set(item.token_space_after) == {"sentence"}
+        assert item.rendered_elements["prompt"] == "Label it."
+
+    def test_create_span_item_default_names(self) -> None:
+        """Without declarations the elements are named text and prompt."""
+        item = create_span_item(
+            text="Hello world.",
+            spans=[],
+            prompt="Label it.",
+            tokens=["Hello", "world."],
+        )
+
+        assert set(item.rendered_elements) == {"text", "prompt"}
+        assert set(item.tokenized_elements) == {"text"}
+
+    def test_create_span_item_colliding_names_raise(self) -> None:
+        """Declaring the same name for text and prompt raises ValueError."""
+        with pytest.raises(ValueError, match="must name different elements"):
+            create_span_item(
+                text="Hello world.",
+                spans=[],
+                prompt="Label it.",
+                tokens=["Hello", "world."],
+                text_element="body",
+                prompt_element="body",
+            )
+
+    def test_create_interactive_span_item_declared_names(self) -> None:
+        """Interactive span items write the declared element names."""
+        item = create_interactive_span_item(
+            text="Hello world.",
+            prompt="Select spans.",
+            tokens=["Hello", "world."],
+            text_element="sentence",
+            prompt_element="question",
+        )
+
+        assert item.rendered_elements == {
+            "sentence": "Hello world.",
+            "question": "Select spans.",
+        }
+        assert set(item.tokenized_elements) == {"sentence"}
+        assert set(item.token_space_after) == {"sentence"}
+
+    def test_create_interactive_span_item_colliding_names_raise(self) -> None:
+        """Interactive span items refuse colliding element names."""
+        with pytest.raises(ValueError, match="must name different elements"):
+            create_interactive_span_item(
+                text="Hello world.",
+                prompt="Select spans.",
+                tokens=["Hello", "world."],
+                text_element="body",
+                prompt_element="body",
+            )
+
+    def test_add_spans_to_item_reads_declared_prompt(self) -> None:
+        """The label-reference check reads the declared prompt element."""
+        item = Item(
+            item_template_id=uuid4(),
+            rendered_elements={
+                "sentence": "Hello world.",
+                "question": "Is [[Missing]] there?",
+            },
+            tokenized_elements={
+                "sentence": ("Hello", "world."),
+                "question": ("Is", "[[Missing]]", "there?"),
+            },
+        )
+
+        with pytest.warns(UserWarning, match=r"\[\[Missing\]\]"):
+            add_spans_to_item(item, [self._sentence_span()], prompt_element="question")
+
+    def test_create_span_items_from_texts_threads_names(self) -> None:
+        """Batch creation threads the declared names to every item."""
+
+        def extractor(text: str, tokens: list[str]) -> list[Span]:
+            return [self._sentence_span()]
+
+        items = create_span_items_from_texts(
+            texts=["Hello world.", "Goodbye world."],
+            span_extractor=extractor,
+            prompt="Label first word.",
+            tokenizer_config=TokenizerConfig(backend="whitespace"),
+            text_element="sentence",
+            prompt_element="question",
+        )
+
+        assert all(
+            set(item.rendered_elements) == {"sentence", "question"} for item in items
+        )
+        assert all(set(item.tokenized_elements) == {"sentence"} for item in items)

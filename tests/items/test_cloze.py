@@ -552,3 +552,132 @@ class TestCreateFilteredClozeItems:
         # Only verb slot has constraints, so 1 item
         assert len(cloze_items) == 1
         assert cloze_items[0].unfilled_slots[0].slot_name == "verb"
+
+
+class TestDeclaredElementNames:
+    """Test that cloze factories write the element names the caller declares."""
+
+    def _template(self) -> Template:
+        return Template(
+            name="simple",
+            template_string="{det} {noun} {verb}.",
+            slots={
+                "det": Slot(name="det"),
+                "noun": Slot(name="noun"),
+                "verb": Slot(name="verb"),
+            },
+        )
+
+    def test_create_cloze_item_declared_names(self) -> None:
+        """Declared names key the text and instructions elements."""
+        item = create_cloze_item(
+            self._template(),
+            unfilled_slot_names=["verb"],
+            filled_slots={"det": "The", "noun": "cat"},
+            instructions="Fill in the verb.",
+            text_element="sentence",
+            instructions_element="directions",
+        )
+
+        assert item.rendered_elements == {
+            "sentence": "The cat ___.",
+            "directions": "Fill in the verb.",
+        }
+
+    def test_create_cloze_item_default_names(self) -> None:
+        """Without declarations the elements are named text and instructions."""
+        item = create_cloze_item(
+            self._template(),
+            unfilled_slot_names=["verb"],
+            instructions="Fill in the verb.",
+        )
+
+        assert set(item.rendered_elements) == {"text", "instructions"}
+
+    def test_create_cloze_item_colliding_names_raise(self) -> None:
+        """Colliding names raise when instructions are written."""
+        with pytest.raises(ValueError, match="must name different elements"):
+            create_cloze_item(
+                self._template(),
+                unfilled_slot_names=["verb"],
+                instructions="Fill in the verb.",
+                text_element="body",
+                instructions_element="body",
+            )
+
+    def test_create_cloze_item_colliding_names_without_instructions(self) -> None:
+        """Colliding names are accepted when no instructions are written."""
+        item = create_cloze_item(
+            self._template(),
+            unfilled_slot_names=["verb"],
+            text_element="body",
+            instructions_element="body",
+        )
+
+        assert set(item.rendered_elements) == {"body"}
+
+    def test_create_simple_cloze_item_declared_names(self) -> None:
+        """Simple cloze items write the declared element names."""
+        item = create_simple_cloze_item(
+            text="The quick brown fox",
+            blank_positions=[1],
+            instructions="Fill in the blank.",
+            text_element="sentence",
+            instructions_element="directions",
+        )
+
+        assert item.rendered_elements == {
+            "sentence": "The ___ brown fox",
+            "directions": "Fill in the blank.",
+        }
+
+    def test_create_simple_cloze_item_colliding_names_raise(self) -> None:
+        """Simple cloze items refuse colliding element names."""
+        with pytest.raises(ValueError, match="must name different elements"):
+            create_simple_cloze_item(
+                text="The quick brown fox",
+                blank_positions=[1],
+                instructions="Fill in the blank.",
+                text_element="body",
+                instructions_element="body",
+            )
+
+    def test_from_template_threads_names(self) -> None:
+        """Template expansion threads the declared names to every item."""
+        items = create_cloze_items_from_template(
+            self._template(),
+            n_unfilled=1,
+            instructions="Fill it in.",
+            text_element="sentence",
+            instructions_element="directions",
+        )
+
+        assert len(items) == 3
+        assert all(
+            set(item.rendered_elements) == {"sentence", "directions"} for item in items
+        )
+
+    def test_from_groups_threads_names(self) -> None:
+        """Group-based creation threads the declared names to every item."""
+        source = [
+            Item(item_template_id=uuid4(), rendered_elements={"text": "She walks."}),
+        ]
+
+        items = create_cloze_items_from_groups(
+            source,
+            group_by=lambda i: "all",
+            text_element="sentence",
+        )
+
+        assert items[0].rendered_elements == {"sentence": "___ walks."}
+
+    def test_filtered_threads_names(self) -> None:
+        """Filtered creation threads the declared names to every item."""
+        items = create_filtered_cloze_items(
+            [self._template()],
+            n_slots_to_unfill=1,
+            text_element="sentence",
+        )
+
+        assert len(items) == 3
+        assert all(set(item.rendered_elements) == {"sentence"} for item in items)
