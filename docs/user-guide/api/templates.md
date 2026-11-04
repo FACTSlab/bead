@@ -119,6 +119,8 @@ combinations = strategy.generate_combinations(slot_items)
 print(f"Generated {len(list(combinations))} combinations")
 ```
 
+`grouping_property` is a dotted path. Each segment is read as a key when the value reached so far is a mapping and as an attribute otherwise, so `"features.frame"` groups items by the `frame` entry of their `features`. Items whose path does not resolve share the `"unknown"` group.
+
 ### MLM-Based Strategies (generate_from_template)
 
 These strategies use masked language models and work directly with templates:

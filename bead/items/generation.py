@@ -39,7 +39,7 @@ def create_cross_product_items(
     templates: list[Template],
     lexicons: dict[str, Lexicon],
     *,
-    cross_product_slot: str = "verb",
+    cross_product_slot: str,
     metadata_extractor: (
         Callable[[Template, LexicalItem], dict[str, MetadataValue]] | None
     ) = None,
@@ -61,8 +61,9 @@ def create_cross_product_items(
     lexicons : dict[str, Lexicon]
         Lexicons keyed by slot name.
     cross_product_slot : str
-        Slot name to vary across items (default: "verb").
-        This slot's lexicon will be crossed with all templates.
+        Slot name to vary across items. This slot's lexicon is crossed with
+        all templates, and the ``<slot>_lemma`` and ``<slot>_form`` rendered
+        elements are named after it.
     metadata_extractor : Callable[[Template, LexicalItem], \
             dict[str, MetadataValue]] | None
         Optional function to extract metadata from template and lexical item.
@@ -79,7 +80,6 @@ def create_cross_product_items(
     Examples
     --------
     Basic verb × template cross-product:
-    >>> from uuid import uuid4
     >>> templates = [
     ...     Template(
     ...         name="transitive",
@@ -87,13 +87,21 @@ def create_cross_product_items(
     ...         slots={}
     ...     )
     ... ]
-    >>> verb_lex = Lexicon(name="verbs")
-    >>> verb_lex.add(LexicalItem(lemma="walk"))
-    >>> verb_lex.add(LexicalItem(lemma="eat"))
+    >>> verb_lex = Lexicon(
+    ...     name="verbs",
+    ...     items=(
+    ...         LexicalItem(lemma="walk", language_code="eng"),
+    ...         LexicalItem(lemma="eat", language_code="eng"),
+    ...     ),
+    ... )
     >>> lexicons = {"verb": verb_lex}
-    >>> items = list(create_cross_product_items(templates, lexicons))
+    >>> items = list(
+    ...     create_cross_product_items(templates, lexicons, cross_product_slot="verb")
+    ... )
     >>> len(items)
     2
+    >>> items[0].rendered_elements["verb_lemma"]
+    'walk'
 
     With metadata extraction:
     >>> def extract_metadata(template, item):
@@ -105,6 +113,7 @@ def create_cross_product_items(
     >>> items = list(create_cross_product_items(
     ...     templates,
     ...     lexicons,
+    ...     cross_product_slot="verb",
     ...     metadata_extractor=extract_metadata
     ... ))  # doctest: +SKIP
 
@@ -114,6 +123,7 @@ def create_cross_product_items(
     >>> items = list(create_cross_product_items(
     ...     templates,
     ...     lexicons,
+    ...     cross_product_slot="verb",
     ...     filter_fn=filter_transitive_only
     ... ))  # doctest: +SKIP
     """
@@ -206,7 +216,7 @@ def create_filtered_cross_product_items(
     templates: list[Template],
     lexicons: dict[str, Lexicon],
     *,
-    cross_product_slot: str = "verb",
+    cross_product_slot: str,
     template_filter: Callable[[Template], bool] | None = None,
     item_filter: Callable[[LexicalItem], bool] | None = None,
     combination_filter: Callable[[Template, LexicalItem], bool] | None = None,
@@ -255,6 +265,7 @@ def create_filtered_cross_product_items(
     >>> items = list(create_filtered_cross_product_items(
     ...     templates,
     ...     lexicons,
+    ...     cross_product_slot="verb",
     ...     template_filter=template_filter,
     ...     item_filter=item_filter,
     ...     combination_filter=combination_filter
@@ -309,7 +320,7 @@ def create_stratified_cross_product_items(
     templates: list[Template],
     lexicons: dict[str, Lexicon],
     *,
-    cross_product_slot: str = "verb",
+    cross_product_slot: str,
     stratify_by: Callable[[LexicalItem], str],
     items_per_stratum: int,
     metadata_extractor: (
@@ -357,6 +368,7 @@ def create_stratified_cross_product_items(
     >>> items = list(create_stratified_cross_product_items(
     ...     templates,
     ...     lexicons,
+    ...     cross_product_slot="verb",
     ...     stratify_by=stratify_by_frequency,
     ...     items_per_stratum=10
     ... ))  # doctest: +SKIP
@@ -416,7 +428,9 @@ def items_to_jsonl(
 
     Examples
     --------
-    >>> items = create_cross_product_items(templates, lexicons)  # doctest: +SKIP
+    >>> items = create_cross_product_items(
+    ...     templates, lexicons, cross_product_slot="verb"
+    ... )  # doctest: +SKIP
     >>> n = items_to_jsonl(items, "output.jsonl")  # doctest: +SKIP
     >>> print(f"Wrote {n} items")  # doctest: +SKIP
     """

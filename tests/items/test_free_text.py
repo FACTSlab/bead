@@ -383,3 +383,121 @@ class TestCreateWhQuestionItem:
 
         assert item.item_metadata["task"] == "qa"
         assert item.item_metadata["multiline"] is False
+
+
+class TestDeclaredElementNames:
+    """Test that free text factories write under declared element names."""
+
+    def test_defaults_are_text_and_prompt(self) -> None:
+        """Test the default element names."""
+        item = create_free_text_item("The cat sat.", prompt="Who sat?")
+
+        assert set(item.rendered_elements) == {"text", "prompt"}
+
+    def test_single_item_uses_declared_names(self) -> None:
+        """Test create_free_text_item writes under the declared names."""
+        item = create_free_text_item(
+            "The cat sat.",
+            prompt="Who sat?",
+            text_element="sentence",
+            prompt_element="question",
+        )
+
+        assert item.rendered_elements == {
+            "sentence": "The cat sat.",
+            "question": "Who sat?",
+        }
+
+    def test_colliding_names_raise(self) -> None:
+        """Test that one name for both elements is refused."""
+        with pytest.raises(ValueError, match="text_element and prompt_element"):
+            create_free_text_item(
+                "The cat sat.",
+                prompt="Who sat?",
+                text_element="stimulus",
+                prompt_element="stimulus",
+            )
+
+    def test_from_texts_threads_names(self) -> None:
+        """Test create_free_text_items_from_texts threads the names."""
+        items = create_free_text_items_from_texts(
+            ["A.", "B."],
+            prompt="Paraphrase:",
+            text_element="sentence",
+            prompt_element="question",
+        )
+
+        assert all(set(i.rendered_elements) == {"sentence", "question"} for i in items)
+
+    def test_with_context_threads_names(self) -> None:
+        """Test create_free_text_items_with_context threads the names."""
+        items = create_free_text_items_with_context(
+            ["The cat sat."],
+            ["Who sat?"],
+            text_element="passage",
+            prompt_element="question",
+        )
+
+        assert items[0].rendered_elements == {
+            "passage": "The cat sat.",
+            "question": "Who sat?",
+        }
+
+    def test_from_groups_threads_names(self) -> None:
+        """Test create_free_text_items_from_groups threads the names."""
+        source = [
+            Item(
+                item_template_id=uuid4(),
+                rendered_elements={"text": "A."},
+                item_metadata={"group": "g"},
+            )
+        ]
+        items = create_free_text_items_from_groups(
+            source,
+            group_by=lambda i: i.item_metadata["group"],
+            prompt="Paraphrase:",
+            text_element="sentence",
+            prompt_element="question",
+        )
+
+        assert set(items[0].rendered_elements) == {"sentence", "question"}
+
+    def test_cross_product_threads_names(self) -> None:
+        """Test create_free_text_items_cross_product threads the names."""
+        items = create_free_text_items_cross_product(
+            ["A."],
+            ["P1", "P2"],
+            text_element="sentence",
+            prompt_element="question",
+        )
+
+        assert all(set(i.rendered_elements) == {"sentence", "question"} for i in items)
+
+    def test_filtered_threads_names(self) -> None:
+        """Test create_filtered_free_text_items threads the names."""
+        source = [Item(item_template_id=uuid4(), rendered_elements={"text": "A."})]
+        items = create_filtered_free_text_items(
+            source,
+            prompt="Paraphrase:",
+            text_element="sentence",
+            prompt_element="question",
+        )
+
+        assert set(items[0].rendered_elements) == {"sentence", "question"}
+
+    def test_paraphrase_threads_names(self) -> None:
+        """Test create_paraphrase_item threads the names."""
+        item = create_paraphrase_item(
+            "A.", text_element="sentence", prompt_element="instruction"
+        )
+
+        assert item.rendered_elements["instruction"] == "Rewrite in your own words:"
+        assert item.rendered_elements["sentence"] == "A."
+
+    def test_wh_question_threads_names(self) -> None:
+        """Test create_wh_question_item threads the names."""
+        item = create_wh_question_item(
+            "A.", text_element="passage", prompt_element="question"
+        )
+
+        assert set(item.rendered_elements) == {"passage", "question"}

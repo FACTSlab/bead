@@ -88,6 +88,19 @@ item = create_ordinal_scale_item(
 )
 ```
 
+**Element names**: each factory stores the stimulus and the prompt under the rendered elements `"text"` and `"prompt"` unless the caller declares other names with `text_element` and `prompt_element`. The batch helpers take the same keywords, and the names must match the `elements` of the `ItemTemplate` the items are validated against.
+
+```python
+from bead.items.ordinal_scale import create_ordinal_scale_item
+
+item = create_ordinal_scale_item(
+    "The cat sleeps",
+    text_element="sentence",
+    prompt_element="question",
+)
+print(sorted(item.rendered_elements))
+```
+
 **Batch creation**:
 
 ```python

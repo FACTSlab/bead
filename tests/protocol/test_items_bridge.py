@@ -6,6 +6,7 @@ import pytest
 
 from bead.active_learning.models import ForcedChoiceModel, model_class_for_encoding
 from bead.items.item_template import ItemTemplate, PresentationSpec
+from bead.items.validation import validate_item
 from bead.protocol import (
     AnnotationProtocol,
     ContextItem,
@@ -220,6 +221,106 @@ class TestRealizationToItem:
         assert labels_to_indices["situation"] == (2,)
         # participant → dependent span (1, 2) → 0-based (0, 1)
         assert labels_to_indices["participant"] == (0, 1)
+
+
+class TestDeclaredElementNames:
+    """Element names are declared by the caller and agree across the bridge."""
+
+    def test_template_declares_elements(self) -> None:
+        family = QuestionFamily(anchor=_build_binary_anchor())
+        template = family_to_item_template(
+            family,
+            judgment_type="acceptability",
+            text_element="sentence",
+            prompt_element="question",
+        )
+        names = {e.element_name for e in template.elements}
+        assert names == {"sentence", "question"}
+
+    def test_item_uses_declared_elements(self) -> None:
+        family = QuestionFamily(anchor=_build_binary_anchor())
+        template = family_to_item_template(
+            family,
+            judgment_type="acceptability",
+            text_element="sentence",
+            prompt_element="question",
+        )
+        ctx = ProtocolContext(
+            sentence="Mary built a sandcastle.",
+            tokens=("Mary", "built", "a", "sandcastle", "."),
+            target_position=2,
+            target_span_text="built a sandcastle",
+            target_span_positions=(2, 3, 4),
+        )
+        realization = family.realize(ctx)
+        item = realization_to_item(
+            realization,
+            item_template=template,
+            text_element="sentence",
+            prompt_element="question",
+        )
+        assert item.rendered_elements == {
+            "sentence": "Mary built a sandcastle.",
+            "question": realization.prompt,
+        }
+        assert item.tokenized_elements == {"sentence": ctx.tokens}
+        assert item.spans[0].segments[0].element_name == "sentence"
+        assert validate_item(item, template) == []
+
+    def test_item_refuses_undeclared_elements(self) -> None:
+        family = QuestionFamily(anchor=_build_binary_anchor())
+        template = family_to_item_template(family, judgment_type="acceptability")
+        realization = family.realize(ProtocolContext(sentence="Plain text."))
+        with pytest.raises(ValueError, match="sentence"):
+            realization_to_item(
+                realization, item_template=template, text_element="sentence"
+            )
+
+    def test_colliding_names_refused(self) -> None:
+        family = QuestionFamily(anchor=_build_binary_anchor())
+        with pytest.raises(ValueError, match="must name different elements"):
+            family_to_item_template(
+                family,
+                judgment_type="acceptability",
+                text_element="text",
+                prompt_element="text",
+            )
+
+    def test_protocol_threads_declared_elements(self) -> None:
+        proto = AnnotationProtocol(
+            families=[QuestionFamily(anchor=_build_binary_anchor())]
+        )
+        ctx = ProtocolContext(
+            sentence="Mary built a sandcastle.",
+            target_span_text="built a sandcastle",
+            target_span_positions=(2, 3, 4),
+        )
+        templates = protocol_to_item_templates(
+            proto,
+            judgment_type="acceptability",
+            text_element="sentence",
+            prompt_element="question",
+        )
+        pairs = realize_protocol_to_items(
+            proto,
+            ctx,
+            judgment_type="acceptability",
+            item_templates=templates,
+            text_element="sentence",
+            prompt_element="question",
+        )
+        realization, item = pairs[0]
+        assert item.rendered_elements["question"] == realization.prompt
+        assert validate_item(item, templates["completion"]) == []
+
+        fresh = realize_protocol_to_items(
+            proto,
+            ctx,
+            judgment_type="acceptability",
+            text_element="sentence",
+            prompt_element="question",
+        )
+        assert set(fresh[0][1].rendered_elements) == {"sentence", "question"}
 
 
 class TestProtocolToItemTemplates:

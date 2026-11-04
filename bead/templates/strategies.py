@@ -7,7 +7,7 @@ import random
 import re
 import time
 from abc import ABC, abstractmethod
-from collections.abc import Iterator
+from collections.abc import Iterator, Mapping
 from typing import Literal, cast
 from uuid import UUID
 
@@ -342,6 +342,10 @@ class StratifiedStrategy(FillingStrategy):
     def _get_property_value(self, item: LexicalItem, property_path: str) -> str:
         """Get property value from item, handling nested properties.
 
+        Each dotted segment is looked up as a key when the current value is
+        a mapping (such as ``features``) and as an attribute otherwise, so
+        ``"features.transitivity"`` reads the ``transitivity`` feature.
+
         Parameters
         ----------
         item : LexicalItem
@@ -352,12 +356,17 @@ class StratifiedStrategy(FillingStrategy):
         Returns
         -------
         str
-            Property value as string.
+            Property value as string, or "unknown" when a segment of the
+            path does not resolve.
         """
         parts = property_path.split(".")
         value = item
         for part in parts:
-            if hasattr(value, part):
+            if isinstance(value, Mapping):
+                if part not in value:
+                    return "unknown"
+                value = value[part]
+            elif hasattr(value, part):
                 value = getattr(value, part)
             else:
                 return "unknown"

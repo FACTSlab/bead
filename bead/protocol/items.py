@@ -96,6 +96,8 @@ def family_to_item_template(
     *,
     judgment_type: JudgmentType,
     presentation_spec: PresentationSpec | None = None,
+    text_element: str = "text",
+    prompt_element: str = "prompt",
 ) -> ItemTemplate:
     """Build the :class:`ItemTemplate` for a :class:`QuestionFamily`.
 
@@ -113,7 +115,7 @@ def family_to_item_template(
     The ``prompt`` field of the template's :class:`TaskSpec` is the
     anchor's canonical prompt (with ``[[label]]`` references intact);
     individual realizations override the prompt at item-construction
-    time via the ``prompt`` rendered-element on the resulting
+    time via the ``prompt_element`` rendered element on the resulting
     :class:`Item`.
 
     Parameters
@@ -127,14 +129,27 @@ def family_to_item_template(
     presentation_spec : PresentationSpec | None, optional
         Custom presentation spec. Defaults to a fresh
         :class:`PresentationSpec` with mode ``"static"``.
+    text_element : str, default="text"
+        Name of the element that holds the context sentence.
+    prompt_element : str, default="prompt"
+        Name of the element that holds the realized question.
 
     Returns
     -------
     ItemTemplate
         Template with ``name`` set to the anchor name, ``task_type``
-        derived from the scale, and ``elements`` covering ``"text"``
-        (the sentence) and ``"prompt"`` (the realized question).
+        derived from the scale, and ``elements`` covering
+        ``text_element`` (the sentence) and ``prompt_element`` (the
+        realized question).
+
+    Raises
+    ------
+    ValueError
+        If ``text_element`` and ``prompt_element`` are the same name.
     """
+    if text_element == prompt_element:
+        raise ValueError("text_element and prompt_element must name different elements")
+
     encoding = encode_response_space(family.anchor.name, family.anchor.response_space)
     task_type = scale_type_to_task_type(encoding.scale_type)
 
@@ -165,13 +180,13 @@ def family_to_item_template(
     elements = (
         ItemElement(
             element_type="text",
-            element_name="text",
+            element_name=text_element,
             content="",
             order=0,
         ),
         ItemElement(
             element_type="text",
-            element_name="prompt",
+            element_name=prompt_element,
             content=family.anchor.canonical_prompt,
             order=1,
         ),
@@ -189,6 +204,7 @@ def family_to_item_template(
 
 def _spans_from_context(
     realization: QuestionRealization,
+    text_element: str,
 ) -> tuple[Span, ...]:
     """Extract :class:`Span` objects from a realization's context.
 
@@ -202,6 +218,8 @@ def _spans_from_context(
     ----------
     realization : QuestionRealization
         The realized question carrying the context.
+    text_element : str
+        Name of the element whose tokens the spans index.
 
     Returns
     -------
@@ -228,7 +246,7 @@ def _spans_from_context(
                         span_id=f"{anchor.name}-{label}",
                         segments=(
                             SpanSegment(
-                                element_name="text",
+                                element_name=text_element,
                                 indices=tuple(i - 1 for i in dep.span_positions),
                             ),
                         ),
@@ -246,7 +264,7 @@ def _spans_from_context(
                     span_id=f"{anchor.name}-{label}",
                     segments=(
                         SpanSegment(
-                            element_name="text",
+                            element_name=text_element,
                             indices=tuple(i - 1 for i in context.target_span_positions),
                         ),
                     ),
@@ -266,12 +284,14 @@ def realization_to_item(
     realization: QuestionRealization,
     *,
     item_template: ItemTemplate,
+    text_element: str = "text",
+    prompt_element: str = "prompt",
 ) -> Item:
     """Package a :class:`QuestionRealization` as an :class:`Item`.
 
     The resulting :class:`Item` references ``item_template`` by id,
-    rendering the realization's prompt as the ``"prompt"`` element and
-    the context's sentence as the ``"text"`` element. Tokenized
+    rendering the realization's prompt as the ``prompt_element`` element
+    and the context's sentence as the ``text_element`` element. Tokenized
     elements are populated from
     :attr:`ProtocolContext.tokens` when present; spans for the
     anchor's ``required_span_labels`` are derived via
@@ -285,25 +305,45 @@ def realization_to_item(
     item_template : ItemTemplate
         The template returned by :func:`family_to_item_template` for
         the originating family. The bridge does not validate that the
-        template was produced from the same family — the caller is
+        template was produced from the same family; the caller is
         responsible for matching them.
+    text_element : str, default="text"
+        Name of the element that holds the context sentence. The
+        template must declare it.
+    prompt_element : str, default="prompt"
+        Name of the element that holds the realized question. The
+        template must declare it.
 
     Returns
     -------
     Item
         Item bound to the template, with the realization's prompt and
         context materialized.
+
+    Raises
+    ------
+    ValueError
+        If ``item_template`` does not declare ``text_element`` and
+        ``prompt_element``.
     """
+    declared = {element.element_name for element in item_template.elements}
+    undeclared = sorted({text_element, prompt_element} - declared)
+    if undeclared:
+        raise ValueError(
+            f"item template {item_template.name!r} does not declare the "
+            f"elements {undeclared}; it declares {sorted(declared)}"
+        )
+
     context = realization.context
     rendered_elements = {
-        "text": context.sentence,
-        "prompt": realization.prompt,
+        text_element: context.sentence,
+        prompt_element: realization.prompt,
     }
     tokenized_elements: dict[str, tuple[str, ...]] = {}
     if context.tokens:
-        tokenized_elements["text"] = context.tokens
+        tokenized_elements[text_element] = context.tokens
 
-    spans = _spans_from_context(realization)
+    spans = _spans_from_context(realization, text_element)
 
     return Item(
         item_template_id=item_template.id,
@@ -318,6 +358,8 @@ def protocol_to_item_templates(
     *,
     judgment_type: JudgmentType,
     presentation_spec: PresentationSpec | None = None,
+    text_element: str = "text",
+    prompt_element: str = "prompt",
 ) -> dict[str, ItemTemplate]:
     """Build one :class:`ItemTemplate` per family in the protocol.
 
@@ -329,6 +371,10 @@ def protocol_to_item_templates(
         Common judgment type to assign to every template.
     presentation_spec : PresentationSpec | None, optional
         Common presentation spec; defaults to a fresh one per call.
+    text_element : str, default="text"
+        Name of the element that holds the context sentence.
+    prompt_element : str, default="prompt"
+        Name of the element that holds the realized question.
 
     Returns
     -------
@@ -340,6 +386,8 @@ def protocol_to_item_templates(
             family,
             judgment_type=judgment_type,
             presentation_spec=presentation_spec,
+            text_element=text_element,
+            prompt_element=prompt_element,
         )
         for family in protocol.families
     }
@@ -353,6 +401,8 @@ def realize_protocol_to_items(
     item_templates: dict[str, ItemTemplate] | None = None,
     responses: dict[str, str] | None = None,
     presentation_spec: PresentationSpec | None = None,
+    text_element: str = "text",
+    prompt_element: str = "prompt",
 ) -> tuple[tuple[QuestionRealization, Item], ...]:
     """Realize a protocol against one context, packaging items.
 
@@ -376,6 +426,12 @@ def realize_protocol_to_items(
         ``None``.
     presentation_spec : PresentationSpec | None, optional
         Common presentation spec when templates are built fresh.
+    text_element : str, default="text"
+        Name of the element that holds the context sentence, both in
+        freshly built templates and in the packaged items.
+    prompt_element : str, default="prompt"
+        Name of the element that holds the realized question, both in
+        freshly built templates and in the packaged items.
 
     Returns
     -------
@@ -387,9 +443,19 @@ def realize_protocol_to_items(
         protocol,
         judgment_type=judgment_type,
         presentation_spec=presentation_spec,
+        text_element=text_element,
+        prompt_element=prompt_element,
     )
     realizations = protocol.realize_all(context, responses=responses)
     return tuple(
-        (r, realization_to_item(r, item_template=templates[r.anchor.name]))
+        (
+            r,
+            realization_to_item(
+                r,
+                item_template=templates[r.anchor.name],
+                text_element=text_element,
+                prompt_element=prompt_element,
+            ),
+        )
         for r in realizations
     )

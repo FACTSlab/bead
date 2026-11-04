@@ -30,6 +30,10 @@ def create_magnitude_item(
     step: int | float | None = None,
     item_template_id: UUID | None = None,
     metadata: dict[str, MetadataValue] | None = None,
+    *,
+    text_element: str = "text",
+    prompt_element: str = "prompt",
+    unit_element: str = "unit",
 ) -> Item:
     """Create a magnitude (numeric input) item.
 
@@ -52,16 +56,27 @@ def create_magnitude_item(
         Template ID for the item. If None, generates new UUID.
     metadata : dict[str, MetadataValue] | None
         Additional metadata for item_metadata field.
+    text_element : str
+        Name of the rendered element that holds the stimulus text
+        (default: "text").
+    prompt_element : str
+        Name of the rendered element that holds the prompt
+        (default: "prompt").
+    unit_element : str
+        Name of the rendered element that holds the unit, written only
+        when a unit is given (default: "unit").
 
     Returns
     -------
     Item
-        Magnitude item with text and prompt in rendered_elements.
+        Magnitude item with the stimulus, the prompt, and any unit stored in
+        rendered_elements under the declared element names.
 
     Raises
     ------
     ValueError
-        If text is empty or if both bounds are provided and min >= max.
+        If text is empty, if both bounds are provided and min >= max, or if
+        two declared element names that are both written are the same.
 
     Examples
     --------
@@ -89,9 +104,28 @@ def create_magnitude_item(
     ... )
     >>> item.item_metadata["max_value"]
     100
+
+    >>> # Declared element names
+    >>> item = create_magnitude_item(
+    ...     text="How long was the pause?",
+    ...     unit="ms",
+    ...     text_element="sentence",
+    ...     unit_element="measure",
+    ... )
+    >>> sorted(item.rendered_elements)
+    ['measure', 'prompt', 'sentence']
     """
     if not text or not text.strip():
         raise ValueError("text cannot be empty")
+
+    if text_element == prompt_element:
+        raise ValueError("text_element and prompt_element must name different elements")
+
+    if unit and unit_element in (text_element, prompt_element):
+        raise ValueError(
+            "unit_element must name an element other than text_element and "
+            "prompt_element"
+        )
 
     min_value, max_value = bounds
 
@@ -109,12 +143,12 @@ def create_magnitude_item(
         prompt = "Enter a value:"
 
     rendered_elements: dict[str, str] = {
-        "text": text,
-        "prompt": prompt,
+        text_element: text,
+        prompt_element: prompt,
     }
 
     if unit:
-        rendered_elements["unit"] = unit
+        rendered_elements[unit_element] = unit
 
     # Build item metadata
     item_metadata: dict[str, MetadataValue] = {
@@ -147,6 +181,9 @@ def create_magnitude_items_from_texts(
     *,
     item_template_id: UUID | None = None,
     metadata_fn: Callable[[str], dict[str, MetadataValue]] | None = None,
+    text_element: str = "text",
+    prompt_element: str = "prompt",
+    unit_element: str = "unit",
 ) -> list[Item]:
     """Create magnitude items from a list of texts.
 
@@ -166,6 +203,15 @@ def create_magnitude_items_from_texts(
         Template ID for all created items. If None, generates one per item.
     metadata_fn : Callable[[str], dict[str, MetadataValue]] | None
         Function to generate metadata from each text.
+    text_element : str
+        Name of the rendered element that holds the stimulus text
+        (default: "text").
+    prompt_element : str
+        Name of the rendered element that holds the prompt
+        (default: "prompt").
+    unit_element : str
+        Name of the rendered element that holds the unit, written only
+        when a unit is given (default: "unit").
 
     Returns
     -------
@@ -202,6 +248,9 @@ def create_magnitude_items_from_texts(
             step=step,
             item_template_id=item_template_id,
             metadata=item_metadata,
+            text_element=text_element,
+            prompt_element=prompt_element,
+            unit_element=unit_element,
         )
         magnitude_items.append(item)
 
@@ -219,6 +268,9 @@ def create_magnitude_items_from_groups(
     extract_text: Callable[[Item], str] | None = None,
     include_group_metadata: bool = True,
     item_template_id: UUID | None = None,
+    text_element: str = "text",
+    prompt_element: str = "prompt",
+    unit_element: str = "unit",
 ) -> list[Item]:
     """Create magnitude items from grouped source items.
 
@@ -245,6 +297,15 @@ def create_magnitude_items_from_groups(
         Whether to include group key in item metadata.
     item_template_id : UUID | None
         Template ID for all created items. If None, generates one per item.
+    text_element : str
+        Name of the rendered element that holds the stimulus text
+        (default: "text").
+    prompt_element : str
+        Name of the rendered element that holds the prompt
+        (default: "prompt").
+    unit_element : str
+        Name of the rendered element that holds the unit, written only
+        when a unit is given (default: "unit").
 
     Returns
     -------
@@ -302,6 +363,9 @@ def create_magnitude_items_from_groups(
                 step=step,
                 item_template_id=item_template_id,
                 metadata=item_metadata,
+                text_element=text_element,
+                prompt_element=prompt_element,
+                unit_element=unit_element,
             )
             magnitude_items.append(magnitude_item)
 
@@ -317,6 +381,9 @@ def create_magnitude_items_cross_product(
     *,
     item_template_id: UUID | None = None,
     metadata_fn: (Callable[[str, str], dict[str, MetadataValue]] | None) = None,
+    text_element: str = "text",
+    prompt_element: str = "prompt",
+    unit_element: str = "unit",
 ) -> list[Item]:
     """Create magnitude items from cross-product of texts and prompts.
 
@@ -338,6 +405,15 @@ def create_magnitude_items_cross_product(
         Template ID for all created items.
     metadata_fn : Callable[[str, str], dict[str, MetadataValue]] | None
         Function to generate metadata from (text, prompt).
+    text_element : str
+        Name of the rendered element that holds the stimulus text
+        (default: "text").
+    prompt_element : str
+        Name of the rendered element that holds the prompt
+        (default: "prompt").
+    unit_element : str
+        Name of the rendered element that holds the unit, written only
+        when a unit is given (default: "unit").
 
     Returns
     -------
@@ -369,6 +445,9 @@ def create_magnitude_items_cross_product(
             step=step,
             item_template_id=item_template_id,
             metadata=item_metadata,
+            text_element=text_element,
+            prompt_element=prompt_element,
+            unit_element=unit_element,
         )
         magnitude_items.append(item)
 
@@ -385,6 +464,9 @@ def create_filtered_magnitude_items(
     item_filter: Callable[[Item], bool] | None = None,
     extract_text: Callable[[Item], str] | None = None,
     item_template_id: UUID | None = None,
+    text_element: str = "text",
+    prompt_element: str = "prompt",
+    unit_element: str = "unit",
 ) -> list[Item]:
     """Create magnitude items with filtering.
 
@@ -406,6 +488,15 @@ def create_filtered_magnitude_items(
         Text extraction function.
     item_template_id : UUID | None
         Template ID for created items.
+    text_element : str
+        Name of the rendered element that holds the stimulus text
+        (default: "text").
+    prompt_element : str
+        Name of the rendered element that holds the prompt
+        (default: "prompt").
+    unit_element : str
+        Name of the rendered element that holds the unit, written only
+        when a unit is given (default: "unit").
 
     Returns
     -------
@@ -449,6 +540,9 @@ def create_filtered_magnitude_items(
             step=step,
             item_template_id=item_template_id,
             metadata=item_metadata,
+            text_element=text_element,
+            prompt_element=prompt_element,
+            unit_element=unit_element,
         )
         magnitude_items.append(magnitude_item)
 
@@ -459,6 +553,10 @@ def create_reading_time_item(
     text: str,
     item_template_id: UUID | None = None,
     metadata: dict[str, MetadataValue] | None = None,
+    *,
+    text_element: str = "text",
+    prompt_element: str = "prompt",
+    unit_element: str = "unit",
 ) -> Item:
     """Create a reading time measurement item.
 
@@ -473,6 +571,15 @@ def create_reading_time_item(
         Template ID for the item. If None, generates new UUID.
     metadata : dict[str, MetadataValue] | None
         Additional metadata for item_metadata field.
+    text_element : str
+        Name of the rendered element that holds the stimulus text
+        (default: "text").
+    prompt_element : str
+        Name of the rendered element that holds the prompt
+        (default: "prompt").
+    unit_element : str
+        Name of the rendered element that holds the unit, written only
+        when a unit is given (default: "unit").
 
     Returns
     -------
@@ -495,6 +602,9 @@ def create_reading_time_item(
         step=1,
         item_template_id=item_template_id,
         metadata=metadata,
+        text_element=text_element,
+        prompt_element=prompt_element,
+        unit_element=unit_element,
     )
 
 
@@ -502,6 +612,10 @@ def create_confidence_item(
     text: str,
     item_template_id: UUID | None = None,
     metadata: dict[str, MetadataValue] | None = None,
+    *,
+    text_element: str = "text",
+    prompt_element: str = "prompt",
+    unit_element: str = "unit",
 ) -> Item:
     """Create a confidence rating item (0-100%).
 
@@ -515,6 +629,15 @@ def create_confidence_item(
         Template ID for the item. If None, generates new UUID.
     metadata : dict[str, MetadataValue] | None
         Additional metadata for item_metadata field.
+    text_element : str
+        Name of the rendered element that holds the stimulus text
+        (default: "text").
+    prompt_element : str
+        Name of the rendered element that holds the prompt
+        (default: "prompt").
+    unit_element : str
+        Name of the rendered element that holds the unit, written only
+        when a unit is given (default: "unit").
 
     Returns
     -------
@@ -537,6 +660,9 @@ def create_confidence_item(
         step=1,
         item_template_id=item_template_id,
         metadata=metadata,
+        text_element=text_element,
+        prompt_element=prompt_element,
+        unit_element=unit_element,
     )
 
 
