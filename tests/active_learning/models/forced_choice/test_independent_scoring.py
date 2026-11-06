@@ -41,7 +41,8 @@ def tiny_encoder(tmp_path_factory):
     ]
     vocab_path = directory / "vocab.txt"
     vocab_path.write_text("\n".join(vocabulary) + "\n")
-    BertTokenizer(vocab_file=str(vocab_path)).save_pretrained(directory)
+    # Transformers 5 renamed vocab_file to vocab; both accept the first argument.
+    BertTokenizer(str(vocab_path)).save_pretrained(directory)
     with torch.random.fork_rng():
         torch.manual_seed(17)
         BertModel(
@@ -101,6 +102,13 @@ def initialize(model, n_options=2):
     model._initialize_random_effects(n_options)
     model._is_fitted = True
     return model
+
+
+def test_local_encoder_preserves_alternative_tokens(tiny_encoder):
+    """The saved tokenizer keeps content words distinct after model loading."""
+    model = make_model(tiny_encoder)
+    tokens = model.tokenizer(["good", "bad", "other"], add_special_tokens=False)
+    assert tokens["input_ids"] == [[5], [6], [7]]
 
 
 @pytest.mark.parametrize("n_options", [2, 3, 5])
