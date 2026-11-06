@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-11-06
+
+### Added
+
+- `ForcedChoiceModelConfig.scoring_mode` selects `joint` classification (the
+  existing default) or `independent` scoring. Independent scoring requires
+  `dual_encoder` and applies one shared scalar head to each option before
+  softmax, giving a Bradley-Terry choice rule for two alternatives.
+- Independent scoring supports participant-specific position intercepts and
+  scalar scoring heads, retains unselected alternatives in the choice set, and
+  validates consistent option names across training and prediction.
+- The argument-structure acceptability training script reads `encoder_mode` and
+  `scoring_mode` from its configuration. Checkpoints persist the scoring mode;
+  checkpoints without the field retain joint classification.
+
+### Fixed
+
+- Forced-choice dual encoders train through the same per-option encoding path
+  used for prediction, avoiding the single-embedding trainer's dimension mismatch.
+- The forced-choice custom training loop creates participant parameters before
+  constructing its optimizer and restores the best encoder, head, and participant
+  effects when early stopping on held-out cross-entropy.
+- Random-effect regularization accumulates penalties on the parameter device.
+- Forced-choice metrics use installed scikit-learn functions without downloading
+  metric scripts or writing a Hugging Face metric cache.
+
 ## [0.12.0] - 2026-11-03
 
 ### Added
@@ -766,7 +792,8 @@ guards as type-checkers.
 - CI/CD: GitHub Actions for testing, docs, PyPI publishing
 - Read the Docs integration
 
-[Unreleased]: https://github.com/FACTSlab/bead/compare/v0.12.0...HEAD
+[Unreleased]: https://github.com/FACTSlab/bead/compare/v0.13.0...HEAD
+[0.13.0]: https://github.com/FACTSlab/bead/compare/v0.12.0...v0.13.0
 [0.12.0]: https://github.com/FACTSlab/bead/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/FACTSlab/bead/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/FACTSlab/bead/compare/v0.9.0...v0.10.0

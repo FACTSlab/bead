@@ -55,7 +55,34 @@ class BaseEncoderModelConfig(dx.Model):
 
 
 class ForcedChoiceModelConfig(BaseEncoderModelConfig):
-    """Forced-choice active-learning model configuration."""
+    """Forced-choice active-learning model configuration.
+
+    Attributes
+    ----------
+    scoring_mode : Literal["joint", "independent"]
+        ``joint`` predicts option logits from a combined representation.
+        ``independent`` applies one scalar head to each independently encoded
+        option, then normalizes the scores with softmax. Requires
+        ``encoder_mode="dual_encoder"``. Defaults to ``joint`` for compatibility
+        with existing configurations and checkpoints.
+
+    Examples
+    --------
+    >>> config = ForcedChoiceModelConfig(
+    ...     encoder_mode="dual_encoder", scoring_mode="independent"
+    ... )
+    >>> config.scoring_mode
+    'independent'
+    """
+
+    scoring_mode: Literal["joint", "independent"] = "joint"
+
+    __axioms__ = (
+        dx.axiom(
+            'scoring_mode != "independent" or encoder_mode == "dual_encoder"',
+            message="independent scoring requires encoder_mode='dual_encoder'",
+        ),
+    )
 
 
 class CategoricalModelConfig(BaseEncoderModelConfig):

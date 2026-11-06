@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import tempfile
 from collections.abc import Callable
+from copy import deepcopy
 from pathlib import Path
 
 import numpy as np
 import torch
 import torch.nn as nn
+from sklearn.metrics import accuracy_score, precision_recall_fscore_support
 from transformers import (
     AutoModel,
     AutoTokenizer,
@@ -23,7 +25,6 @@ from bead.active_learning.models.base import ActiveLearningModel, ModelPredictio
 from bead.active_learning.models.random_effects import RandomEffectsManager
 from bead.active_learning.trainers.data_collator import MixedEffectsDataCollator
 from bead.active_learning.trainers.dataset_utils import items_to_dataset
-from bead.active_learning.trainers.metrics import compute_multiclass_metrics
 from bead.active_learning.trainers.model_wrapper import EncoderClassifierWrapper
 from bead.config.active_learning import ForcedChoiceModelConfig
 from bead.items.item import Item
@@ -116,6 +117,10 @@ class ForcedChoiceModel(ActiveLearningModel):
     Supports 2AFC, 3AFC, 4AFC, and general nAFC tasks using any
     HuggingFace transformer model. Provides two encoding strategies:
     single encoder (concatenate options) or dual encoder (separate embeddings).
+    With ``scoring_mode="independent"``, the dual encoder retains the option
+    dimension and one shared head assigns a scalar to each option. Softmax over
+    these scores gives choice probabilities. All rendered elements are options
+    in this mode; their names must match across training and prediction items.
 
     Parameters
     ----------
@@ -253,7 +258,9 @@ class ForcedChoiceModel(ActiveLearningModel):
         """
         hidden_size = self.encoder.config.hidden_size
 
-        if self.config.encoder_mode == "dual_encoder":
+        if self.config.scoring_mode == "independent":
+            input_size = hidden_size
+        elif self.config.encoder_mode == "dual_encoder":
             input_size = hidden_size * num_classes
         else:
             input_size = hidden_size
@@ -262,24 +269,27 @@ class ForcedChoiceModel(ActiveLearningModel):
             nn.Linear(input_size, 256),
             nn.ReLU(),
             nn.Dropout(0.1),
-            nn.Linear(256, num_classes),
+            nn.Linear(
+                256, 1 if self.config.scoring_mode == "independent" else num_classes
+            ),
         )
         self.classifier_head.to(self.config.device)
 
     def _encode_single(self, texts: list[str]) -> torch.Tensor:
-        """Encode texts using single encoder strategy.
+        """Encode a batch of texts with the shared transformer.
 
-        Concatenates all option texts with [SEP] tokens and encodes once.
+        Return the first-token representation of each text. Callers provide
+        either concatenated alternatives or independently encoded options.
 
         Parameters
         ----------
         texts : list[str]
-            List of concatenated option texts for each item.
+            Texts to encode, one per tokenized sequence.
 
         Returns
         -------
         torch.Tensor
-            Encoded representations of shape (batch_size, hidden_size).
+            Encoded representations of shape (len(texts), hidden_size).
         """
         encodings = self.tokenizer(
             texts,
@@ -296,7 +306,9 @@ class ForcedChoiceModel(ActiveLearningModel):
     def _encode_dual(self, options_per_item: list[list[str]]) -> torch.Tensor:
         """Encode texts using dual encoder strategy.
 
-        Encodes each option separately and concatenates embeddings.
+        Encode options independently with shared transformer weights.
+        Shared scalar scoring retains the option dimension; joint scoring
+        concatenates the option embeddings.
 
         Parameters
         ----------
@@ -306,30 +318,14 @@ class ForcedChoiceModel(ActiveLearningModel):
         Returns
         -------
         torch.Tensor
-            Concatenated encodings of shape (batch_size, hidden_size * num_options).
+            Encodings of shape (batch_size, num_options, hidden_size) for shared
+            scalar scoring, or (batch_size, num_options * hidden_size) otherwise.
         """
-        all_embeddings = []
-
-        for options in options_per_item:
-            option_embeddings = []
-            for option_text in options:
-                encodings = self.tokenizer(
-                    [option_text],
-                    padding=True,
-                    truncation=True,
-                    max_length=self.config.max_length,
-                    return_tensors="pt",
-                )
-                encodings = {k: v.to(self.config.device) for k, v in encodings.items()}
-
-                outputs = self.encoder(**encodings)
-                cls_embedding = outputs.last_hidden_state[0, 0, :]
-                option_embeddings.append(cls_embedding)
-
-            concatenated = torch.cat(option_embeddings, dim=0)
-            all_embeddings.append(concatenated)
-
-        return torch.stack(all_embeddings)
+        texts = [text for options in options_per_item for text in options]
+        embeddings = self._encode_single(texts)
+        if self.config.scoring_mode == "independent":
+            return embeddings.reshape(len(options_per_item), -1, embeddings.shape[-1])
+        return embeddings.reshape(len(options_per_item), -1)
 
     def _prepare_inputs(self, items: list[Item]) -> torch.Tensor:
         """Prepare inputs for encoding based on encoder mode.
@@ -346,6 +342,14 @@ class ForcedChoiceModel(ActiveLearningModel):
         """
         if self.option_names is None:
             raise ValueError("Model not initialized. Call train() first.")
+
+        if self.config.scoring_mode == "independent":
+            for item in items:
+                if set(item.rendered_elements) != set(self.option_names):
+                    raise ValueError(
+                        "independent items must have exactly the fitted option "
+                        f"names {self.option_names} in rendered_elements"
+                    )
 
         if self.config.encoder_mode == "single_encoder":
             texts = []
@@ -418,7 +422,21 @@ class ForcedChoiceModel(ActiveLearningModel):
             Prepared items, numeric labels, participant_ids, validation_items,
             numeric validation_labels.
         """
-        unique_labels = sorted(set(labels))
+        if self.config.scoring_mode == "independent":
+            if not items:
+                raise ValueError("independent scoring requires nonempty training items")
+            # include options that were never selected in the training responses
+            unique_labels = sorted(items[0].rendered_elements)
+            if len(unique_labels) < 2:
+                raise ValueError("independent scoring requires at least two options")
+            for item in items + (validation_items or []):
+                if sorted(item.rendered_elements) != unique_labels:
+                    raise ValueError(
+                        "independent items must have identical option names "
+                        "in rendered_elements"
+                    )
+        else:
+            unique_labels = sorted(set(labels))
         self.num_classes = len(unique_labels)
         self.option_names = unique_labels
 
@@ -488,8 +506,10 @@ class ForcedChoiceModel(ActiveLearningModel):
                 self.option_names[label_idx] for label_idx in validation_labels_numeric
             ]
 
-        # Use HuggingFace Trainer for fixed and random_intercepts modes
-        if self.config.mixed_effects.mode in ("fixed", "random_intercepts"):
+        # the generic Trainer wrapper only handles one embedding per item
+        if self.config.encoder_mode == "single_encoder" and (
+            self.config.mixed_effects.mode in ("fixed", "random_intercepts")
+        ):
             metrics = self._train_with_huggingface_trainer(
                 items=items,
                 y_numeric=labels_numeric,
@@ -498,7 +518,7 @@ class ForcedChoiceModel(ActiveLearningModel):
                 validation_labels=validation_labels,
             )
         else:
-            # Use custom loop for random_slopes mode
+            # dual encoders and participant heads use the prediction encoding path
             metrics = self._train_with_custom_loop(
                 items=items,
                 y_numeric=labels_numeric,
@@ -703,11 +723,62 @@ class ForcedChoiceModel(ActiveLearningModel):
         dict[str, float]
             Keys ``accuracy``, ``precision``, ``recall``, ``f1``.
         """
-        from transformers import EvalPrediction  # noqa: PLC0415
-
         proba = self._do_predict_proba(items, participant_ids)
-        eval_pred = EvalPrediction(predictions=proba, label_ids=np.asarray(y_numeric))
-        return compute_multiclass_metrics(eval_pred, num_labels=self.num_classes)
+        predictions = np.argmax(proba, axis=1)
+        precision, recall, f1, _ = precision_recall_fscore_support(
+            y_numeric, predictions, average="macro", zero_division=0
+        )
+        return {
+            "accuracy": float(accuracy_score(y_numeric, predictions)),
+            "precision": float(precision),
+            "recall": float(recall),
+            "f1": float(f1),
+        }
+
+    def _head_logits(self, head: nn.Module, embeddings: torch.Tensor) -> torch.Tensor:
+        """Apply a head, removing only the scalar output dimension when present."""
+        logits = head(embeddings)
+        if self.config.scoring_mode == "independent":
+            return logits.squeeze(-1)
+        return logits
+
+    def _compute_logits(
+        self,
+        embeddings: torch.Tensor,
+        participant_ids: list[str],
+        *,
+        training: bool = False,
+    ) -> torch.Tensor:
+        """Compute option logits with the configured participant effects."""
+        assert self.classifier_head is not None
+        if self.config.mixed_effects.mode == "fixed":
+            return self._head_logits(self.classifier_head, embeddings)
+
+        assert self.random_effects is not None
+        assert self.num_classes is not None
+        if self.config.mixed_effects.mode == "random_intercepts":
+            logits = self._head_logits(self.classifier_head, embeddings)
+            biases = torch.stack(
+                [
+                    self.random_effects.get_intercepts(
+                        pid,
+                        n_classes=self.num_classes,
+                        param_name="mu",
+                        create_if_missing=training,
+                    ).to(embeddings.device)
+                    for pid in participant_ids
+                ]
+            )
+            return logits + biases
+
+        logits_list: list[torch.Tensor] = []
+        for i, pid in enumerate(participant_ids):
+            head = self.random_effects.get_slopes(
+                pid, fixed_head=self.classifier_head, create_if_missing=training
+            ).to(embeddings.device)
+            head.train(training)
+            logits_list.append(self._head_logits(head, embeddings[i : i + 1]))
+        return torch.cat(logits_list, dim=0)
 
     def _train_with_custom_loop(
         self,
@@ -717,7 +788,7 @@ class ForcedChoiceModel(ActiveLearningModel):
         validation_items: list[Item] | None,
         validation_labels: list[str] | None,
     ) -> dict[str, float]:
-        """Train using custom training loop (for random_slopes mode).
+        """Train dual encoders or participant heads through the prediction encoder.
 
         Parameters
         ----------
@@ -728,105 +799,98 @@ class ForcedChoiceModel(ActiveLearningModel):
         participant_ids : list[str]
             Participant IDs.
         validation_items : list[Item] | None
-            Validation items.
+            Held-out items for early stopping.
         validation_labels : list[str] | None
-            Validation labels.
+            Held-out option names.
 
         Returns
         -------
         dict[str, float]
-            Training metrics.
+            Training metrics and, when provided, validation metrics.
         """
-        # Convert to tensor
+        assert self.classifier_head is not None
+        assert self.random_effects is not None
+        assert self.num_classes is not None
+        assert self.option_names is not None
         y = torch.tensor(y_numeric, dtype=torch.long, device=self.config.device)
 
-        # Build optimizer parameters
+        # create participant parameters before collecting optimizer parameters
         params_to_optimize = list(self.encoder.parameters()) + list(
             self.classifier_head.parameters()
         )
-
-        # Add random effects parameters (for random_slopes)
-        if self.config.mixed_effects.mode == "random_slopes":
-            for head in self.random_effects.slopes.values():
+        for pid in dict.fromkeys(participant_ids):
+            if self.config.mixed_effects.mode == "random_intercepts":
+                bias = self.random_effects.get_intercepts(
+                    pid, n_classes=self.num_classes, param_name="mu"
+                )
+                bias = bias.to(self.config.device).detach().requires_grad_()
+                self.random_effects.intercepts["mu"][pid] = bias
+                params_to_optimize.append(bias)
+            elif self.config.mixed_effects.mode == "random_slopes":
+                head = self.random_effects.get_slopes(
+                    pid, fixed_head=self.classifier_head
+                ).to(self.config.device)
                 params_to_optimize.extend(head.parameters())
 
         optimizer = torch.optim.AdamW(params_to_optimize, lr=self.config.learning_rate)
         criterion = nn.CrossEntropyLoss()
-
-        self.encoder.train()
-        self.classifier_head.train()
+        val_ids = ["_validation_"] * len(validation_items or [])
+        val_y = [self.option_names.index(label) for label in validation_labels or []]
+        best_loss = float("inf")
+        best_encoder: dict[str, torch.Tensor] | None = None
+        best_head: dict[str, torch.Tensor] | None = None
+        best_effects: RandomEffectsManager | None = None
+        wait = 0
+        epoch_loss = 0.0
 
         for _epoch in range(self.config.num_epochs):
-            n_batches = (
-                len(items) + self.config.batch_size - 1
-            ) // self.config.batch_size
+            # validation switches modules to eval mode at the end of each epoch
+            self.encoder.train()
+            self.classifier_head.train()
             epoch_loss = 0.0
-            epoch_correct = 0
-
-            for i in range(n_batches):
-                start_idx = i * self.config.batch_size
+            for start_idx in range(0, len(items), self.config.batch_size):
                 end_idx = min(start_idx + self.config.batch_size, len(items))
-
-                batch_items = items[start_idx:end_idx]
-                batch_labels = y[start_idx:end_idx]
-                batch_participant_ids = participant_ids[start_idx:end_idx]
-
-                embeddings = self._prepare_inputs(batch_items)
-
-                # Forward pass depends on mixed effects mode
-                if self.config.mixed_effects.mode == "fixed":
-                    # Standard forward pass
-                    logits = self.classifier_head(embeddings)
-
-                elif self.config.mixed_effects.mode == "random_intercepts":
-                    # Fixed head + per-participant bias
-                    logits = self.classifier_head(embeddings)
-                    for j, pid in enumerate(batch_participant_ids):
-                        bias = self.random_effects.get_intercepts(
-                            pid,
-                            n_classes=self.num_classes,
-                            param_name="mu",
-                            create_if_missing=True,
-                        )
-                        logits[j] = logits[j] + bias
-
-                elif self.config.mixed_effects.mode == "random_slopes":
-                    # Per-participant head
-                    logits_list = []
-                    for j, pid in enumerate(batch_participant_ids):
-                        participant_head = self.random_effects.get_slopes(
-                            pid,
-                            fixed_head=self.classifier_head,
-                            create_if_missing=True,
-                        )
-                        logits_j = participant_head(embeddings[j : j + 1])
-                        logits_list.append(logits_j)
-                    logits = torch.cat(logits_list, dim=0)
-
-                # Data loss + prior regularization
-                loss_ce = criterion(logits, batch_labels)
-                loss_prior = self.random_effects.compute_prior_loss()
+                embeddings = self._prepare_inputs(items[start_idx:end_idx])
+                logits = self._compute_logits(
+                    embeddings, participant_ids[start_idx:end_idx], training=True
+                )
+                loss_ce = criterion(logits, y[start_idx:end_idx])
+                loss_prior = self.random_effects.compute_prior_loss().to(logits.device)
                 loss = loss_ce + loss_prior
-
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
+                epoch_loss += loss.item() * (end_idx - start_idx)
+            epoch_loss /= len(items)
 
-                epoch_loss += loss.item()
-                predictions = torch.argmax(logits, dim=1)
-                epoch_correct += (predictions == batch_labels).sum().item()
+            if validation_items:
+                proba = self._do_predict_proba(validation_items, val_ids)
+                chosen = np.clip(proba[np.arange(len(val_y)), val_y], 1e-9, 1.0)
+                val_loss = float(-np.mean(np.log(chosen)))
+                if val_loss < best_loss - 1e-4:
+                    best_loss = val_loss
+                    best_encoder = deepcopy(self.encoder.state_dict())
+                    best_head = deepcopy(self.classifier_head.state_dict())
+                    best_effects = deepcopy(self.random_effects)
+                    wait = 0
+                else:
+                    wait += 1
+                    if wait >= self.config.early_stopping_patience:
+                        break
 
-            epoch_acc = epoch_correct / len(items)
-            epoch_loss = epoch_loss / n_batches
+        if best_encoder is not None and best_head is not None:
+            self.encoder.load_state_dict(best_encoder)
+            self.classifier_head.load_state_dict(best_head)
+            assert best_effects is not None
+            self.random_effects = best_effects
 
-        self._is_fitted = True
+        train_scores = self._classification_metrics(items, participant_ids, y_numeric)
+        metrics = {f"train_{key}": value for key, value in train_scores.items()}
+        metrics["train_loss"] = epoch_loss
+        if validation_items:
+            val_scores = self._classification_metrics(validation_items, val_ids, val_y)
+            metrics.update({f"val_{key}": value for key, value in val_scores.items()})
 
-        metrics: dict[str, float] = {
-            "train_accuracy": epoch_acc,
-            "train_loss": epoch_loss,
-        }
-
-        # Estimate variance components
         if self.config.mixed_effects.estimate_variance_components:
             var_comps = self.random_effects.estimate_variance_components()
             if var_comps:
@@ -835,31 +899,6 @@ class ForcedChoiceModel(ActiveLearningModel):
                     self.variance_history.append(var_comp)
                     metrics["participant_variance"] = var_comp.variance
                     metrics["n_participants"] = var_comp.n_groups
-
-        if validation_items is not None and validation_labels is not None:
-            self._validate_labels(validation_labels)
-
-            if len(validation_items) != len(validation_labels):
-                raise ValueError(
-                    f"Number of validation items ({len(validation_items)}) "
-                    f"must match number of validation labels ({len(validation_labels)})"
-                )
-
-            # Validation with placeholder participant_ids for mixed effects
-            if self.config.mixed_effects.mode == "fixed":
-                val_predictions = self.predict(validation_items, participant_ids=None)
-            else:
-                val_participant_ids = ["_validation_"] * len(validation_items)
-                val_predictions = self.predict(
-                    validation_items, participant_ids=val_participant_ids
-                )
-            val_pred_labels = [p.predicted_class for p in val_predictions]
-            val_acc = sum(
-                pred == true
-                for pred, true in zip(val_pred_labels, validation_labels, strict=True)
-            ) / len(validation_labels)
-            metrics["val_accuracy"] = val_acc
-
         return metrics
 
     def _do_predict(
@@ -879,41 +918,8 @@ class ForcedChoiceModel(ActiveLearningModel):
         list[ModelPrediction]
             Predictions.
         """
-        self.encoder.eval()
-        self.classifier_head.eval()
-
-        with torch.no_grad():
-            embeddings = self._prepare_inputs(items)
-
-            # Forward pass depends on mixed effects mode
-            if self.config.mixed_effects.mode == "fixed":
-                logits = self.classifier_head(embeddings)
-
-            elif self.config.mixed_effects.mode == "random_intercepts":
-                logits = self.classifier_head(embeddings)
-                for i, pid in enumerate(participant_ids):
-                    # Unknown participants: use prior mean (zero bias)
-                    bias = self.random_effects.get_intercepts(
-                        pid,
-                        n_classes=self.num_classes,
-                        param_name="mu",
-                        create_if_missing=False,
-                    )
-                    logits[i] = logits[i] + bias
-
-            elif self.config.mixed_effects.mode == "random_slopes":
-                logits_list = []
-                for i, pid in enumerate(participant_ids):
-                    # Unknown participants: use fixed head
-                    participant_head = self.random_effects.get_slopes(
-                        pid, fixed_head=self.classifier_head, create_if_missing=False
-                    )
-                    logits_i = participant_head(embeddings[i : i + 1])
-                    logits_list.append(logits_i)
-                logits = torch.cat(logits_list, dim=0)
-
-            proba = torch.softmax(logits, dim=1).cpu().numpy()
-            pred_classes = torch.argmax(logits, dim=1).cpu().numpy()
+        proba = self._do_predict_proba(items, participant_ids)
+        pred_classes = np.argmax(proba, axis=1)
 
         predictions = []
         for i, item in enumerate(items):
@@ -949,42 +955,20 @@ class ForcedChoiceModel(ActiveLearningModel):
         np.ndarray
             Probability array of shape (n_items, n_classes).
         """
+        assert self.classifier_head is not None
+        assert self.num_classes is not None
         self.encoder.eval()
         self.classifier_head.eval()
-
+        batches: list[np.ndarray] = []
         with torch.no_grad():
-            embeddings = self._prepare_inputs(items)
-
-            # Forward pass depends on mixed effects mode
-            if self.config.mixed_effects.mode == "fixed":
-                logits = self.classifier_head(embeddings)
-
-            elif self.config.mixed_effects.mode == "random_intercepts":
-                logits = self.classifier_head(embeddings)
-                for i, pid in enumerate(participant_ids):
-                    bias = self.random_effects.get_intercepts(
-                        pid,
-                        n_classes=self.num_classes,
-                        param_name="mu",
-                        create_if_missing=False,
-                    )
-                    # Random-effects params live on CPU; move to the logits
-                    # device (matters on mps/cuda).
-                    logits[i] = logits[i] + bias.to(logits.device)
-
-            elif self.config.mixed_effects.mode == "random_slopes":
-                logits_list = []
-                for i, pid in enumerate(participant_ids):
-                    participant_head = self.random_effects.get_slopes(
-                        pid, fixed_head=self.classifier_head, create_if_missing=False
-                    ).to(embeddings.device)
-                    logits_i = participant_head(embeddings[i : i + 1])
-                    logits_list.append(logits_i)
-                logits = torch.cat(logits_list, dim=0)
-
-            proba = torch.softmax(logits, dim=1).cpu().numpy()
-
-        return proba
+            for start in range(0, len(items), self.config.batch_size):
+                end = start + self.config.batch_size
+                embeddings = self._prepare_inputs(items[start:end])
+                logits = self._compute_logits(embeddings, participant_ids[start:end])
+                batches.append(torch.softmax(logits, dim=1).cpu().numpy())
+        if not batches:
+            return np.empty((0, self.num_classes))
+        return np.concatenate(batches, axis=0)
 
     def _save_model_components(self, save_path: Path) -> None:
         """Save model-specific components.
