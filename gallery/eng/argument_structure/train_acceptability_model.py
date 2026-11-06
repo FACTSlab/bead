@@ -123,8 +123,8 @@ def build_model_config(section: dict[str, object]) -> ForcedChoiceModelConfig:
     Returns
     -------
     ForcedChoiceModelConfig
-        Config wired for single-encoder 2AFC training with participant random
-        effects.
+        Config for 2AFC training with the selected encoder, scoring head, and
+        participant effects. Independent scoring requires dual encoding.
     """
     from bead.active_learning.config import MixedEffectsConfig  # noqa: PLC0415
     from bead.config.active_learning import ForcedChoiceModelConfig  # noqa: PLC0415
@@ -132,7 +132,8 @@ def build_model_config(section: dict[str, object]) -> ForcedChoiceModelConfig:
     mode = str(section.get("mixed_effects_mode", DEFAULT_MIXED_EFFECTS_MODE))
     return ForcedChoiceModelConfig(
         model_name=str(section.get("model_name", DEFAULT_MODEL_NAME)),
-        encoder_mode="single_encoder",
+        encoder_mode=str(section.get("encoder_mode", "single_encoder")),
+        scoring_mode=str(section.get("scoring_mode", "joint")),
         learning_rate=float(section.get("learning_rate", DEFAULT_LEARNING_RATE)),
         batch_size=int(section.get("batch_size", DEFAULT_BATCH_SIZE)),
         num_epochs=int(section.get("epochs", DEFAULT_EPOCHS)),
@@ -160,6 +161,7 @@ def run_self_test(config_path: Path) -> int:
         {
             "model_name": model_config.model_name,
             "encoder_mode": model_config.encoder_mode,
+            "scoring_mode": model_config.scoring_mode,
             "learning_rate": str(model_config.learning_rate),
             "batch_size": str(model_config.batch_size),
             "num_epochs": str(model_config.num_epochs),

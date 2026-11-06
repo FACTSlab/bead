@@ -507,7 +507,7 @@ class RandomEffectsManager:
                     else:
                         weight = 1.0
 
-                    loss += weight * squared_dev
+                    loss = loss.to(squared_dev.device) + weight * squared_dev
 
         elif self.config.mode == "random_slopes":
             for participant_id, head in self.slopes.items():
@@ -523,7 +523,7 @@ class RandomEffectsManager:
                 else:
                     weight = 1.0
 
-                loss += weight * squared_dev
+                loss = loss.to(squared_dev.device) + weight * squared_dev
 
         return self.config.regularization_strength * loss
 
