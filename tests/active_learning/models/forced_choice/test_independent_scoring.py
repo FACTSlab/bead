@@ -172,8 +172,10 @@ def test_scores_and_pairwise_odds_do_not_depend_on_other_options(tiny_encoder):
         logits = model._compute_logits(embeddings, ["p", "p"])
     torch.testing.assert_close(logits[0, :2], logits[1, :2], atol=1e-7, rtol=0)
     proba = model.predict_proba(items)
-    assert proba[0, 0] / proba[0, 1] == pytest.approx(
-        proba[1, 0] / proba[1, 1], abs=1e-7
+    # Softmax normalization and division each round in the probability dtype.
+    odds = proba[:, 0] / proba[:, 1]
+    np.testing.assert_allclose(
+        odds, odds[0], rtol=4 * np.finfo(proba.dtype).eps, atol=0
     )
 
 
