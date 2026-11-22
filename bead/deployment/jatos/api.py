@@ -47,10 +47,16 @@ class JATOSClient:
         self.session = requests.Session()
         self.session.headers.update({"Authorization": f"Bearer {api_token}"})
 
+    @property
+    def _api_url(self) -> str:
+        if self.base_url.endswith("/jatos"):
+            return f"{self.base_url}/api/v1"
+        return f"{self.base_url}/jatos/api/v1"
+
     def upload_study(self, jzip_path: Path) -> dict[str, JsonValue]:
         """Upload study package to JATOS.
 
-        POST /api/v1/studies
+        POST /jatos/api/v1/study
 
         Parameters
         ----------
@@ -78,14 +84,27 @@ class JATOSClient:
         if not jzip_path.exists():
             raise FileNotFoundError(f".jzip file not found: {jzip_path}")
 
-        url = f"{self.base_url}/api/v1/studies"
+        url = f"{self._api_url}/study"
 
         with open(jzip_path, "rb") as f:
-            files = {"file": (jzip_path.name, f, "application/zip")}
+            files = {"study": (jzip_path.name, f, "application/zip")}
             response = self.session.post(url, files=files)
 
         response.raise_for_status()
-        return response.json()
+        payload: dict[str, JsonValue] = response.json()
+        data = payload.get("data")
+        return data if isinstance(data, dict) else payload
+
+    def download_result_archive(self, study_id: int) -> bytes:
+        """Download the JATOS result archive for a study as ZIP bytes."""
+        response = self.session.post(
+            f"{self._api_url}/results",
+            params={"studyId": study_id},
+            headers={"Accept": "application/zip"},
+            timeout=120,
+        )
+        response.raise_for_status()
+        return response.content
 
     def list_studies(self) -> list[dict[str, JsonValue]]:
         """List all studies.

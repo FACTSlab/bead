@@ -1,6 +1,6 @@
 import { defineConfig } from "tsup";
 
-export default defineConfig({
+export default defineConfig([{
   entry: {
     "gallery-bundle": "src/gallery/gallery-bundle.ts",
   },
@@ -13,7 +13,7 @@ export default defineConfig({
   splitting: false,
   treeshake: true,
   minify: false,
-  // jspsych is loaded from CDN as a global; keep it external
+  // Bead plugins depend only on local jsPsych type declarations.
   external: ["jspsych"],
   outDir: "dist",
   esbuildOptions(options) {
@@ -21,4 +21,20 @@ export default defineConfig({
       js: "/* @bead/jspsych-gallery - Interactive demo bundle */",
     };
   },
-});
+}, {
+  entry: { "slopit-bundle": "src/slopit/index.ts" },
+  format: ["iife"],
+  globalName: "SlopitJsPsych",
+  dts: false,
+  target: "es2020",
+  outDir: "dist",
+  noExternal: [/^@slopit\//, /^jspsych$/],
+  minify: true,
+}, {
+  entry: { "list-distributor": "src/lib/list-distributor.ts" },
+  format: ["iife"],
+  globalName: "BeadLists",
+  dts: false,
+  target: "es2020",
+  outDir: "dist",
+}]);

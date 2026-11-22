@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Deploys named cloze fields with explicit choices and independent display labels.
+- Appends consented JSONL session records to JATOS and reads complete or partial
+  streams into named annotation records while preserving the raw records.
+- Allows a study-specific session adapter and a supplied slopit browser bundle
+  for consent-gated response-control telemetry.
+
+### Fixed
+
+- Ships pinned jsPsych runtime assets and standalone browser bundles in the
+  Python release. Generated studies load all required assets locally.
+- Registers the slopit extension with jsPsych and supplies per-trial parameters
+  after consent.
+- Exports native JATOS study archives with stable component and batch IDs when
+  the study ID is supplied.
+
+
 ## [0.13.0] - 2026-11-06
 
 ### Added

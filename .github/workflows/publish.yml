@@ -16,6 +16,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          package_json_file: bead/deployment/jspsych/package.json
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+          cache-dependency-path: bead/deployment/jspsych/pnpm-lock.yaml
+
+      - name: Build pinned browser assets
+        working-directory: bead/deployment/jspsych
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -25,7 +43,11 @@ jobs:
         run: pip install build
 
       - name: Build package
-        run: python -m build
+        run: |
+          python -m build
+          python -m venv /tmp/bead-wheel
+          /tmp/bead-wheel/bin/pip install --no-deps dist/*.whl
+          /tmp/bead-wheel/bin/python -c 'from importlib.metadata import distribution; import hashlib, json; runtime = distribution("bead").locate_file("bead/deployment/jspsych/dist/runtime"); manifest = json.loads((runtime / "manifest.json").read_text()); assert all(hashlib.sha256((runtime / name).read_bytes()).hexdigest() == entry["sha256"] for name, entry in manifest.items())'
 
       - name: Upload distribution artifacts
         uses: actions/upload-artifact@v4

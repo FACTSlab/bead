@@ -8,8 +8,71 @@
 
 // Global variables
 let distributor = null;
-{% if slopit_enabled %}
-let slopitExtension = null;
+{% if result_stream %}
+function createResultStream(append) {
+    const local = [];
+    const failed = [];
+    let sequence = 0;
+    let retries = 0;
+    let delivered = 0;
+    let pending = Promise.resolve();
+    let closed = false;
+    function record(recordType, fields) {
+        if (closed) return;
+        const entry = {
+            ...fields,
+            schema_version: "1.0",
+            record_type: recordType,
+            seq: sequence++,
+            wall_ms: Date.now(),
+            perf_ms: performance.now(),
+        };
+        if (!append) {
+            local.push(entry);
+            return;
+        }
+        const line = JSON.stringify(entry) + "\n";
+        pending = pending.then(async () => {
+            for (const delay of [0, 250, 1000]) {
+                if (delay) {
+                    retries++;
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                }
+                try {
+                    await append(line);
+                    delivered++;
+                    if (delay && entry.record_type !== "event") {
+                        record("event", { event: "append_retry_succeeded", prior_seq: entry.seq });
+                    }
+                    return;
+                } catch {
+                    // Try to deliver the identical line and sequence number again.
+                }
+            }
+            failed.push(entry.seq);
+        });
+    }
+    return {
+        record,
+        async finish(status) {
+            let flushing;
+            do {
+                flushing = pending;
+                await flushing;
+            } while (flushing !== pending);
+            record("end", {
+                status, failed_seqs: [...failed],
+                n_records_before_end: sequence,
+                n_acknowledged: append ? delivered : null,
+                n_retries: retries,
+            });
+            closed = true;
+            await pending;
+            return failed.length === 0;
+        },
+        records: () => structuredClone(local),
+    };
+}
 {% endif %}
 
 /**
@@ -18,82 +81,139 @@ let slopitExtension = null;
  */
 async function runExperiment() {
     try {
+        const params = new URLSearchParams(
+            {% if use_jatos %}jatos.urlQueryParameters ?? {% endif %}window.location.search
+        );
+        const sessionAdapter = {% if session_adapter %}BeadSessionAdapter{% else %}{}{% endif %};
+        {% if result_stream %}
+        const stream = createResultStream({% if use_jatos %}line => jatos.appendResultData(line){% else %}null{% endif %});
+        {% if not use_jatos %}
+        window.beadResultRecords = stream.records;
+        {% endif %}
+        const hashes = await fetch("data/build-hashes.json").then(r => r.json());
+        const sessionEvents = new AbortController();
+        {% endif %}
+        const runtimeConfig = await fetch("data/config.json").then(r => r.json());
+        let consented = {{ 'false' if consent_text else 'true' }};
+        let withdrawn = false;
+        let sessionStarted = false;
+        let trialOnset = null;
+        {% if slopit_enabled %}
+        const captureLifetime = new AbortController();
+        const captureConfig = {{ slopit_config | tojson }};
+        if (captureConfig.profile === "response_controls" &&
+            SlopitJsPsych.responseControlsSchemaVersion !== "1.0") {
+            throw new Error("The packaged slopit bundle lacks response-controls schema 1.0.");
+        }
+        window.addEventListener("pagehide", () => captureLifetime.abort(), { once: true });
+        {% endif %}
+
         // Load distribution config
         const distConfig = await fetch('data/distribution.json').then(r => r.json());
 
         // Load lists from JSONL
-        const lists = await loadLists('data/lists.jsonl');
+        const lists = await BeadLists.loadLists('data/lists.jsonl');
 
         // Load items from JSONL
-        const items = await loadItems('data/items.jsonl');
+        const items = await BeadLists.loadItems('data/items.jsonl');
 
-        {% if use_jatos %}
-        // Initialize list distributor (JATOS batch session)
-        distributor = new ListDistributor(distConfig, lists);
+        const requestedSeed = {% if not use_jatos or debug_mode or session_adapter %}params.get("seed"){% else %}null{% endif %};
+        const hasRequestedSeed = requestedSeed && /^\d{1,10}$/.test(requestedSeed) && Number(requestedSeed) <= 4294967295;
+        const seed = hasRequestedSeed ? Number(requestedSeed) : crypto.getRandomValues(new Uint32Array(1))[0];
+        const seedSource = hasRequestedSeed ? "url" : "crypto";
 
-        // Assign list to this participant
-        const listIndex = await distributor.initialize();
-        const assignedList = distributor.getAssignedList();
-
-        console.log(`Assigned to list: ${assignedList.name} (index: ${listIndex})`);
-        {% else %}
-        // Local mode: use the first (only) list directly
-        const listIndex = 0;
-        const assignedList = lists[0];
-
-        console.log(`Local mode - using list: ${assignedList.name}`);
-        {% endif %}
-
-        {% if slopit_enabled %}
-        // Initialize slopit extension
-        slopitExtension = new SlopitExtension({
-            keystroke: {{ slopit_config.keystroke | tojson }},
-            focus: {{ slopit_config.focus | tojson }},
-            paste: {{ slopit_config.paste | tojson }},
-            targetSelectors: {{ slopit_config.target_selectors | tojson }}
-        });
-        {% endif %}
+        let listIndex;
+        let listSource;
+        if (sessionAdapter.assignList) {
+            ({ index: listIndex, source: listSource } = await sessionAdapter.assignList(lists, seed));
+        } else {
+            {% if use_jatos %}
+            distributor = new BeadLists.ListDistributor(distConfig, lists);
+            listIndex = await distributor.initialize();
+            listSource = "jatos";
+            {% else %}
+            const replayList = params.get("list");
+            listIndex = replayList === null ? 0 : lists.findIndex(
+                list => String(list.list_number) === replayList || list.id === replayList);
+            listSource = replayList === null ? "default" : "url";
+            {% endif %}
+        }
+        const assignedList = lists[listIndex];
+        if (!assignedList) throw new Error("Unknown assigned list.");
+        console.log("Assigned list:", assignedList.name, listIndex);
 
         // Initialize jsPsych
         const jsPsych = initJsPsych({
+            display_element: "jspsych-target",
             {% if slopit_enabled %}
             extensions: [
-                { type: slopitExtension }
+                { type: SlopitJsPsych.SlopitExtension }
             ],
             {% endif %}
-            {% if use_jatos %}
-            on_trial_start: jatos.addAbortButton,
-            {% endif %}
-            on_finish: async function() {
-                {% if use_jatos %}
-                // Mark as completed in batch session
-                if (distributor) {
-                    await distributor.markCompleted();
+            on_trial_start: function(trial) {
+                {% if result_stream %}
+                if (sessionStarted) {
+                    trialOnset = { start_perf_ms: performance.now(), start_wall_ms: Date.now() };
+                    const onset = trialOnset;
+                    queueMicrotask(() => {
+                        const display = jsPsych.getDisplayElement();
+                        onset.onset_perf_ms = performance.now();
+                        onset.onset_wall_ms = Date.now();
+                        const canaries = [...display.querySelectorAll(".canary")];
+                        const originallyHidden = canaries.map(node => node.hidden);
+                        canaries.forEach(node => { node.hidden = true; });
+                        onset.display_text = display.innerText;
+                        canaries.forEach((node, index) => { node.hidden = originallyHidden[index]; });
+                        onset.canary_text = canaries.map(node => node.textContent.trim()).join(" ") || null;
+                        requestAnimationFrame(time => { onset.onset_frame_perf_ms = time; });
+                    });
                 }
                 {% endif %}
-
+            },
+            {% if result_stream %}
+            on_data_update: function(data) {
+                if (!sessionStarted || !trialOnset || !consented) return;
+                stream.record("trial", {
+                    ...data,
+                    ...trialOnset,
+                    offset_perf_ms: performance.now(),
+                    offset_wall_ms: Date.now(),
+                });
+                trialOnset = null;
+            },
+            {% endif %}
+            on_finish: async function() {
+                document.querySelector(".bead-withdraw")?.remove();
+                {% if slopit_enabled %}
+                captureLifetime.abort();
+                {% endif %}
+                {% if result_stream %}
+                sessionEvents.abort();
+                const delivered = sessionStarted ? await stream.finish(withdrawn ? "withdrawn" : "completed") : true;
+                {% endif %}
                 {% if use_jatos %}
-                // Submit data and end study
-                const resultData = jsPsych.data.get().json();
-                {% if on_finish_url %}
-                jatos.submitResultData(resultData)
-                    .then(() => jatos.endStudyAndRedirect("{{ on_finish_url }}"))
-                    .catch((error) => {
-                        console.error("Failed to submit data:", error);
-                        jatos.endStudyAndRedirect("{{ on_finish_url }}");
-                    });
-                {% else %}
-                jatos.submitResultData(resultData)
-                    .then(() => jatos.endStudy(true))
-                    .catch((error) => {
-                        console.error("Failed to submit data:", error);
-                        jatos.endStudy(false);
-                    });
-                {% endif %}
-                {% else %}
-                {% if on_finish_url %}
-                window.location.href = "{{ on_finish_url }}";
-                {% endif %}
+                if (!consented || withdrawn) {
+                    await jatos.endStudy(false);
+                    return;
+                }
+                try {
+                    {% if result_stream %}
+                    if (!delivered) throw new Error("Some result records could not be delivered.");
+                    {% else %}
+                    await jatos.submitResultData(jsPsych.data.get().json());
+                    {% endif %}
+                    if (distributor) await distributor.markCompleted();
+                    {% if on_finish_url %}
+                    await jatos.endStudyAndRedirect({{ on_finish_url | tojson }});
+                    {% else %}
+                    await jatos.endStudy(true);
+                    {% endif %}
+                } catch (error) {
+                    console.error("Failed to submit data:", error);
+                    await jatos.endStudy(false);
+                }
+                {% elif on_finish_url %}
+                if (consented && !withdrawn) window.location.href = {{ on_finish_url | tojson }};
                 {% endif %}
             },
             show_progress_bar: {{ 'true' if show_progress_bar else 'false' }},
@@ -112,6 +232,7 @@ async function runExperiment() {
             jatos_study_result_id: jatos.studyResultId,
             jatos_component_result_id: jatos.componentResultId,
             assigned_list_index: listIndex,
+            list_source: listSource,
             assigned_list_name: assignedList.name,
             assigned_list_id: assignedList.id,
             experiment_start_time: new Date().toISOString(),
@@ -120,14 +241,33 @@ async function runExperiment() {
         jsPsych.data.addProperties({
             experiment_title: "{{ title }}",
             assigned_list_index: listIndex,
+            list_source: listSource,
             assigned_list_name: assignedList.name,
             assigned_list_id: assignedList.id,
             experiment_start_time: new Date().toISOString(),
         });
         {% endif %}
 
+        jsPsych.randomization.setSeed(String(seed));
+        jsPsych.data.addProperties({ seed, seed_source: seedSource });
+
         // Build timeline
-        const timeline = [];
+        const timeline = [...(sessionAdapter.beforeConsent?.() ?? [])];
+        {% if consent_text %}
+        timeline.push({
+            type: jsPsychHtmlButtonResponse,
+            stimulus: {{ consent_text | tojson }},
+            choices: ["I consent", "I do not consent"],
+            on_finish(data) {
+                consented = data.response === 0;
+                if (!consented) {
+                    jsPsych.abortExperiment("<p>You declined to participate.</p>");
+                    return;
+                }
+                startSession();
+            },
+        });
+        {% endif %}
 
         // Demographics form (if enabled, appears before instructions)
         {% if demographics_enabled %}
@@ -236,7 +376,11 @@ async function runExperiment() {
 
         // Load pre-generated trials for this list
         const trialsData = await fetch('data/trials.json').then(r => r.json());
-        const listTrials = trialsData[assignedList.id];
+        const trialDefinitions = trialsData[assignedList.id];
+        const defaultOrder = trialDefinitions {% if randomize_trial_order %}&& jsPsych.randomization.shuffle(trialDefinitions){% endif %};
+        const context = { seed, assignedList, listSource };
+        const sessionPlan = sessionAdapter.plan?.(trialDefinitions, context) ?? { trials: defaultOrder };
+        const listTrials = sessionPlan.trials;
         
         if (!listTrials || listTrials.length === 0) {
             throw new Error(
@@ -259,8 +403,72 @@ async function runExperiment() {
             'bead-multi-select': BeadMultiSelectPlugin,
         };
 
+        function startSession() {
+            sessionStarted = true;
+            const contextData = sessionAdapter.sessionData?.(context) ?? {};
+            if (contextData.trialProperties) jsPsych.data.addProperties(contextData.trialProperties);
+            {% if result_stream %}
+            stream.record("session", {
+                ...hashes,
+                session_id: {% if use_jatos %}String(jatos.componentResultId){% else %}crypto.randomUUID(){% endif %},
+                jspsych_version: jsPsych.version(),
+                experiment: runtimeConfig.title,
+                ...contextData.sessionProperties,
+                ...sessionPlan.metadata,
+                list: assignedList.list_number,
+                list_id: assignedList.id,
+                list_source: listSource,
+                seed,
+                seed_source: seedSource,
+                {% if use_jatos %}
+                prolific_pid: jatos.urlQueryParameters.PROLIFIC_PID || null,
+                jatos_worker_id: jatos.workerId,
+                jatos_study_result_id: jatos.studyResultId,
+                jatos_component_result_id: jatos.componentResultId,
+                {% endif %}
+            });
+            stream.record("plan", { n_trials: listTrials.length, trials: listTrials });
+            {% endif %}
+
+            {% if consent_text %}
+            const withdraw = document.createElement("button");
+            withdraw.type = "button";
+            withdraw.textContent = "Withdraw from study";
+            withdraw.className = "bead-withdraw";
+            withdraw.addEventListener("click", () => {
+                withdrawn = true;
+                consented = false;
+                {% if slopit_enabled %}
+                captureLifetime.abort();
+                {% endif %}
+                withdraw.remove();
+                {% if result_stream %}
+                stream.record("event", { event: "withdrawal" });
+                {% endif %}
+                jsPsych.abortExperiment("<p>You withdrew from the study.</p>");
+            }, { once: true });
+            document.body.append(withdraw);
+            {% endif %}
+            {% if result_stream %}
+            const options = { signal: sessionEvents.signal };
+            window.addEventListener("pagehide", (event) => stream.record("event", {
+                event: "pagehide", trusted: event.isTrusted, persisted: event.persisted,
+            }), { ...options, once: true });
+            for (const type of ["blur", "focus"]) {
+                window.addEventListener(type, event => stream.record("event", {
+                    event: type, trusted: event.isTrusted,
+                }), options);
+            }
+            document.addEventListener("visibilitychange", event => stream.record("event", {
+                event: "visibilitychange",
+                trusted: event.isTrusted,
+                visibility_state: document.visibilityState,
+            }), options);
+            {% endif %}
+        }
+        timeline.push(...(sessionAdapter.beforeTrials?.(context) ?? []));
         // Add pre-generated trials to timeline, resolving plugin types
-        for (const trial of listTrials) {
+        for (const [planIndex, trial] of listTrials.entries()) {
             const pluginClass = pluginRegistry[trial.type];
             if (!pluginClass) {
                 throw new Error(
@@ -268,8 +476,34 @@ async function runExperiment() {
                     `Available: ${Object.keys(pluginRegistry).join(', ')}`
                 );
             }
-            timeline.push({ ...trial, type: pluginClass });
+            const node = {
+                ...trial,
+                type: pluginClass,
+                data: { ...trial.data, plan_index: planIndex, list_number: assignedList.list_number },
+            };
+            sessionAdapter.configureTrial?.(node, context);
+            {% if slopit_enabled %}
+            const targetSelector = captureConfig.target_selectors[trial.data?.task_type] ??
+                captureConfig.target_selectors[trial.type] ??
+                captureConfig.target_selectors[runtimeConfig.experiment_type];
+            if (targetSelector) {
+                node.extensions = [{
+                    type: SlopitJsPsych.SlopitExtension,
+                    params: captureConfig.profile === "response_controls" ?
+                        { responseControls: { targetSelector, hasConsent: () => consented, signal: captureLifetime.signal } } :
+                        {
+                            targetSelector,
+                            keystroke: captureConfig.keystroke,
+                            focus: captureConfig.focus,
+                            paste: captureConfig.paste,
+                        },
+                }];
+            }
+            {% endif %}
+            timeline.push(node);
+            timeline.push(...(sessionAdapter.afterTrial?.(node, context) ?? []));
         }
+        timeline.push(...(sessionAdapter.afterTrials?.(context) ?? []));
 
         // Completion
         timeline.push({
@@ -287,13 +521,16 @@ async function runExperiment() {
                 </div>
             `,
             choices: "NO_KEYS",
-            trial_duration: {% if on_finish_url %}2000{% else %}null{% endif %},
+            trial_duration: 800,
             data: {
                 trial_type: 'completion'
             }
         });
 
         // Run experiment
+        {% if not consent_text %}
+        startSession();
+        {% endif %}
         await jsPsych.run(timeline);
 
     } catch (error) {

@@ -130,6 +130,21 @@ class ScalePointLabel(BeadBaseModel):
     label: str
 
 
+class ClozeOption(BeadBaseModel):
+    """A cloze choice with a stored value and an optional display label."""
+
+    value: str
+    label: str | None = None
+
+
+class ClozeFieldSpec(BeadBaseModel):
+    """A named gap and its choices. A gap without choices accepts text."""
+
+    name: str
+    options: tuple[dx.Embed[ClozeOption], ...] = ()
+    placeholder: str | None = None
+
+
 class TaskSpec(BeadBaseModel):
     """Parameters for the response collection task.
 
@@ -164,6 +179,8 @@ class TaskSpec(BeadBaseModel):
     text_validation_pattern: str | None = None
     max_length: int | None = None
     span_spec: dx.Embed[SpanSpec] | None = None
+    cloze_fields: tuple[dx.Embed[ClozeFieldSpec], ...] = ()
+    cloze_require_all: bool = True
 
     @dx.validates("prompt")
     def _check_prompt(self, value: str) -> str:

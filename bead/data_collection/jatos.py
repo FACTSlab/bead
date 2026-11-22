@@ -12,11 +12,61 @@ functionality for:
 from __future__ import annotations
 
 import json
-from pathlib import Path
+import zipfile
+from io import BytesIO
+from pathlib import Path, PurePosixPath
 
 from bead.data.base import JsonValue
 from bead.data.timestamps import now_iso8601
 from bead.deployment.jatos.api import JATOSClient
+
+
+def load_jatos_result_archive(
+    source: Path | BytesIO,
+) -> list[dict[str, JsonValue]]:
+    """Load each component's raw data and metadata from a ZIP export.
+
+    JSON arrays are decoded for legacy consumers. Appended JSONL remains text
+    for sequence-aware parsing, including the last line of interrupted runs.
+    Components without submitted data are included with a null payload.
+    """
+    results: list[dict[str, JsonValue]] = []
+    with zipfile.ZipFile(source) as archive:
+        files = set(archive.namelist())
+        metadata = json.loads(archive.read("metadata.json"))
+        for study in metadata["data"]:
+            for result in study["studyResults"]:
+                for component in result["componentResults"]:
+                    folder = component.get("path") or (
+                        f"study_result_{result['id']}/comp_result_{component['id']}"
+                    )
+                    path = str(PurePosixPath(folder.lstrip("/")) / "data.txt")
+                    data: JsonValue = None
+                    if path in files:
+                        text = archive.read(path).decode("utf-8")
+                        try:
+                            parsed: JsonValue = json.loads(text)
+                            data = (
+                                text
+                                if isinstance(parsed, dict) and "record_type" in parsed
+                                else parsed
+                            )
+                        except json.JSONDecodeError:
+                            data = text
+                    results.append(
+                        {
+                            "result_id": result["id"],
+                            "component_result_id": component["id"],
+                            "data": data,
+                            "metadata": {
+                                **result,
+                                **component,
+                                "studyId": study["studyId"],
+                                "studyResultId": result["id"],
+                            },
+                        }
+                    )
+    return results
 
 
 class JATOSDataCollector:
@@ -108,27 +158,17 @@ class JATOSDataCollector:
                 worker_type="Prolific"
             )
         """
-        # Get result IDs from JATOS API
-        result_ids = self.client.get_results(self.study_id)
-
-        results: list[dict[str, JsonValue]] = []
-
-        # Download each result with metadata
-        for result_id in result_ids:
-            result = self._download_single_result(result_id)
-
-            # Apply filters
-            if component_id is not None:
-                result_component_id = result.get("metadata", {}).get("componentId")
-                if result_component_id != component_id:
-                    continue
-
-            if worker_type is not None:
-                result_worker_type = result.get("metadata", {}).get("workerType")
-                if result_worker_type != worker_type:
-                    continue
-
-            results.append(result)
+        archive = self.client.download_result_archive(self.study_id)
+        results = []
+        for result in load_jatos_result_archive(BytesIO(archive)):
+            metadata = result["metadata"]
+            if not isinstance(metadata, dict):
+                continue
+            if component_id is not None and metadata.get("componentId") != component_id:
+                continue
+            if worker_type is not None and metadata.get("workerType") != worker_type:
+                continue
+            results.append({**result, "download_timestamp": now_iso8601().isoformat()})
 
         # Save to JSONLines file (one result per line)
         output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -137,43 +177,6 @@ class JATOSDataCollector:
                 f.write(json.dumps(result) + "\n")
 
         return results
-
-    def _download_single_result(self, result_id: int) -> dict[str, JsonValue]:
-        """Download a single result with metadata.
-
-        Parameters
-        ----------
-        result_id : int
-            Result ID to download.
-
-        Returns
-        -------
-        dict[str, JsonValue]
-            Result data with metadata and download timestamp.
-
-        Raises
-        ------
-        requests.HTTPError
-            If the API request fails.
-        """
-        # Get result data
-        data_url = f"{self.client.base_url}/api/v1/results/{result_id}/data"
-        data_response = self.client.session.get(data_url)
-        data_response.raise_for_status()
-
-        # Get result metadata
-        meta_url = f"{self.client.base_url}/api/v1/results/{result_id}"
-        meta_response = self.client.session.get(meta_url)
-        meta_response.raise_for_status()
-
-        metadata = meta_response.json()
-
-        return {
-            "result_id": result_id,
-            "data": data_response.json(),
-            "metadata": metadata,
-            "download_timestamp": now_iso8601().isoformat(),
-        }
 
     def get_study_info(self) -> dict[str, JsonValue]:
         """Get study information.

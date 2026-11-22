@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Literal
 
 import didactic.api as dx
 
@@ -83,10 +84,11 @@ def _default_paste_config() -> SlopitPasteConfig:
 
 def _default_target_selectors() -> dict[str, str]:
     return {
-        "likert_rating": ".bead-rating-button",
-        "slider_rating": ".bead-slider",
+        "likert_rating": ".bead-rating-button, #bead-rating-continue",
+        "slider_rating": ".bead-slider-input, #bead-slider-continue",
         "forced_choice": ".bead-choice-button",
-        "cloze": ".bead-cloze-field",
+        "cloze": ".bead-cloze-field, #bead-cloze-continue",
+        "binary_choice": ".bead-binary-button",
     }
 
 
@@ -108,6 +110,7 @@ class SlopitIntegrationConfig(dx.Model):
     """
 
     enabled: bool = False
+    profile: Literal["legacy", "response_controls"] = "legacy"
     keystroke: dx.Embed[SlopitKeystrokeConfig] = dx.field(
         default_factory=_default_keystroke_config
     )
@@ -127,7 +130,7 @@ def validate_slopit_integration(config: SlopitIntegrationConfig) -> None:
         / "deployment"
         / "jspsych"
         / "dist"
-        / "slopit-bundle.js"
+        / "slopit-bundle.global.js"
     )
     if not bundle_path.exists():
         raise ValueError(

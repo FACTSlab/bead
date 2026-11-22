@@ -19,6 +19,7 @@ from collections.abc import Iterable, Mapping
 from typing import Any
 
 from bead.data.base import JsonValue
+from bead.data_collection.result_stream import parse_jatos_result_stream
 from bead.evaluation.reliability import AnnotationRecord
 
 
@@ -64,12 +65,19 @@ def _annotator_id(
     for the configured key (typically ``"PROLIFIC_PID"``), then falls
     back to the JATOS-assigned ``worker_id``.
     """
-    url_params = result.get("urlQueryParameters")
+    url_params = result.get("urlQueryParameters") or result.get("url_params")
     if isinstance(url_params, Mapping) and annotator_id_key in url_params:
         candidate = url_params[annotator_id_key]
         if isinstance(candidate, str) and candidate:
             return candidate
-    worker_id = result.get("worker_id")
+    participant_id = result.get("prolific_pid") or result.get("participant_id")
+    if isinstance(participant_id, str) and participant_id:
+        return participant_id
+    worker_id = (
+        result.get("worker_id")
+        or result.get("workerId")
+        or result.get("jatos_worker_id")
+    )
     if isinstance(worker_id, str) and worker_id:
         return worker_id
     if isinstance(worker_id, int):
@@ -94,7 +102,7 @@ def jatos_results_to_annotation_records(
     Parameters
     ----------
     results : Iterable[Mapping[str, Any]]
-        JATOS result envelopes.
+        JATOS result envelopes with an aggregate array or appended JSONL.
     annotator_id_key : str, optional
         Query-parameter key carrying the annotator identifier.
         Defaults to ``"PROLIFIC_PID"``.
@@ -102,36 +110,61 @@ def jatos_results_to_annotation_records(
     Returns
     -------
     tuple[AnnotationRecord, ...]
-        One record per (item, template_name) trial. Records appear in
-        result-then-trial order. Trials missing required fields are
-        skipped.
+        One record per scalar response or answered named field. Named field
+        questions use template_name.field_name. Missing answers are skipped.
     """
     records: list[AnnotationRecord] = []
     for result in results:
+        payload = result.get("data")
+        stream = (
+            parse_jatos_result_stream(payload)
+            if isinstance(payload, str | list | tuple)
+            else None
+        )
         annotator_id = _annotator_id(result, annotator_id_key=annotator_id_key)
+        metadata = result.get("metadata")
+        if annotator_id is None and stream is not None and stream.session is not None:
+            annotator_id = _annotator_id(
+                stream.session, annotator_id_key=annotator_id_key
+            )
+        if annotator_id is None and isinstance(metadata, Mapping):
+            annotator_id = _annotator_id(metadata, annotator_id_key=annotator_id_key)
         if annotator_id is None:
             continue
-        trials = result.get("data")
-        if not isinstance(trials, list):
+        trials = stream.trials if stream is not None else payload
+        if not isinstance(trials, list | tuple):
             continue
         for trial in trials:
-            if not isinstance(trial, Mapping):
+            if (
+                not isinstance(trial, Mapping)
+                or trial.get("annotation_eligible") is False
+            ):
                 continue
             item_id = trial.get("item_id")
             question_name = trial.get("template_name")
-            response = trial.get("response")
-            if (
-                not isinstance(item_id, str)
-                or not isinstance(question_name, str)
-                or response is None
-            ):
+            if not isinstance(item_id, str) or not isinstance(question_name, str):
                 continue
-            records.append(
-                AnnotationRecord(
-                    annotator_id=annotator_id,
-                    item_id=item_id,
-                    question_name=question_name,
-                    response_label=_coerce_response_label(response),
+            fields = trial.get("response_field_names")
+            responses = trial.get("responses")
+            if isinstance(fields, list | tuple) and isinstance(responses, Mapping):
+                named_responses = (
+                    (f"{question_name}.{name}", responses.get(name))
+                    for name in fields
+                    if isinstance(name, str) and name
                 )
-            )
+            else:
+                named_responses = ((question_name, trial.get("response")),)
+            for name, response in named_responses:
+                if response is None or (
+                    isinstance(responses, Mapping) and response == ""
+                ):
+                    continue
+                records.append(
+                    AnnotationRecord(
+                        annotator_id=annotator_id,
+                        item_id=item_id,
+                        question_name=name,
+                        response_label=_coerce_response_label(response),
+                    )
+                )
     return tuple(records)

@@ -16,6 +16,7 @@ type ExperimentType = Literal[
     "binary_choice",
     "forced_choice",
     "span_labeling",
+    "cloze",
 ]
 
 type UITheme = Literal["light", "dark", "auto"]
@@ -243,6 +244,8 @@ class ExperimentConfig(dx.Model):
     show_click_target: bool = False
     minimum_duration_ms: int = 0
     use_jatos: bool = True
+    consent_text: str | None = None
+    result_format: Literal["aggregate", "stream"] = "aggregate"
     prolific_completion_code: str | None = None
     slopit: dx.Embed[SlopitIntegrationConfig] = dx.field(
         default_factory=_default_slopit_integration

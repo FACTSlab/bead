@@ -45,7 +45,8 @@ def test_upload_study(tmp_path: Path) -> None:
         # Verify the request was made correctly
         mock_session.post.assert_called_once()
         call_args = mock_session.post.call_args
-        assert call_args[0][0] == "https://jatos.example.com/api/v1/studies"
+        assert call_args[0][0] == "https://jatos.example.com/jatos/api/v1/study"
+        assert set(call_args.kwargs["files"]) == {"study"}
 
 
 def test_upload_study_missing_file(tmp_path: Path) -> None:

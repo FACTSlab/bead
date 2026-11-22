@@ -5,29 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ title }}</title>
 
-    <!-- jsPsych 8.x CSS -->
-    <link href="https://unpkg.com/jspsych@8.0.0/css/jspsych.css" rel="stylesheet" type="text/css" />
-
-    <!-- Material Design Icons (optional) -->
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="runtime/jspsych.css" rel="stylesheet" />
+    <link href="runtime/survey.css" rel="stylesheet" />
 
     <!-- Custom experiment CSS -->
     <link href="css/experiment.css" rel="stylesheet" type="text/css" />
 
-    <!-- jsPsych 8.x Core -->
-    <script src="https://unpkg.com/jspsych@8.0.0"></script>
-
-    <!-- jsPsych 8.x Plugins -->
-    <script src="https://unpkg.com/@jspsych/plugin-html-keyboard-response@2.0.0"></script>
-    <script src="https://unpkg.com/@jspsych/plugin-html-button-response@2.0.0"></script>
-    <script src="https://unpkg.com/@jspsych/plugin-html-slider-response@2.0.0"></script>
-    <script src="https://unpkg.com/@jspsych/plugin-preload@2.0.0"></script>
-
-    <!-- Seedrandom for reproducible randomization -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/seedrandom/3.0.5/seedrandom.min.js"></script>
+    <script src="runtime/jspsych.js"></script>
+    <script src="runtime/html-keyboard-response.js"></script>
+    <script src="runtime/html-button-response.js"></script>
+    <script src="runtime/instructions.js"></script>
+    {% if session_adapter %}
+    <script src="runtime/browser-check.js"></script>
+    <script src="runtime/fullscreen.js"></script>
+    <script src="runtime/survey-html-form.js"></script>
+    {% endif %}
+    <script src="runtime/survey.js"></script>
 
     {% if use_jatos %}
     <!-- JATOS integration -->
@@ -39,20 +32,15 @@
 
     <!-- List distribution system -->
     <script src="js/list_distributor.js"></script>
+    {% if session_adapter %}
+    <script src="js/session-adapter.js"></script>
+    {% endif %}
 
     {% if slopit_enabled %}
     <!-- Slopit behavioral capture -->
     <script src="js/slopit-bundle.js"></script>
     {% endif %}
 
-    {% if span_enabled %}
-    <!-- Span labeling -->
-    <script src="js/plugins/span-label.js"></script>
-    <script src="js/lib/span-renderer.js"></script>
-    {% if span_wikidata %}
-    <script src="js/lib/wikidata-search.js"></script>
-    {% endif %}
-    {% endif %}
 </head>
 <body class="theme-{{ ui_theme }}">
     <div id="jspsych-target"></div>

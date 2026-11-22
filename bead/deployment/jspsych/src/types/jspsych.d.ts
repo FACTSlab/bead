@@ -41,6 +41,7 @@ export interface ParameterInfo {
 export interface PluginInfo {
   name: string;
   parameters: Record<string, ParameterInfo>;
+  data?: Record<string, ParameterInfo>;
 }
 
 /** Keyboard response info returned by getKeyboardResponse callback */
