@@ -220,6 +220,10 @@ class ExperimentConfig(dx.Model):
         Minimum trial duration in milliseconds (>= 0).
     use_jatos : bool
         Enable JATOS integration.
+    consent_text : str | None
+        Consent screen shown before collecting behavioral data.
+    result_format : Literal["aggregate", "stream"]
+        Store one result array or append records as a session progresses.
     prolific_completion_code : str | None
         Prolific completion code; when set, ``on_finish_url`` is
         auto-generated.

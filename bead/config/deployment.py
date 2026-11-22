@@ -89,6 +89,7 @@ def _default_target_selectors() -> dict[str, str]:
         "forced_choice": ".bead-choice-button",
         "cloze": ".bead-cloze-field, #bead-cloze-continue",
         "binary_choice": ".bead-binary-button",
+        "bead-slider-rating": ".bead-slider-input, #bead-slider-continue",
     }
 
 
@@ -106,7 +107,9 @@ class SlopitIntegrationConfig(dx.Model):
     paste : SlopitPasteConfig
         Paste event capture settings.
     target_selectors : dict[str, str]
-        CSS selectors for capture targets by task type.
+        CSS selectors for capture targets by task type or plugin name.
+    profile : Literal["legacy", "response_controls"]
+        Capture profile applied after affirmative consent.
     """
 
     enabled: bool = False

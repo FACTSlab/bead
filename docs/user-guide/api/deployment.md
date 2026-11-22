@@ -689,3 +689,45 @@ print("JATOS package created")
 - [Training module](training.md): Active learning with convergence detection
 - [CLI reference](../cli/deployment.md): Command-line equivalents
 - [Gallery example](https://github.com/FACTSlab/bead/blob/main/gallery/eng/argument_structure/generate_deployment.py): Full working script
+
+## Offline jsPsych studies and named cloze tasks
+
+Build the browser assets with `pnpm install --frozen-lockfile` and
+`pnpm build` in `bead/deployment/jspsych` when working from a source
+checkout. The Python release contains the built assets. The generated
+`runtime/manifest.json` records the jsPsych package versions and content
+hashes. JATOS supplies its own `jatos.js` at study launch.
+
+For a cloze item, use `task_type="cloze"` and define
+`TaskSpec.cloze_fields` with one `ClozeFieldSpec` per named gap. The
+item’s rendered sentence contains each gap once, for instance
+`{{preposition}}`. A field with `ClozeOption` entries renders a dropdown.
+The browser displays each option’s label and stores its value. A field
+with no choices renders a text input. The plugin records values and
+response times by field name.
+
+Set `ExperimentConfig(result_format="stream", ...)` to append a JATOS
+record at session start, for the trial plan, after each completed trial,
+and at completion. The default aggregate format still uses one submit at
+the end. The stream parser exposes arrival order, one record per sequence,
+missing sequence ranges, and the terminal record if one arrived.
+`load_jatos_result_archive` accepts a JATOS ZIP result export.
+`jatos_results_to_annotation_records` creates one record for every
+answered named field, using `template_name.field_name` as the question.
+
+To add behavioral capture, set `consent_text` and enable
+`SlopitIntegrationConfig`. Set `profile="response_controls"` and pass the
+slopit `adapter-jspsych` browser artifact as `slopit_browser_bundle` for
+the response-control schema. Set `target_selectors` to the CSS selectors
+for the response controls in each task. The generated timeline starts
+after affirmative consent and provides a withdrawal button. The
+response-control profile records timing and event provenance without
+including field values in the telemetry. The response plugin still
+writes the answers the study collects.
+
+A study may supply a `session_adapter` script exposing a
+`BeadSessionAdapter` object. Its optional hooks assign a list, set the
+trial plan, add session and trial metadata, and configure timeline
+nodes. The script is copied into the study assets and covered by the
+application hash. The generic jsPsych generator remains responsible for
+consent, telemetry, and result delivery.
