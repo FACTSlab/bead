@@ -23,6 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   after consent.
 - Exports native JATOS study archives with stable component and batch IDs when
   the study ID is supplied.
+- Restores Layers corpus commits and publish planning with Lairs 0.10.4 and
+  Panproto 0.76.1. Panproto 0.77 rejects Lairs repository schemas.
 
 
 ## [0.13.0] - 2026-11-06
