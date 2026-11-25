@@ -3,6 +3,7 @@
   "version": "0.3.0",
   "description": "TypeScript plugins and utilities for bead jsPsych experiment deployment",
   "private": true,
+  "packageManager": "pnpm@9.14.4",
   "type": "module",
   "exports": {
     "./plugins/*": {
@@ -15,7 +16,7 @@
     }
   },
   "scripts": {
-    "build": "tsup",
+    "build": "tsup && tsup --config tsup.gallery.config.ts && node copy-runtime.mjs",
     "build:gallery": "tsup --config tsup.gallery.config.ts",
     "build:watch": "tsup --watch",
     "typecheck": "tsc --noEmit",
@@ -30,7 +31,14 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@slopit/adapter-jspsych": "^0.1.0",
+    "@jspsych/plugin-browser-check": "2.1.0",
+    "@jspsych/plugin-fullscreen": "2.1.0",
+    "@jspsych/plugin-html-button-response": "2.1.0",
+    "@jspsych/plugin-html-keyboard-response": "2.1.0",
+    "@jspsych/plugin-instructions": "2.1.0",
+    "@jspsych/plugin-survey-html-form": "2.1.0",
+    "@jspsych/plugin-survey": "3.0.0",
+    "@slopit/adapter-jspsych": "0.1.0",
     "@slopit/behavioral": "^0.1.0",
     "@slopit/core": "^0.1.0"
   },
@@ -38,7 +46,7 @@
     "@biomejs/biome": "^1.9.0",
     "@types/node": "^22.0.0",
     "jsdom": "^25.0.0",
-    "jspsych": "^8.0.0",
+    "jspsych": "8.4.0",
     "tsup": "^8.0.0",
     "typescript": "^5.7.0",
     "vitest": "^2.0.0"

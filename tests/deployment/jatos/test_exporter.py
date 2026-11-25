@@ -44,26 +44,26 @@ def test_jzip_structure(sample_experiment_dir: Path, jzip_output_path: Path) -> 
     with zipfile.ZipFile(jzip_output_path, "r") as zipf:
         namelist = zipf.namelist()
 
-        # Check for study.json
-        assert "study.json" in namelist
+        # Check for test_study.jas
+        assert "test_study.jas" in namelist
 
         # Check for experiment files
-        assert "experiment/index.html" in namelist
-        assert "experiment/css/experiment.css" in namelist
-        assert "experiment/js/experiment.js" in namelist
-        assert "experiment/data/config.json" in namelist
-        assert "experiment/data/timeline.json" in namelist
+        assert "test_study/index.html" in namelist
+        assert "test_study/css/experiment.css" in namelist
+        assert "test_study/js/experiment.js" in namelist
+        assert "test_study/data/config.json" in namelist
+        assert "test_study/data/timeline.json" in namelist
 
 
 def test_study_json_schema(sample_experiment_dir: Path, jzip_output_path: Path) -> None:
-    """Test study.json follows JATOS v3 schema."""
+    """Test test_study.jas follows JATOS v3 schema."""
     exporter = JATOSExporter(
         study_title="Test Study", study_description="Test Description"
     )
     exporter.export(sample_experiment_dir, jzip_output_path)
 
     with zipfile.ZipFile(jzip_output_path, "r") as zipf:
-        study_json_content = zipf.read("study.json")
+        study_json_content = zipf.read("test_study.jas")
         study_json = json.loads(study_json_content)
 
         # Check top-level structure
@@ -91,7 +91,7 @@ def test_study_json_schema(sample_experiment_dir: Path, jzip_output_path: Path) 
 def test_study_json_component(
     sample_experiment_dir: Path, jzip_output_path: Path
 ) -> None:
-    """Test study.json has correct component configuration."""
+    """Test test_study.jas has correct component configuration."""
     exporter = JATOSExporter(
         study_title="Test Study",
         study_description="Test Description",
@@ -103,7 +103,7 @@ def test_study_json_component(
     )
 
     with zipfile.ZipFile(jzip_output_path, "r") as zipf:
-        study_json_content = zipf.read("study.json")
+        study_json_content = zipf.read("test_study.jas")
         study_json = json.loads(study_json_content)
 
         components = study_json["data"]["componentList"]
@@ -116,7 +116,7 @@ def test_study_json_component(
         assert "active" in component
 
         assert component["title"] == "Main Experiment"
-        assert component["htmlFilePath"] == "experiment/index.html"
+        assert component["htmlFilePath"] == "index.html"
         assert component["active"] is True
 
 
@@ -129,7 +129,7 @@ def test_sanitize_dirname(sample_experiment_dir: Path, jzip_output_path: Path) -
     exporter.export(sample_experiment_dir, jzip_output_path)
 
     with zipfile.ZipFile(jzip_output_path, "r") as zipf:
-        study_json_content = zipf.read("study.json")
+        study_json_content = zipf.read("my_study_2024.jas")
         study_json = json.loads(study_json_content)
 
         dirname = study_json["data"]["dirName"]
@@ -181,19 +181,19 @@ def test_experiment_files_preserved(
 
     with zipfile.ZipFile(jzip_output_path, "r") as zipf:
         # Read HTML file
-        html_content = zipf.read("experiment/index.html").decode("utf-8")
+        html_content = zipf.read("test_study/index.html").decode("utf-8")
         assert "<title>Test Experiment</title>" in html_content
 
         # Read CSS file
-        css_content = zipf.read("experiment/css/experiment.css").decode("utf-8")
+        css_content = zipf.read("test_study/css/experiment.css").decode("utf-8")
         assert "body { margin: 0; }" in css_content
 
         # Read JS file
-        js_content = zipf.read("experiment/js/experiment.js").decode("utf-8")
+        js_content = zipf.read("test_study/js/experiment.js").decode("utf-8")
         assert "console.log('test');" in js_content
 
         # Read config.json
-        config_content = zipf.read("experiment/data/config.json").decode("utf-8")
+        config_content = zipf.read("test_study/data/config.json").decode("utf-8")
         config_json = json.loads(config_content)
         assert config_json["title"] == "Test"
 
@@ -210,7 +210,7 @@ def test_custom_component_title(
     )
 
     with zipfile.ZipFile(jzip_output_path, "r") as zipf:
-        study_json_content = zipf.read("study.json")
+        study_json_content = zipf.read("test_study.jas")
         study_json = json.loads(study_json_content)
 
         component = study_json["data"]["componentList"][0]
@@ -227,6 +227,22 @@ def test_zip_file_compression(
     # Check that it's a valid ZIP file with compression
     with zipfile.ZipFile(jzip_output_path, "r") as zipf:
         # Get info about a file
-        info = zipf.getinfo("study.json")
+        info = zipf.getinfo("test_study.jas")
         # ZIP_DEFLATED = 8
         assert info.compress_type == zipfile.ZIP_DEFLATED
+
+
+def test_explicit_study_id_makes_jzip_repeatable(
+    sample_experiment_dir, tmp_path
+) -> None:
+    exporter = JATOSExporter(study_title="Test Study", study_uuid=uuid.uuid4())
+    first = tmp_path / "first.jzip"
+    second = tmp_path / "second.jzip"
+    exporter.export(sample_experiment_dir, first)
+    exporter.export(sample_experiment_dir, second)
+    assert first.read_bytes() == second.read_bytes()
+    with zipfile.ZipFile(first) as archive:
+        study = json.loads(archive.read("test_study.jas"))["data"]
+        assert study["uuid"] == str(exporter.study_uuid)
+        assert study["batchList"][0]["active"] is True
+        assert study["componentList"][0]["reloadable"] is False

@@ -148,7 +148,7 @@ def test_slopit_source_exports() -> None:
 
 def test_slopit_bundle_exists() -> None:
     """Test that compiled slopit bundle exists in dist/."""
-    bundle_path = Path("bead/deployment/jspsych/dist/slopit-bundle.js")
+    bundle_path = Path("bead/deployment/jspsych/dist/slopit-bundle.global.js")
     assert bundle_path.exists(), "slopit-bundle.js should exist after build"
 
 

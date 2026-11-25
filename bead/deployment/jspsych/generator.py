@@ -6,9 +6,10 @@ server-side list distribution.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
-import warnings
+import shutil
 from pathlib import Path
 from uuid import UUID
 
@@ -83,8 +84,13 @@ class JsPsychExperimentGenerator:
         output_dir: Path,
         rating_config: RatingScaleConfig | None = None,
         choice_config: ChoiceConfig | None = None,
+        *,
+        slopit_browser_bundle: Path | None = None,
+        session_adapter: Path | None = None,
     ) -> None:
         self.config = config
+        self.slopit_browser_bundle = slopit_browser_bundle
+        self.session_adapter = session_adapter
         self.output_dir = Path(output_dir)
         self.rating_config = rating_config or RatingScaleConfig()
         self.choice_config = choice_config or ChoiceConfig()
@@ -158,6 +164,17 @@ class JsPsychExperimentGenerator:
         ... )
         >>> # output_dir = generator.generate(lists, items, templates)
         """
+        if self.config.slopit.enabled:
+            if not self.config.consent_text or not self.config.consent_text.strip():
+                raise ValueError("Slopit capture requires consent_text")
+            if (
+                self.config.slopit.profile == "response_controls"
+                and self.slopit_browser_bundle is None
+            ):
+                raise ValueError(
+                    "The response-controls profile requires a slopit browser bundle"
+                )
+
         # validate inputs (no fallbacks)
         if not lists:
             raise ValueError(
@@ -206,6 +223,11 @@ class JsPsychExperimentGenerator:
         self._generate_config_file()
         self._copy_list_distributor_script()
         self._copy_gallery_bundle()
+        self._copy_runtime_assets()
+        if self.session_adapter is not None:
+            shutil.copyfile(
+                self.session_adapter, self.output_dir / "js" / "session-adapter.js"
+            )
 
         # copy slopit bundle if enabled
         if self.config.slopit.enabled:
@@ -215,6 +237,7 @@ class JsPsychExperimentGenerator:
         if span_enabled:
             self._copy_span_plugin_scripts(span_wikidata)
 
+        self._write_build_hashes()
         return self.output_dir
 
     def _validate_item_references(
@@ -356,7 +379,7 @@ class JsPsychExperimentGenerator:
 
         for exp_list in lists:
             list_trials: list[dict[str, JsonValue]] = []
-            for trial_num, item_id in enumerate(exp_list.item_refs):
+            for trial_num, item_id in enumerate(exp_list.get_presentation_order()):
                 item = items[item_id]
                 template = templates[item.item_template_id]
                 trial = create_trial(
@@ -413,7 +436,7 @@ class JsPsychExperimentGenerator:
         OSError
             If copying fails.
         """
-        dist_path = Path(__file__).parent / "dist" / "lib" / "list-distributor.js"
+        dist_path = Path(__file__).parent / "dist" / "list-distributor.global.js"
         output_path = self.output_dir / "js" / "list_distributor.js"
 
         if not dist_path.exists():
@@ -424,8 +447,7 @@ class JsPsychExperimentGenerator:
             )
 
         try:
-            content = self._strip_esm_exports(dist_path.read_text())
-            output_path.write_text(content)
+            shutil.copyfile(dist_path, output_path)
         except OSError as e:
             raise OSError(
                 f"Failed to copy list_distributor.js to {output_path}: {e}. "
@@ -438,13 +460,9 @@ class JsPsychExperimentGenerator:
         output_path = self.output_dir / "js" / "gallery-bundle.js"
 
         if not dist_path.exists():
-            warnings.warn(
-                f"gallery-bundle.global.js not found at {dist_path}. "
-                f"Bead plugins will not be available in the experiment. "
-                f"Run 'npm run build:gallery' in the jspsych directory.",
-                stacklevel=2,
+            raise FileNotFoundError(
+                f"Browser plugin bundle missing at {dist_path}. Run pnpm build."
             )
-            return
 
         try:
             output_path.write_text(dist_path.read_text())
@@ -482,6 +500,7 @@ class JsPsychExperimentGenerator:
             title=self.config.title,
             ui_theme=self.config.ui_theme,
             use_jatos=self.config.use_jatos,
+            session_adapter=self.session_adapter is not None,
             slopit_enabled=self.config.slopit.enabled,
             span_enabled=span_enabled,
             span_wikidata=span_wikidata,
@@ -514,9 +533,23 @@ class JsPsychExperimentGenerator:
         slopit_config = None
         if self.config.slopit.enabled:
             slopit_config = {
-                "keystroke": self.config.slopit.keystroke.model_dump(),
-                "focus": self.config.slopit.focus.model_dump(),
-                "paste": self.config.slopit.paste.model_dump(),
+                "profile": self.config.slopit.profile,
+                "keystroke": {
+                    "enabled": self.config.slopit.keystroke.enabled,
+                    "captureKeyUp": self.config.slopit.keystroke.capture_key_up,
+                    "includeModifiers": self.config.slopit.keystroke.include_modifiers,
+                },
+                "focus": {
+                    "enabled": self.config.slopit.focus.enabled,
+                    "useVisibilityAPI": self.config.slopit.focus.use_visibility_api,
+                    "useBlurFocus": self.config.slopit.focus.use_blur_focus,
+                },
+                "paste": {
+                    "enabled": self.config.slopit.paste.enabled,
+                    "prevent": self.config.slopit.paste.prevent,
+                    "capturePreview": self.config.slopit.paste.capture_preview,
+                    "previewLength": self.config.slopit.paste.preview_length,
+                },
                 "target_selectors": self.config.slopit.target_selectors,
             }
 
@@ -549,7 +582,7 @@ class JsPsychExperimentGenerator:
         # prepare instructions config for template
         instructions_is_multi_page = isinstance(
             self.config.instructions, InstructionsConfig
-        )
+        ) and bool(self.config.instructions.pages)
         instructions_pages: list[dict[str, str | None]] = []
         instructions_show_page_numbers = True
         instructions_allow_backwards = True
@@ -587,6 +620,11 @@ class JsPsychExperimentGenerator:
             on_finish_url=on_finish_url,
             slopit_enabled=self.config.slopit.enabled,
             slopit_config=slopit_config,
+            consent_text=self.config.consent_text,
+            result_stream=self.config.result_format == "stream",
+            randomize_trial_order=self.config.randomize_trial_order,
+            debug_mode=self.config.distribution_strategy.debug_mode,
+            session_adapter=self.session_adapter is not None,
             # demographics variables
             demographics_enabled=demographics_enabled,
             demographics_title=demographics_title,
@@ -625,7 +663,7 @@ class JsPsychExperimentGenerator:
         """
         # look for slopit bundle in dist directory
         dist_dir = Path(__file__).parent / "dist"
-        bundle_path = dist_dir / "slopit-bundle.js"
+        bundle_path = self.slopit_browser_bundle or dist_dir / "slopit-bundle.global.js"
 
         if not bundle_path.exists():
             raise FileNotFoundError(
@@ -637,12 +675,52 @@ class JsPsychExperimentGenerator:
 
         output_path = self.output_dir / "js" / "slopit-bundle.js"
         try:
-            output_path.write_text(self._strip_esm_exports(bundle_path.read_text()))
+            shutil.copyfile(bundle_path, output_path)
         except OSError as e:
             raise OSError(
                 f"Failed to copy slopit bundle to {output_path}: {e}. "
                 f"Check write permissions."
             ) from e
+
+    def _copy_runtime_assets(self) -> None:
+        runtime = Path(__file__).parent / "dist" / "runtime"
+        if not (runtime / "manifest.json").is_file():
+            raise FileNotFoundError(
+                "Pinned jsPsych assets are missing. Run pnpm build."
+            )
+        shutil.copytree(runtime, self.output_dir / "runtime", dirs_exist_ok=True)
+
+    def _write_build_hashes(self) -> None:
+        def digest(files: list[Path]) -> str:
+            checksum = hashlib.sha256()
+            for path in sorted(files):
+                relative_path = path.relative_to(self.output_dir).as_posix()
+                data = path.read_bytes()
+                checksum.update(f"{relative_path}\0{len(data)}\0".encode())
+                checksum.update(data)
+            return checksum.hexdigest()
+
+        data = self.output_dir / "data"
+        runtime = self.output_dir / "runtime"
+        scripts = self.output_dir / "js"
+        css = self.output_dir / "css"
+        hashes = {
+            "app_sha256": digest(
+                [
+                    self.output_dir / "index.html",
+                    *scripts.rglob("*.js"),
+                    *css.rglob("*.css"),
+                    data / "config.json",
+                ]
+            ),
+            "items_sha256": digest(
+                [data / name for name in ("trials.json", "items.jsonl", "lists.jsonl")]
+            ),
+            "vendor_sha256": digest(
+                [path for path in runtime.rglob("*") if path.is_file()]
+            ),
+        }
+        (data / "build-hashes.json").write_text(json.dumps(hashes, indent=2))
 
     def _detect_span_usage(
         self,

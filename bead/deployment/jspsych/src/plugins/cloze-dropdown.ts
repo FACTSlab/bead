@@ -33,7 +33,7 @@ export interface ClozeFieldConfig {
   slot_name?: string;
   position?: number;
   type: ClozeFieldType;
-  options?: string[];
+  options?: (string | { value: string; label: string })[];
   placeholder?: string;
 }
 
@@ -47,6 +47,8 @@ interface BeadMetadata {
 export interface ClozeTrialParams {
   /** The text with gaps (use %% or {{slot_name}} for gaps) */
   text: string | null;
+  prompt?: string;
+  canary?: string;
   /** Field configurations (auto-generated from unfilled_slots) */
   fields: ClozeFieldConfig[];
   /** Whether to require all fields to be filled */
@@ -74,6 +76,14 @@ const info: PluginInfo = {
       type: 8, // ParameterType.HTML_STRING
       default: null,
     },
+    prompt: {
+      type: 8, // ParameterType.HTML_STRING
+      default: "",
+    },
+    canary: {
+      type: 8, // ParameterType.HTML_STRING
+      default: "",
+    },
     fields: {
       type: 13, // ParameterType.COMPLEX
       default: [],
@@ -92,7 +102,17 @@ const info: PluginInfo = {
       default: {},
     },
   },
+  data: {},
 };
+
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
 
 /**
  * BeadClozeMultiPlugin - jsPsych plugin for fill-in-the-blank tasks
@@ -107,41 +127,46 @@ class BeadClozeMultiPlugin implements JsPsychPlugin<typeof info, ClozeTrialParam
   }
 
   trial(display_element: HTMLElement, trial: ClozeTrialParams): void {
-    const responses: ClozeResponses = {};
-    const response_times: ClozeResponseTimes = {};
-    const field_start_times: FieldStartTimes = {};
+    const responses: ClozeResponses = Object.create(null) as ClozeResponses;
+    const response_times: ClozeResponseTimes = Object.create(null) as ClozeResponseTimes;
+    const field_start_times: FieldStartTimes = Object.create(null) as FieldStartTimes;
 
     const start_time = performance.now();
 
-    // Auto-generate fields from metadata if not provided
-    if (trial.fields.length === 0 && trial.metadata.unfilled_slots) {
-      trial.fields = trial.metadata.unfilled_slots.map((slot) => ({
-        slot_name: slot.slot_name,
-        position: slot.position,
-        type: (slot.constraint_ids.length > 0 ? "dropdown" : "text") as ClozeFieldType,
-        options: [], // Would be populated from constraints in real implementation
-        placeholder: slot.slot_name,
-      }));
-    }
+    const fields =
+      trial.fields.length === 0 && trial.metadata.unfilled_slots
+        ? trial.metadata.unfilled_slots.map((slot) => ({
+            slot_name: slot.slot_name,
+            position: slot.position,
+            type: "text" as const,
+            placeholder: slot.slot_name,
+          }))
+        : trial.fields;
 
     // Generate HTML
     let html = '<div class="bead-cloze-container">';
+    if (trial.prompt) html += `<div class="bead-cloze-prompt">${trial.prompt}</div>`;
 
     if (trial.text) {
       // Replace gaps with input fields
       let processed_text = trial.text;
-      trial.fields.forEach((field, index) => {
+      fields.forEach((field, index) => {
         const field_id = `bead-cloze-field-${index}`;
         let field_html: string;
 
-        if (field.type === "dropdown" && field.options && field.options.length > 0) {
+        if (field.type === "dropdown") {
+          if (!field.options?.length)
+            throw new Error(`Cloze field ${field.slot_name ?? index} has no options`);
           // Dropdown field
           const optionsHtml = field.options
-            .map((opt) => `<option value="${opt}">${opt}</option>`)
+            .map((opt) => {
+              const { value, label } = typeof opt === "string" ? { value: opt, label: opt } : opt;
+              return `<option value="${escapeHtml(value)}">${escapeHtml(label)}</option>`;
+            })
             .join("");
           field_html = `
-            <select class="bead-dropdown bead-cloze-field" id="${field_id}" data-field="${index}">
-              <option value="">Select...</option>
+            <select aria-label="${escapeHtml(field.slot_name ?? `Gap ${index + 1}`)}" class="bead-dropdown bead-cloze-field" id="${field_id}" data-field="${index}">
+              <option value="" selected disabled>${escapeHtml(field.placeholder || "Select...")}</option>
               ${optionsHtml}
             </select>
           `;
@@ -149,19 +174,24 @@ class BeadClozeMultiPlugin implements JsPsychPlugin<typeof info, ClozeTrialParam
           // Text input field
           field_html = `
             <input type="text"
+                   aria-label="${escapeHtml(field.slot_name ?? `Gap ${index + 1}`)}"
                    class="bead-text-field bead-cloze-field"
                    id="${field_id}"
                    data-field="${index}"
-                   placeholder="${field.placeholder ?? ""}" />
+                   placeholder="${escapeHtml(field.placeholder ?? "")}" />
           `;
         }
 
         // Replace placeholder in text
         const placeholder = field.slot_name ? `{{${field.slot_name}}}` : "%%";
-        processed_text = processed_text.replace(placeholder, field_html);
+        processed_text = processed_text.replace(placeholder, () => field_html);
       });
 
       html += `<div class="bead-cloze-text">${processed_text}</div>`;
+    }
+
+    if (trial.canary) {
+      html += `<span class="canary" hidden aria-hidden="true">${escapeHtml(trial.canary)}</span>`;
     }
 
     // Continue button
@@ -182,8 +212,9 @@ class BeadClozeMultiPlugin implements JsPsychPlugin<typeof info, ClozeTrialParam
       ".bead-cloze-field",
     );
     for (const field of input_fields) {
-      const field_index = field.getAttribute("data-field");
-      if (field_index === null) continue;
+      const index = field.dataset["field"];
+      if (index === undefined) continue;
+      const field_index = fields[Number(index)]?.slot_name ?? index;
 
       // Track when user starts interacting with this field
       field.addEventListener("focus", () => {
@@ -223,8 +254,8 @@ class BeadClozeMultiPlugin implements JsPsychPlugin<typeof info, ClozeTrialParam
     const check_completion = (): void => {
       if (trial.require_all && continue_button) {
         // Check if all fields are filled
-        const all_filled = trial.fields.every((_field, index) => {
-          const response = responses[index.toString()];
+        const all_filled = fields.every((field, index) => {
+          const response = responses[field.slot_name ?? index.toString()];
           return response !== undefined && response.trim() !== "";
         });
         continue_button.disabled = !all_filled;
@@ -233,11 +264,13 @@ class BeadClozeMultiPlugin implements JsPsychPlugin<typeof info, ClozeTrialParam
 
     const end_trial = (): void => {
       // Gather all responses
+      const rt = performance.now() - start_time;
       const trial_data: Record<string, unknown> = {
         ...trial.metadata, // Preserve all metadata
         responses: responses,
         response_times: response_times,
-        total_rt: performance.now() - start_time,
+        rt,
+        total_rt: rt,
       };
 
       // Clear display

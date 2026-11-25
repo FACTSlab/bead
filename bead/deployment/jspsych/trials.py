@@ -307,6 +307,9 @@ def create_trial(
     >>> trial["type"]
     'bead-slider-rating'
     """
+    if template.task_type == "cloze" or experiment_config.experiment_type == "cloze":
+        return _create_cloze_trial(item, template, trial_number)
+
     # standalone span_labeling experiment type
     if experiment_config.experiment_type == "span_labeling":
         span_display = experiment_config.span_display or SpanDisplayConfig()
@@ -368,6 +371,57 @@ def create_trial(
         raise ValueError(
             f"Unknown experiment type: {experiment_config.experiment_type}"
         )
+
+
+def _create_cloze_trial(
+    item: Item, template: ItemTemplate, trial_number: int
+) -> dict[str, JsonValue]:
+    spec = template.task_spec
+    if spec is None or not spec.cloze_fields:
+        raise ValueError(f"Cloze template {template.name!r} requires explicit fields")
+    text = item.rendered_elements.get("sentence")
+    if not text:
+        raise ValueError(f"Cloze item {item.id} has no rendered sentence")
+
+    fields: list[JsonValue] = []
+    names: list[str] = []
+    for field in spec.cloze_fields:
+        if not field.name or field.name in names:
+            raise ValueError(f"Missing or duplicate cloze field name: {field.name!r}")
+        if text.count("{{" + field.name + "}}") != 1:
+            raise ValueError(f"Cloze field {field.name!r} must occur exactly once")
+        values = [option.value for option in field.options]
+        if "" in values or len(set(values)) != len(values):
+            raise ValueError(f"Cloze field {field.name!r} has invalid option values")
+        names.append(field.name)
+        fields.append(
+            {
+                "slot_name": field.name,
+                "type": "dropdown" if field.options else "text",
+                "options": [
+                    {"value": option.value, "label": option.label or option.value}
+                    for option in field.options
+                ],
+                "placeholder": field.placeholder or "",
+            }
+        )
+
+    return {
+        "type": "bead-cloze-multi",
+        "text": text,
+        "prompt": (
+            spec.prompt
+            if template.presentation_spec.display_format.get("show_prompt", True)
+            else ""
+        ),
+        "fields": fields,
+        "require_all": spec.cloze_require_all,
+        "data": {
+            **_serialize_item_metadata(item, template),
+            "trial_number": trial_number,
+            "response_field_names": names,
+        },
+    }
 
 
 def _create_likert_trial(

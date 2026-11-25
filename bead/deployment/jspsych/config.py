@@ -16,6 +16,7 @@ type ExperimentType = Literal[
     "binary_choice",
     "forced_choice",
     "span_labeling",
+    "cloze",
 ]
 
 type UITheme = Literal["light", "dark", "auto"]
@@ -219,6 +220,10 @@ class ExperimentConfig(dx.Model):
         Minimum trial duration in milliseconds (>= 0).
     use_jatos : bool
         Enable JATOS integration.
+    consent_text : str | None
+        Consent screen shown before collecting behavioral data.
+    result_format : Literal["aggregate", "stream"]
+        Store one result array or append records as a session progresses.
     prolific_completion_code : str | None
         Prolific completion code; when set, ``on_finish_url`` is
         auto-generated.
@@ -243,6 +248,8 @@ class ExperimentConfig(dx.Model):
     show_click_target: bool = False
     minimum_duration_ms: int = 0
     use_jatos: bool = True
+    consent_text: str | None = None
+    result_format: Literal["aggregate", "stream"] = "aggregate"
     prolific_completion_code: str | None = None
     slopit: dx.Embed[SlopitIntegrationConfig] = dx.field(
         default_factory=_default_slopit_integration
