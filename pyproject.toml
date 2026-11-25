@@ -23,11 +23,10 @@ classifiers = [
 ]
 requires-python = ">=3.14"
 dependencies = [
-    "didactic>=0.17.1",
-    "didactic-settings[yaml]>=0.17.1",
-    # Panproto 0.77 rejects the schemas used by Lairs repository writes.
-    "panproto>=0.76.1,<0.77",
-    "lairs>=0.10.4",
+    "didactic>=0.18.3",
+    "didactic-settings[yaml]>=0.18.3",
+    "panproto>=0.78.0",
+    "lairs>=0.10.5",
     "pyyaml>=6.0.0",
     "jinja2>=3.0.0",
     "uuid-utils>=0.7.0",
